@@ -16,16 +16,25 @@ const DefaultName = "default"
 
 func DBPath(flagValue string) (string, error) {
 	if p := strings.TrimSpace(flagValue); p != "" {
-		return ensureDir(filepath.Dir(p))
+		if err := ensureDir(filepath.Dir(p)); err != nil {
+			return "", err
+		}
+		return p, nil
 	}
 	if env := strings.TrimSpace(os.Getenv(EnvDB)); env != "" {
-		return ensureDir(filepath.Dir(env))
+		if err := ensureDir(filepath.Dir(env)); err != nil {
+			return "", err
+		}
+		return env, nil
 	}
 	dir, err := configDir()
 	if err != nil {
 		return "", err
 	}
-	return ensureDir(dir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", fmt.Errorf("config: create dir %q: %w", dir, err)
+	}
+	return filepath.Join(dir, DefaultName+".db"), nil
 }
 
 func DBName(path string) string {
@@ -33,14 +42,14 @@ func DBName(path string) string {
 	return strings.TrimSuffix(base, filepath.Ext(base))
 }
 
-func ensureDir(dir string) (string, error) {
+func ensureDir(dir string) error {
 	if dir == "" || dir == "." {
-		return "", errors.New("config: invalid DB directory")
+		return errors.New("config: invalid DB directory")
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("config: create dir %q: %w", dir, err)
+		return fmt.Errorf("config: create dir %q: %w", dir, err)
 	}
-	return dir, nil
+	return nil
 }
 
 func configDir() (string, error) {
