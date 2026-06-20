@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────
+# Fizza .gitignore
+# ─────────────────────────────────────────────────────────────
+
+# ── Internal docs / planning (no se versionan) ──
+/.docs/
+
+# ── Build artifacts ──
+/bin/
+/dist/
+/fizza
+/fizza.exe
+*.test
+*.out
+
+# ── Go ──
+# Binarios de go build
+/cmd/*/fizza
+/cmd/*/fizza.exe
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Vendor (no usamos, pero por si)
+/vendor/
+
+# ── Databases & runtime data ──
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Local config overrides ──
+.fizza.yaml
+.fizza.yml
+.fizza.toml
+
+# ── Editor / OS ──
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# JetBrains / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim / Emacs
+*.swp
+*.swo
+*~
+.\#*
+
+# ── Tooling caches ──
+.gocache/
+.cache/
+.mise/
+.tool-versions.local
+
+# ── Secrets / env ──
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ── Test artifacts ──
+testdata/fixtures/*.tmp
