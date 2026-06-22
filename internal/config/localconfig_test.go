@@ -163,3 +163,46 @@ func TestLoadLocalConfig_MergesWithGlobal(t *testing.T) {
 func configSaveForTest(path, content string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
 }
+
+func TestLoadEffectiveConfig_PartialOverride(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".git"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".fizza"), []byte("PROJECT=local-p\n"), 0o644))
+
+	global := DefaultConfig()
+	global.Project = "global-p"
+	global.Mode = ModeHuman
+	require.NoError(t, SaveConfig(global))
+
+	eff, err := LoadEffectiveConfig(root)
+	require.NoError(t, err)
+	assert.Equal(t, "local-p", eff.Project)
+	assert.Equal(t, ModeHuman, eff.Mode, "global mode preserved when local unset")
+}
+
+func TestLoadEffectiveConfig_NoLocal(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	root := t.TempDir()
+
+	global := DefaultConfig()
+	global.Project = "global-p"
+	global.Mode = ModeLLM
+	require.NoError(t, SaveConfig(global))
+
+	eff, err := LoadEffectiveConfig(root)
+	require.NoError(t, err)
+	assert.Equal(t, "global-p", eff.Project)
+	assert.Equal(t, ModeLLM, eff.Mode)
+}
+
+func TestMergeConfig(t *testing.T) {
+	g := Config{Mode: ModeLLM, Project: "g"}
+	l := Config{Mode: ModeHuman, Project: "l"}
+	assert.Equal(t, Config{Mode: ModeHuman, Project: "l"}, mergeConfig(g, l))
+	g2 := Config{Mode: ModeLLM, Project: "g"}
+	l2 := Config{Mode: "", Project: "l"}
+	assert.Equal(t, Config{Mode: ModeLLM, Project: "l"}, mergeConfig(g2, l2))
+}

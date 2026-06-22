@@ -66,7 +66,8 @@ func newRootCmd() *cobra.Command {
 			if name == "config" || name == "fizza" || name == "mcp" || name == "help" {
 				return nil
 			}
-			cfg, err := config.LoadConfig()
+			cwd, _ := os.Getwd()
+			cfg, err := config.LoadEffectiveConfig(cwd)
 			if err != nil {
 				return err
 			}

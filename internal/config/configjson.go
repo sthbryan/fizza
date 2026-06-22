@@ -34,6 +34,10 @@ func ConfigPath() (string, error) {
 }
 
 func LoadConfig() (Config, error) {
+	return loadGlobalConfig()
+}
+
+func loadGlobalConfig() (Config, error) {
 	cfg := DefaultConfig()
 	path, err := ConfigPath()
 	if err != nil {
@@ -60,6 +64,29 @@ func LoadConfig() (Config, error) {
 		return cfg, fmt.Errorf("config: invalid mode %q (want llm or human)", cfg.Mode)
 	}
 	return cfg, nil
+}
+
+func LoadEffectiveConfig(startDir string) (Config, error) {
+	global, err := loadGlobalConfig()
+	if err != nil {
+		return global, err
+	}
+	local, err := LoadLocalConfig(startDir)
+	if err != nil {
+		return global, err
+	}
+	return mergeConfig(global, local), nil
+}
+
+func mergeConfig(global, local Config) Config {
+	out := global
+	if local.Project != "" {
+		out.Project = local.Project
+	}
+	if local.Mode != "" {
+		out.Mode = local.Mode
+	}
+	return out
 }
 
 func SaveConfig(cfg Config) error {

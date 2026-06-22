@@ -16,22 +16,15 @@ const (
 )
 
 func LoadLocalConfig(startDir string) (Config, error) {
-	cfg := DefaultConfig()
 	path, found := FindLocalConfig(startDir)
 	if !found {
-		return cfg, nil
+		return Config{}, nil
 	}
 	parsed, err := ParseLocalConfigFile(path)
 	if err != nil {
-		return cfg, err
+		return Config{}, err
 	}
-	if parsed.Project != "" {
-		cfg.Project = parsed.Project
-	}
-	if parsed.Mode != "" {
-		cfg.Mode = parsed.Mode
-	}
-	return cfg, nil
+	return parsed, nil
 }
 
 func FindLocalConfig(startDir string) (string, bool) {
