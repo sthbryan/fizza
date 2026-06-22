@@ -24,7 +24,7 @@ func newTaskCmd(rf *rootFlags) *cobra.Command {
 }
 
 func newTaskAddCmd(rf *rootFlags) *cobra.Command {
-	var project, board, column, desc, priority, due, parent string
+	var board, column, desc, priority, due, parent string
 	c := &cobra.Command{
 		Use:   "add <title>",
 		Short: "Add a task to a board",
@@ -35,11 +35,10 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
-			pname, err := rf.resolveProject(cmd)
+			project, err := rf.resolveProject()
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -86,7 +85,6 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, t)
 		},
 	}
-	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
 	c.Flags().StringVar(&column, "column", "", "Column name (default: first column)")
 	c.Flags().StringVar(&desc, "desc", "", "Task description")
@@ -97,7 +95,7 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 }
 
 func newTaskListCmd(rf *rootFlags) *cobra.Command {
-	var project, board, column string
+	var board, column string
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "List tasks in a board",
@@ -105,11 +103,10 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
-			pname, err := rf.resolveProject(cmd)
+			project, err := rf.resolveProject()
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -131,7 +128,6 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, tasks)
 		},
 	}
-	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
 	c.Flags().StringVar(&column, "column", "", "Filter by column name")
 	return c
@@ -162,7 +158,7 @@ func newTaskShowCmd(rf *rootFlags) *cobra.Command {
 }
 
 func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
-	var project, board string
+	var board string
 	c := &cobra.Command{
 		Use:   "move <id> <column>",
 		Short: "Move a task to a column",
@@ -173,11 +169,10 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
-			pname, err := rf.resolveProject(cmd)
+			project, err := rf.resolveProject()
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -210,7 +205,6 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, updated)
 		},
 	}
-	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
 	return c
 }

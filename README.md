@@ -31,13 +31,21 @@ go install github.com/fizza/fizza/cmd/fizza@latest
 ```bash
 # Create a project (auto-seeds a default "main" board with todo/in_progress/done)
 fizza project new alpha --desc "my first project"
+fizza project new beta
 
-# Add tasks
-fizza task add "ship the demo" --project alpha --board main --priority high
-fizza task add "write the docs" --project alpha --board main --due 2026-07-01
+# Set a default project so you don't have to pass --project on every call
+fizza project set alpha
+
+# Add tasks (uses the default project)
+fizza task add "ship the demo" --board main --priority high
+fizza task add "write the docs" --board main --due 2026-07-01
+
+# Switch projects anytime
+fizza project set beta
+fizza task add "research competitor" --board main
 
 # List
-fizza task list --project alpha --board main
+fizza task list --board main
 
 # Move a task
 fizza task move 1 done
@@ -46,7 +54,7 @@ fizza task move 1 done
 fizza task show 1
 
 # Human-friendly tables
-fizza task list --project alpha --board main --format pretty
+fizza task list --board main --format pretty
 ```
 
 ## Connect to your coding agent (MCP)
@@ -130,6 +138,25 @@ If your agent doesn't support MCP but can run subprocesses, point it at `fizza` 
 
 All tools accept and return JSON. The MCP server enforces the same schema; invalid inputs are rejected before any DB write.
 
+## Configuration
+
+User config lives at `~/.config/fizza/config.json` (XDG-aware). Two fields:
+
+| Key | Values | Effect |
+|---|---|---|
+| `mode` | `llm` (default) \| `human` | When `human`, output is rendered as tables without passing `--format` |
+| `project` | project name | Default project for board/task commands. Override per-call by changing it |
+
+```bash
+fizza config show                   # show current config
+fizza config set mode human         # human-readable output by default
+fizza config set project alpha      # make `alpha` the default project
+fizza config unset project          # clear the default (board/task commands will require it)
+fizza config path                   # print the config file path
+```
+
+`fizza project set <name>` is a shortcut for `fizza config set project <name>` and validates that the project exists in the DB.
+
 ## CLI reference
 
 ```bash
@@ -138,10 +165,10 @@ fizza project list
 fizza project show <name>
 fizza project delete <name> [--force]
 
-fizza board create <name> --project <name> [--columns "todo,in_progress,review,done"]
-fizza board list --project <name>
-fizza board show <name> --project <name>
-fizza board delete <name> --project <name> [--force]
+fizza board create <name> [--columns "todo,in_progress,review,done"]
+fizza board list
+fizza board show <name>
+fizza board delete <name> [--force]
 
 fizza task add <title> --project <name> --board <name> [--column <name>] [--desc "..."] [--priority low|medium|high|urgent] [--due 2026-07-01] [--parent <id>]
 fizza task list --project <name> --board <name> [--column <name>]

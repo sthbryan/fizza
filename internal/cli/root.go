@@ -46,12 +46,9 @@ func (rf *rootFlags) openDB(ctx context.Context) (*sql.DB, error) {
 	return db.Open(ctx, rf.resolved)
 }
 
-func (rf *rootFlags) resolveProject(cmd *cobra.Command) (string, error) {
-	if f := cmd.Flags().Lookup("project"); f != nil && f.Changed {
-		return f.Value.String(), nil
-	}
+func (rf *rootFlags) resolveProject() (string, error) {
 	if rf.conf.Project == "" {
-		return "", fmt.Errorf("%w: --project required (or set a default with `fizza project set <name>`)", ErrValidation)
+		return "", fmt.Errorf("%w: no default project set (run `fizza project set <name>` first)", ErrValidation)
 	}
 	return rf.conf.Project, nil
 }
