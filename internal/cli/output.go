@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fizza/fizza/internal/db"
@@ -53,6 +54,8 @@ func ClassifyError(err error) (Envelope, int) {
 	switch {
 	case err == nil:
 		return OK(nil), ExitOK
+	case errors.Is(err, ErrValidation):
+		return Fail(CodeValidation, validationMessage(err)), ExitValidation
 	case db.IsNotFound(err):
 		return Fail(CodeNotFound, err.Error()), ExitNotFound
 	case db.IsDuplicate(err):
@@ -60,6 +63,15 @@ func ClassifyError(err error) (Envelope, int) {
 	default:
 		return Fail(CodeInternal, err.Error()), ExitGeneric
 	}
+}
+
+func validationMessage(err error) string {
+	msg := err.Error()
+	const prefix = "validation: "
+	if strings.HasPrefix(msg, prefix) {
+		return msg[len(prefix):]
+	}
+	return msg
 }
 
 type Output struct {

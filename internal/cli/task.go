@@ -28,8 +28,13 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "add <title>",
 		Short: "Add a task to a board",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := mustFlags(cmd, "project", "board"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -83,8 +88,6 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 	c.Flags().StringVar(&priority, "priority", model.DefaultPriority, "low|medium|high|urgent")
 	c.Flags().StringVar(&due, "due", "", "Due date (YYYY-MM-DD or ISO 8601)")
 	c.Flags().StringVar(&parent, "parent", "", "Parent task ID (numeric prefix)")
-	_ = c.MarkFlagRequired("project")
-	_ = c.MarkFlagRequired("board")
 	return c
 }
 
@@ -94,6 +97,9 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List tasks in a board",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustFlags(cmd, "project", "board"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -118,8 +124,6 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
 	c.Flags().StringVar(&column, "column", "", "Filter by column name")
-	_ = c.MarkFlagRequired("project")
-	_ = c.MarkFlagRequired("board")
 	return c
 }
 
@@ -127,8 +131,10 @@ func newTaskShowCmd(rf *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a task by ID or numeric prefix",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -150,8 +156,13 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "move <id> <column>",
 		Short: "Move a task to a column",
-		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 2); err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := mustFlags(cmd, "project", "board"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -186,8 +197,6 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 	}
 	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
-	_ = c.MarkFlagRequired("project")
-	_ = c.MarkFlagRequired("board")
 	return c
 }
 
@@ -197,8 +206,10 @@ func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a task's fields",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -269,8 +280,10 @@ func newTaskDeleteCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete a task (cascades subtasks)",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {

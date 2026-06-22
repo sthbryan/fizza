@@ -24,8 +24,13 @@ func newBoardCreateCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "create <name>",
 		Short: "Create a board in a project",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := mustFlags(cmd, "project"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -57,7 +62,6 @@ func newBoardCreateCmd(rf *rootFlags) *cobra.Command {
 	}
 	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().StringVar(&columns, "columns", "", "Comma-separated column names (default: todo,in_progress,done)")
-	_ = c.MarkFlagRequired("project")
 	return c
 }
 
@@ -67,6 +71,9 @@ func newBoardListCmd(rf *rootFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List boards in a project",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustFlags(cmd, "project"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -89,7 +96,6 @@ func newBoardListCmd(rf *rootFlags) *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&project, "project", "", "Project name (required)")
-	_ = c.MarkFlagRequired("project")
 	return c
 }
 
@@ -98,8 +104,13 @@ func newBoardShowCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "show <name>",
 		Short: "Show board with columns",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := mustFlags(cmd, "project"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -136,7 +147,6 @@ func newBoardShowCmd(rf *rootFlags) *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&project, "project", "", "Project name (required)")
-	_ = c.MarkFlagRequired("project")
 	return c
 }
 
@@ -146,8 +156,13 @@ func newBoardDeleteCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "delete <name>",
 		Short: "Delete a board (blocked if tasks exist)",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := mustFlags(cmd, "project"); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -189,6 +204,5 @@ func newBoardDeleteCmd(rf *rootFlags) *cobra.Command {
 	}
 	c.Flags().StringVar(&project, "project", "", "Project name (required)")
 	c.Flags().BoolVar(&force, "force", false, "Skip confirmation")
-	_ = c.MarkFlagRequired("project")
 	return c
 }

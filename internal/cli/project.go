@@ -23,8 +23,10 @@ func newProjectNewCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "new <name>",
 		Short: "Create a new project",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -71,8 +73,10 @@ func newProjectShowCmd(rf *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <name>",
 		Short: "Show project details",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -94,8 +98,10 @@ func newProjectDeleteCmd(rf *rootFlags) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "delete <name>",
 		Short: "Delete a project (cascades boards, columns, tasks)",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
