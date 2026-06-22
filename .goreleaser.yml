@@ -1,0 +1,70 @@
+version: 2
+
+project_name: fizza
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: fizza
+    main: ./cmd/fizza
+    binary: fizza
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - LICENSE*
+      - README*
+
+nfpms:
+  - id: packages
+    package_name: fizza
+    vendor: Fizza
+    homepage: https://github.com/fizza/fizza
+    maintainer: fizza <dev@fizza.local>
+    description: Single-binary kanban board manager for humans and LLMs
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^style:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
