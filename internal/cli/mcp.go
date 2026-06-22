@@ -14,7 +14,7 @@ func newMCPCmd(rf *rootFlags) *cobra.Command {
 		Long: "Starts a Model Context Protocol server speaking JSON-RPC 2.0 over stdin/stdout. " +
 			"Intended to be invoked by an MCP-compatible coding agent (Claude Code, Cursor, etc.).",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fizzamcp.Run(context.Background(), rf.dbPath)
+			return fizzamcp.Run(context.Background(), rf.dbPath, version)
 		},
 	}
 }

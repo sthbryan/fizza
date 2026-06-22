@@ -12,12 +12,9 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const (
-	serverName    = "fizza"
-	serverVersion = "0.1.0"
-)
+const serverName = "fizza"
 
-func Run(ctx context.Context, dbPath string) error {
+func Run(ctx context.Context, dbPath, version string) error {
 	path, err := config.DBPath(dbPath)
 	if err != nil {
 		return fmt.Errorf("resolve db path: %w", err)
@@ -28,9 +25,13 @@ func Run(ctx context.Context, dbPath string) error {
 	}
 	defer conn.Close()
 
+	if version == "" {
+		version = "dev"
+	}
+
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    serverName,
-		Version: serverVersion,
+		Version: version,
 	}, &mcp.ServerOptions{
 		Instructions: "Fizza is a kanban board manager backed by SQLite. Use these tools to manage projects, boards, and tasks.",
 	})
