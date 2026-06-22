@@ -48,7 +48,9 @@ func TestCRUD_Board_WithSeedColumns(t *testing.T) {
 	p, err := CreateProject(ctx, conn, "alpha", "")
 	require.NoError(t, err)
 
-	b, err := CreateBoard(ctx, conn, p.ID, "main")
+	boards, err := ListBoards(ctx, conn, p.ID)
+	require.NoError(t, err)
+	b := boards[0]
 	require.NoError(t, err)
 	assert.True(t, b.IsDefault, "first board of a project should be default")
 
@@ -75,7 +77,8 @@ func TestCRUD_Task_FullLifecycle(t *testing.T) {
 	ctx := context.Background()
 
 	p, _ := CreateProject(ctx, conn, "alpha", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 	done := cols[2]
@@ -133,7 +136,8 @@ func TestTask_SubtasksAndCascade(t *testing.T) {
 	ctx := context.Background()
 
 	p, _ := CreateProject(ctx, conn, "alpha", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 
@@ -167,7 +171,8 @@ func TestTask_PrefixLookup(t *testing.T) {
 	ctx := context.Background()
 
 	p, _ := CreateProject(ctx, conn, "alpha", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 
 	for _, title := range []string{"alpha-task", "beta-task", "gamma-task"} {
@@ -199,7 +204,8 @@ func TestDeleteBoard_BlockedByTasks(t *testing.T) {
 	ctx := context.Background()
 
 	p, _ := CreateProject(ctx, conn, "alpha", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	require.NoError(t, CreateTask(ctx, conn, &model.Task{
 		BoardID: b.ID, ColumnID: cols[0].ID, Title: "blocker",

@@ -17,7 +17,8 @@ func TestPosition_FractionalInsert(t *testing.T) {
 	ctx := context.Background()
 
 	p, _ := CreateProject(ctx, conn, "p", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 
@@ -50,7 +51,8 @@ func TestPosition_AppendAtEnd(t *testing.T) {
 	conn := newTestDB(t)
 	ctx := context.Background()
 	p, _ := CreateProject(ctx, conn, "p", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 
@@ -74,7 +76,8 @@ func TestPosition_RebalanceAfterManyInsertsInSameSpot(t *testing.T) {
 	conn := newTestDB(t)
 	ctx := context.Background()
 	p, _ := CreateProject(ctx, conn, "p", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 
@@ -124,7 +127,8 @@ func TestPosition_ConcurrentInsertsDontLoseData(t *testing.T) {
 	conn := newTestDB(t)
 	ctx := context.Background()
 	p, _ := CreateProject(ctx, conn, "p", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 
@@ -174,7 +178,8 @@ func TestPosition_GapTooSmallTriggersRebalance(t *testing.T) {
 	conn := newTestDB(t)
 	ctx := context.Background()
 	p, _ := CreateProject(ctx, conn, "p", "")
-	b, _ := CreateBoard(ctx, conn, p.ID, "main")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
 
