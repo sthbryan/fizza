@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/fizza/fizza/internal/db"
+	"github.com/fizza/fizza/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,19 +55,50 @@ func TestOutput_JSON(t *testing.T) {
 	assert.Len(t, decoded.Data.([]any), 1)
 }
 
-func TestOutput_Pretty(t *testing.T) {
+func TestOutput_Pretty_ProjectList(t *testing.T) {
 	var buf bytes.Buffer
 	o := NewOutput(&buf, "pretty", true)
-	require.NoError(t, o.Pretty(
-		[]string{"ID", "NAME"},
-		[][]string{{"1", "alpha"}, {"2", "beta"}},
-	))
+	projects := []*model.Project{
+		{ID: 1, Name: "alpha", Description: "first"},
+		{ID: 2, Name: "beta", Description: "second"},
+	}
+	require.NoError(t, o.Write(OK(projects)))
 	out := buf.String()
 	assert.Contains(t, out, "ID")
 	assert.Contains(t, out, "NAME")
 	assert.Contains(t, out, "alpha")
 	assert.Contains(t, out, "beta")
-	assert.NotEmpty(t, out)
+	assert.Contains(t, out, "first")
+	assert.NotContains(t, out, "{", "pretty output must not contain JSON")
+}
+
+func TestOutput_Pretty_ProjectSingle(t *testing.T) {
+	var buf bytes.Buffer
+	o := NewOutput(&buf, "pretty", true)
+	p := &model.Project{ID: 1, Name: "alpha", Description: "first"}
+	require.NoError(t, o.Write(OK(p)))
+	out := buf.String()
+	assert.Contains(t, out, "ID:")
+	assert.Contains(t, out, "NAME:")
+	assert.Contains(t, out, "alpha")
+	assert.Contains(t, out, "first")
+}
+
+func TestOutput_Pretty_FallsBackToJSON(t *testing.T) {
+	var buf bytes.Buffer
+	o := NewOutput(&buf, "pretty", true)
+	require.NoError(t, o.Write(OK(map[string]any{"foo": "bar"})))
+	out := buf.String()
+	assert.Contains(t, out, `"foo"`)
+	assert.Contains(t, out, `"bar"`)
+}
+
+func TestOutput_FormatExplicitJSON(t *testing.T) {
+	var buf bytes.Buffer
+	o := NewOutput(&buf, "json", true)
+	require.NoError(t, o.Write(OK([]*model.Project{{ID: 1, Name: "x"}})))
+	assert.Contains(t, buf.String(), `"ok"`)
+	assert.Contains(t, buf.String(), `"name"`)
 }
 
 func TestParseFlagInt64(t *testing.T) {

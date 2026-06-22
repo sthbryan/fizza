@@ -53,8 +53,8 @@ func newRootCmd() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().StringVar(&rf.dbPath, "db", "", "SQLite path (overrides FIZZA_DB)")
-	cmd.PersistentFlags().StringVar(&rf.format, "format", "json", "Output format: json|pretty")
-	cmd.PersistentFlags().BoolVar(&rf.pretty, "pretty", false, "Shortcut for --format pretty")
+	cmd.PersistentFlags().StringVar(&rf.format, "format", "json", "Output format: json (default) or pretty (human tables)")
+	cmd.PersistentFlags().BoolVar(&rf.pretty, "pretty", false, "Shortcut for --format pretty: human-friendly tables instead of JSON")
 	cmd.PersistentFlags().BoolVar(&rf.noColor, "no-color", false, "Disable ANSI colors")
 
 	cmd.AddCommand(newProjectCmd(rf))
