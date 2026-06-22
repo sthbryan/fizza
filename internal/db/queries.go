@@ -28,7 +28,17 @@ func CreateProject(ctx context.Context, q querier, name, description string) (*m
 	if err := model.ValidateProject(name, description); err != nil {
 		return nil, err
 	}
-	res, err := q.ExecContext(ctx,
+	txer, ok := q.(transactor)
+	if !ok {
+		return nil, errors.New("db: CreateProject requires *sql.DB or *sql.Tx")
+	}
+	tx, err := txer.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("db: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	res, err := tx.ExecContext(ctx,
 		`INSERT INTO projects (name, description) VALUES (?, ?)`,
 		name, description,
 	)
@@ -41,6 +51,31 @@ func CreateProject(ctx context.Context, q querier, name, description string) (*m
 	id, err := res.LastInsertId()
 	if err != nil {
 		return nil, fmt.Errorf("db: last id: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO boards (project_id, name, is_default) VALUES (?, 'main', 1)`,
+		id,
+	); err != nil {
+		return nil, fmt.Errorf("db: insert default board: %w", err)
+	}
+	var boardID int64
+	if err := tx.QueryRowContext(ctx,
+		`SELECT id FROM boards WHERE project_id = ? AND name = 'main'`, id,
+	).Scan(&boardID); err != nil {
+		return nil, fmt.Errorf("db: get default board id: %w", err)
+	}
+	for i, colName := range DefaultSeedColumns {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO columns (board_id, name, position) VALUES (?, ?, ?)`,
+			boardID, colName, i+1,
+		); err != nil {
+			return nil, fmt.Errorf("db: insert column %q: %w", colName, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("db: commit: %w", err)
 	}
 	return GetProject(ctx, q, id)
 }
