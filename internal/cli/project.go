@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/spf13/cobra"
@@ -15,7 +16,40 @@ func newProjectCmd(rf *rootFlags) *cobra.Command {
 	cmd.AddCommand(newProjectListCmd(rf))
 	cmd.AddCommand(newProjectShowCmd(rf))
 	cmd.AddCommand(newProjectDeleteCmd(rf))
+	cmd.AddCommand(newProjectSetCmd(rf))
 	return cmd
+}
+
+func newProjectSetCmd(rf *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "set <name>",
+		Short: "Set the default project (used when --project is omitted)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			ctx := cmd.Context()
+			conn, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer conn.Close()
+
+			if _, err := db.GetProjectByName(ctx, conn, args[0]); err != nil {
+				return report(cmd, rf, err)
+			}
+
+			cfg, err := config.LoadConfig()
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			cfg.Project = args[0]
+			if err := config.SaveConfig(cfg); err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, map[string]any{"default_project": args[0]})
+		},
+	}
 }
 
 func newProjectNewCmd(rf *rootFlags) *cobra.Command {

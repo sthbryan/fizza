@@ -32,9 +32,14 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			if err := mustArgs(cmd, args, 1); err != nil {
 				return report(cmd, rf, err)
 			}
-			if err := mustFlags(cmd, "project", "board"); err != nil {
+			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
+			pname, err := rf.resolveProject(cmd)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -97,9 +102,14 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List tasks in a board",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := mustFlags(cmd, "project", "board"); err != nil {
+			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
+			pname, err := rf.resolveProject(cmd)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -160,9 +170,14 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 			if err := mustArgs(cmd, args, 2); err != nil {
 				return report(cmd, rf, err)
 			}
-			if err := mustFlags(cmd, "project", "board"); err != nil {
+			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
+			pname, err := rf.resolveProject(cmd)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {

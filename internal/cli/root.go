@@ -3,7 +3,10 @@ package cli
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
@@ -19,27 +22,38 @@ func Execute() error {
 }
 
 type rootFlags struct {
-	dbPath  string
-	format  string
-	pretty  bool
-	noColor bool
+	dbPath   string
+	format   string
+	noColor  bool
+	conf     config.Config
+	resolved string
 }
 
 func (rf *rootFlags) output(w io.Writer) *Output {
-	format := rf.format
-	if rf.pretty {
-		format = "pretty"
-	}
+	format := config.ResolveMode(rf.format, rf.conf.Mode)
 	noColor := rf.noColor || !StdoutIsTTY()
 	return NewOutput(w, format, noColor)
 }
 
 func (rf *rootFlags) openDB(ctx context.Context) (*sql.DB, error) {
-	path, err := config.DBPath(rf.dbPath)
-	if err != nil {
-		return nil, err
+	if rf.resolved == "" {
+		path, err := config.DBPath(rf.dbPath)
+		if err != nil {
+			return nil, err
+		}
+		rf.resolved = path
 	}
-	return db.Open(ctx, path)
+	return db.Open(ctx, rf.resolved)
+}
+
+func (rf *rootFlags) resolveProject(cmd *cobra.Command) (string, error) {
+	if f := cmd.Flags().Lookup("project"); f != nil && f.Changed {
+		return f.Value.String(), nil
+	}
+	if rf.conf.Project == "" {
+		return "", fmt.Errorf("%w: --project required (or set a default with `fizza project set <name>`)", ErrValidation)
+	}
+	return rf.conf.Project, nil
 }
 
 func newRootCmd() *cobra.Command {
@@ -50,17 +64,35 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       version,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			name := cmd.Name()
+			if name == "config" || name == "fizza" || name == "mcp" || name == "help" {
+				return nil
+			}
+			cfg, err := config.LoadConfig()
+			if err != nil {
+				return err
+			}
+			rf.conf = cfg
+			return nil
+		},
 	}
 
 	cmd.PersistentFlags().StringVar(&rf.dbPath, "db", "", "SQLite path (overrides FIZZA_DB)")
 	cmd.PersistentFlags().StringVar(&rf.format, "format", "json", "Output format: json (default) or pretty (human tables)")
-	cmd.PersistentFlags().BoolVar(&rf.pretty, "pretty", false, "Shortcut for --format pretty: human-friendly tables instead of JSON")
 	cmd.PersistentFlags().BoolVar(&rf.noColor, "no-color", false, "Disable ANSI colors")
 
 	cmd.AddCommand(newProjectCmd(rf))
 	cmd.AddCommand(newBoardCmd(rf))
 	cmd.AddCommand(newTaskCmd(rf))
+	cmd.AddCommand(newConfigCmd(rf))
 	cmd.AddCommand(newMCPCmd(rf))
 
 	return cmd
+}
+
+func writeConfigPathNote(path string) {
+	if dir := filepath.Dir(path); dir != "" {
+		_ = os.MkdirAll(dir, 0o755)
+	}
 }

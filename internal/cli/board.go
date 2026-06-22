@@ -71,9 +71,11 @@ func newBoardListCmd(rf *rootFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List boards in a project",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := mustFlags(cmd, "project"); err != nil {
+			pname, err := rf.resolveProject(cmd)
+			if err != nil {
 				return report(cmd, rf, err)
 			}
+			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {
@@ -108,9 +110,11 @@ func newBoardShowCmd(rf *rootFlags) *cobra.Command {
 			if err := mustArgs(cmd, args, 1); err != nil {
 				return report(cmd, rf, err)
 			}
-			if err := mustFlags(cmd, "project"); err != nil {
+			pname, err := rf.resolveProject(cmd)
+			if err != nil {
 				return report(cmd, rf, err)
 			}
+			project = pname
 			ctx := cmd.Context()
 			conn, err := rf.openDB(ctx)
 			if err != nil {

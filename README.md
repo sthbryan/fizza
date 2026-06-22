@@ -46,7 +46,7 @@ fizza task move 1 done
 fizza task show 1
 
 # Human-friendly tables
-fizza task list --project alpha --board main --pretty
+fizza task list --project alpha --board main --format pretty
 ```
 
 ## Connect to your coding agent (MCP)
@@ -155,7 +155,6 @@ fizza mcp                                # run as MCP server on stdio
 # Global flags
 --db <path>                              # override DB path
 --format json|pretty                     # default json
---pretty                                 # shortcut for --format pretty
 --no-color                               # disable ANSI colors
 ```
 
