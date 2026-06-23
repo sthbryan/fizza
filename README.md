@@ -157,6 +157,18 @@ fizza config path                   # print the config file path
 
 `fizza project set <name>` is a shortcut for `fizza config set project <name>` and validates that the project exists in the DB.
 
+### Per-project config (`.fizza`)
+
+For mono-repo or multi-project workflows, drop a `.fizza` file at the project root. It uses env-style `KEY=VALUE` lines and overrides the global config when fizza runs inside that directory or any subdirectory (search walks up to 5 levels and stops at the first `.git`, `$HOME`, or filesystem root).
+
+```bash
+# .fizza
+PROJECT=myapp          # default project for this checkout
+MODE=human             # default output mode (llm | human)
+```
+
+The closest `.fizza` to your cwd wins; keys not set fall back to the global config. Add `.fizza` to `.gitignore` if it's personal state; commit it if it's shared team config.
+
 ## CLI reference
 
 ```bash
