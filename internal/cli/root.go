@@ -57,7 +57,7 @@ func newRootCmd() *cobra.Command {
 		Version:       version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			name := cmd.Name()
-			if name == "config" || name == "fizza" || name == "mcp" || name == "help" {
+			if name == "fizza" || name == "mcp" || name == "help" {
 				return nil
 			}
 			cwd, _ := os.Getwd()
