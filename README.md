@@ -3,7 +3,7 @@
 Single-binary kanban board manager, backed by SQLite, designed for both humans and LLMs.
 
 - **One binary**, zero runtime dependencies (CGO-free, statically linked)
-- **SQLite storage** at `~/.config/fizza/default.db` (or override with `--db` / `FIZZA_DB`)
+- **SQLite storage** at `~/.config/fizza/default.db` (single DB per user)
 - **JSON output by default** so LLMs and other tools can consume it directly
 - **MCP server** built-in: connect it to Claude Code, Cursor, or Continue in 30 seconds
 - **Concurrent-safe**: fractional positions + WAL mode for multi-agent writes
@@ -182,17 +182,16 @@ fizza board list
 fizza board show <name>
 fizza board delete <name> [--force]
 
-fizza task add <title> --project <name> --board <name> [--column <name>] [--desc "..."] [--priority low|medium|high|urgent] [--due 2026-07-01] [--parent <id>]
-fizza task list --project <name> --board <name> [--column <name>]
+fizza task add <title> --board <name> [--column <name>] [--desc "..."] [--priority low|medium|high|urgent] [--due 2026-07-01] [--parent <id>]
+fizza task list --board <name> [--column <name>]
 fizza task show <id>
-fizza task move <id> <column> --project <name> --board <name>
+fizza task move <id> <column> --board <name>
 fizza task update <id> [--title "..."] [--desc "..."] [--priority ...] [--due ...] [--clear-due] [--parent <id>] [--clear-parent]
 fizza task delete <id> [--force]
 
 fizza mcp                                # run as MCP server on stdio
 
 # Global flags
---db <path>                              # override DB path
 --format json|pretty                     # default json
 --no-color                               # disable ANSI colors
 ```
@@ -233,12 +232,7 @@ On error:
 
 ## Storage
 
-Default location: `~/.config/fizza/default.db`
-
-Override precedence (highest first):
-1. `--db <path>` flag
-2. `FIZZA_DB` environment variable
-3. `~/.config/fizza/<name>.db` (XDG-aware: respects `$XDG_CONFIG_HOME`)
+Single database per user, located at `~/.config/fizza/default.db`. Honors `$XDG_CONFIG_HOME` (so `XDG_CONFIG_HOME=/tmp/foo` → `/tmp/foo/fizza/default.db`).
 
 Schema is migrated automatically on first open. The DB file is yours — `sqlite3 ~/.config/fizza/default.db` works.
 
