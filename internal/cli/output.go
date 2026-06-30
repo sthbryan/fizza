@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/rodaine/table"
@@ -201,6 +202,9 @@ func collectTable(data any) (rows [][]string, headers []string, single, ok bool)
 			return [][]string{}, columnHeaders(), false, true
 		}
 		return columnRows(v), columnHeaders(), false, true
+
+	case config.Config:
+		return configRows(v), configHeaders(), true, true
 	}
 	return nil, nil, false, false
 }
@@ -209,6 +213,18 @@ func projectHeaders() []string  { return []string{"ID", "NAME", "DESCRIPTION", "
 func boardHeaders() []string    { return []string{"ID", "NAME", "DEFAULT", "CREATED"} }
 func columnHeaders() []string  { return []string{"ID", "NAME", "POSITION", "COLOR"} }
 func taskHeaders() []string    { return []string{"ID", "STATUS", "TITLE", "PRIORITY", "DUE", "UPDATED"} }
+func configHeaders() []string  { return []string{"KEY", "VALUE"} }
+
+func configRows(c config.Config) [][]string {
+	project := c.Project
+	if project == "" {
+		project = "(unset)"
+	}
+	return [][]string{
+		{"mode", c.Mode},
+		{"project", project},
+	}
+}
 
 func projectRows(ps []*model.Project) [][]string {
 	out := make([][]string, len(ps))

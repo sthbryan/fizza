@@ -24,13 +24,9 @@ func newConfigCmd(rf *rootFlags) *cobra.Command {
 func newConfigShowCmd(rf *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
-		Short: "Show current config",
+		Short: "Show effective config (global merged with .fizza)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.LoadConfig()
-			if err != nil {
-				return report(cmd, rf, err)
-			}
-			return writeOK(cmd, rf, cfg)
+			return writeOK(cmd, rf, rf.conf)
 		},
 	}
 }
