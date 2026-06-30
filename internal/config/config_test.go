@@ -9,29 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDBPath_FlagWins(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "custom.db")
-	got, err := DBPath(target)
-	require.NoError(t, err)
-	assert.Equal(t, target, got, "flag value must be returned as-is (no rewriting)")
-}
-
-func TestDBPath_EnvWhenNoFlag(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "fromenv.db")
-	t.Setenv(EnvDB, target)
-
-	got, err := DBPath("")
-	require.NoError(t, err)
-	assert.Equal(t, target, got)
-}
-
 func TestDBPath_DefaultWhenNothingSet(t *testing.T) {
-	t.Setenv(EnvDB, "")
 	t.Setenv("XDG_CONFIG_HOME", "")
 
-	got, err := DBPath("")
+	got, err := DBPath()
 	require.NoError(t, err)
 
 	home, _ := os.UserHomeDir()
@@ -43,18 +24,22 @@ func TestDBPath_XDGOverride(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 
-	got, err := DBPath("")
+	got, err := DBPath()
 	require.NoError(t, err)
 	assert.Equal(t, filepath.Join(dir, DefaultDirName, DefaultName+".db"), got)
 }
 
 func TestDBPath_CreatesParentDir(t *testing.T) {
 	dir := t.TempDir()
-	nested := filepath.Join(dir, "deep", "nested", "fizza.db")
-	_, err := DBPath(nested)
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	_, err := DBPath()
 	require.NoError(t, err)
-	_, err = os.Stat(filepath.Dir(nested))
-	require.NoError(t, err, "parent dir must exist after DBPath")
+
+	want := filepath.Join(dir, DefaultDirName)
+	stat, err := os.Stat(want)
+	require.NoError(t, err)
+	assert.True(t, stat.IsDir(), "fizza config dir must exist after DBPath")
 }
 
 func TestDBName(t *testing.T) {

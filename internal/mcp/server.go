@@ -14,8 +14,8 @@ import (
 
 const serverName = "fizza"
 
-func Run(ctx context.Context, dbPath, version string) error {
-	path, err := config.DBPath(dbPath)
+func Run(ctx context.Context, version string) error {
+	path, err := config.DBPath()
 	if err != nil {
 		return fmt.Errorf("resolve db path: %w", err)
 	}

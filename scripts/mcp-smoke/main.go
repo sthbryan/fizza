@@ -24,15 +24,20 @@ func main() {
 		die("abs: %v", err)
 	}
 
-	dbPath := filepath.Join(os.TempDir(), fmt.Sprintf("fizza-smoke-%d.db", time.Now().UnixNano()))
-	defer os.Remove(dbPath)
+	xdgDir, err := os.MkdirTemp("", "fizza-smoke-*")
+	if err != nil {
+		die("mkdir: %v", err)
+	}
+	defer os.RemoveAll(xdgDir)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	cmd := exec.Command(abs, "mcp")
+	cmd.Env = append(os.Environ(), "XDG_CONFIG_HOME="+xdgDir)
 	client := mcp.NewClient(&mcp.Implementation{Name: "fizza-smoke", Version: "0"}, nil)
 	session, err := client.Connect(ctx, &mcp.CommandTransport{
-		Command: exec.Command(abs, "mcp", "--db", dbPath),
+		Command: cmd,
 	}, nil)
 	if err != nil {
 		die("connect: %v", err)

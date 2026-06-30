@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
@@ -22,11 +21,9 @@ func Execute() error {
 }
 
 type rootFlags struct {
-	dbPath   string
-	format   string
-	noColor  bool
-	conf     config.Config
-	resolved string
+	format  string
+	noColor bool
+	conf    config.Config
 }
 
 func (rf *rootFlags) output(w io.Writer) *Output {
@@ -36,14 +33,11 @@ func (rf *rootFlags) output(w io.Writer) *Output {
 }
 
 func (rf *rootFlags) openDB(ctx context.Context) (*sql.DB, error) {
-	if rf.resolved == "" {
-		path, err := config.DBPath(rf.dbPath)
-		if err != nil {
-			return nil, err
-		}
-		rf.resolved = path
+	path, err := config.DBPath()
+	if err != nil {
+		return nil, err
 	}
-	return db.Open(ctx, rf.resolved)
+	return db.Open(ctx, path)
 }
 
 func (rf *rootFlags) resolveProject() (string, error) {
@@ -76,7 +70,6 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&rf.dbPath, "db", "", "SQLite path (overrides FIZZA_DB)")
 	cmd.PersistentFlags().StringVar(&rf.format, "format", "json", "Output format: json (default) or pretty (human tables)")
 	cmd.PersistentFlags().BoolVar(&rf.noColor, "no-color", false, "Disable ANSI colors")
 
@@ -87,10 +80,4 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newMCPCmd(rf))
 
 	return cmd
-}
-
-func writeConfigPathNote(path string) {
-	if dir := filepath.Dir(path); dir != "" {
-		_ = os.MkdirAll(dir, 0o755)
-	}
 }

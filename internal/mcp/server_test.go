@@ -3,7 +3,6 @@ package mcp
 import (
 	"context"
 	"encoding/json"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -15,14 +14,13 @@ import (
 func newTestSession(t *testing.T) *mcp.ClientSession {
 	t.Helper()
 	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "test.db")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "v0"}, nil)
 	session, err := client.Connect(ctx, &mcp.CommandTransport{
-		Command: commandForServer(dbPath),
+		Command: commandForServer(dir),
 	}, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = session.Close() })
