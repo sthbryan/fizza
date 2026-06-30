@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/rodaine/table"
@@ -125,9 +124,8 @@ func (o *Output) prettyTable(headers []string, rows [][]string) error {
 	}
 	tbl := table.New(hdrArgs...)
 	if !o.noColor {
-		style := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
-		tbl = tbl.WithHeaderFormatter(func(s string, _ ...any) string {
-			return style.Render(s)
+		tbl = tbl.WithHeaderFormatter(func(format string, vals ...interface{}) string {
+			return "\033[1m\033[36m" + fmt.Sprintf(format, vals...) + "\033[0m"
 		})
 	}
 	for _, r := range rows {
@@ -149,15 +147,16 @@ func (o *Output) prettyKeyValue(headers, row []string) error {
 			width = len(h)
 		}
 	}
-	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
-	if o.noColor {
-		keyStyle = lipgloss.NewStyle().Bold(true)
-	}
 	for i, h := range headers {
 		if i >= len(row) {
 			break
 		}
-		fmt.Fprintf(o.w, "%s  %s\n", keyStyle.Render(padRight(h+":", width+1)), row[i])
+		key := padRight(h+":", width+1)
+		if o.noColor {
+			fmt.Fprintf(o.w, "%s  %s\n", key, row[i])
+		} else {
+			fmt.Fprintf(o.w, "\033[1m\033[36m%s\033[0m  %s\n", key, row[i])
+		}
 	}
 	return nil
 }
