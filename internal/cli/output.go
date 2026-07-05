@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
-	"github.com/rodaine/table"
+	"github.com/fizza/fizza/internal/presenter"
 )
 
 const (
@@ -106,6 +106,9 @@ func ClassifyError(err error) (Envelope, int) {
 }
 
 func validationMessage(err error) string {
+	if err == nil {
+		return ""
+	}
 	msg := err.Error()
 	const prefix = "validation: "
 	if strings.HasPrefix(msg, prefix) {
@@ -160,191 +163,100 @@ func (o *Output) writeJSON(env Envelope) error {
 }
 
 func (o *Output) writePretty(data any) error {
-	rows, headers, single, ok := collectTable(data)
-	if !ok {
-		return fmt.Errorf("no pretty renderer for %T", data)
-	}
-	if single {
-		return o.prettyKeyValue(headers, rows[0])
-	}
-	return o.prettyTable(headers, rows)
+	r := presenter.New(o.w, o.noColor)
+	return renderPretty(r, data)
 }
 
-func (o *Output) prettyTable(headers []string, rows [][]string) error {
-	hdrArgs := make([]any, len(headers))
-	for i, h := range headers {
-		hdrArgs[i] = h
-	}
-	tbl := table.New(hdrArgs...)
-	if !o.noColor {
-		tbl = tbl.WithHeaderFormatter(func(format string, vals ...interface{}) string {
-			return "\033[1m\033[36m" + fmt.Sprintf(format, vals...) + "\033[0m"
-		})
-	}
-	for _, r := range rows {
-		row := make([]any, len(r))
-		for i, v := range r {
-			row[i] = v
-		}
-		tbl = tbl.AddRow(row...)
-	}
-	tbl = tbl.WithWriter(o.w)
-	tbl.Print()
-	return nil
-}
-
-func (o *Output) prettyKeyValue(headers, row []string) error {
-	width := 0
-	for _, h := range headers {
-		if len(h) > width {
-			width = len(h)
-		}
-	}
-	for i, h := range headers {
-		if i >= len(row) {
-			break
-		}
-		key := padRight(h+":", width+1)
-		if o.noColor {
-			fmt.Fprintf(o.w, "%s  %s\n", key, row[i])
-		} else {
-			fmt.Fprintf(o.w, "\033[1m\033[36m%s\033[0m  %s\n", key, row[i])
-		}
-	}
-	return nil
-}
-
-func padRight(s string, n int) string {
-	if len(s) >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-len(s))
-}
-
-func collectTable(data any) (rows [][]string, headers []string, single, ok bool) {
+func renderPretty(r *presenter.Renderer, data any) error {
 	switch v := data.(type) {
 	case *model.Project:
-		return projectRows([]*model.Project{v}), projectHeaders(), true, true
+		return r.Project(v)
 	case []*model.Project:
-		if len(v) == 0 {
-			return [][]string{}, projectHeaders(), false, true
-		}
-		return projectRows(v), projectHeaders(), false, true
-
+		return r.ProjectList(v)
 	case *model.Board:
-		return boardRows([]*model.Board{v}), boardHeaders(), true, true
+		return r.Board(v)
 	case []*model.Board:
-		if len(v) == 0 {
-			return [][]string{}, boardHeaders(), false, true
-		}
-		return boardRows(v), boardHeaders(), false, true
-
-	case *model.Task:
-		return taskRows([]*model.Task{v}), taskHeaders(), true, true
-	case []*model.Task:
-		if len(v) == 0 {
-			return [][]string{}, taskHeaders(), false, true
-		}
-		return taskRows(v), taskHeaders(), false, true
-
+		return r.BoardList(v)
 	case *model.Column:
-		return columnRows([]*model.Column{v}), columnHeaders(), true, true
+		return r.Column(v)
 	case []*model.Column:
-		if len(v) == 0 {
-			return [][]string{}, columnHeaders(), false, true
-		}
-		return columnRows(v), columnHeaders(), false, true
-
-	case config.Config:
-		return configRows(v), configHeaders(), true, true
-	}
-	return nil, nil, false, false
-}
-
-func projectHeaders() []string  { return []string{"ID", "NAME", "DESCRIPTION", "CREATED"} }
-func boardHeaders() []string    { return []string{"ID", "NAME", "DEFAULT", "CREATED"} }
-func columnHeaders() []string  { return []string{"ID", "NAME", "POSITION", "COLOR"} }
-func taskHeaders() []string    { return []string{"ID", "STATUS", "TITLE", "PRIORITY", "DUE", "UPDATED"} }
-func configHeaders() []string  { return []string{"KEY", "VALUE"} }
-
-func configRows(c config.Config) [][]string {
-	project := c.Project
-	if project == "" {
-		project = "(unset)"
-	}
-	return [][]string{
-		{"mode", c.Mode},
-		{"project", project},
+		return r.ColumnList(v)
+	case *model.Task:
+		return r.Task(v)
+	case []*model.Task:
+		return r.TaskList(v)
+	case BoardView:
+		return renderBoardView(r, v)
+	case *BoardView:
+		return renderBoardView(r, *v)
+	case map[string]any:
+		return renderMap(r, v)
+	case nil:
+		_, err := fmt.Fprintln(r, "(no data)")
+		return err
+	default:
+		return fmt.Errorf("no pretty renderer for %s", reflect.TypeOf(data))
 	}
 }
 
-func projectRows(ps []*model.Project) [][]string {
-	out := make([][]string, len(ps))
-	for i, p := range ps {
-		out[i] = []string{
-			strconv.FormatInt(p.ID, 10),
-			p.Name,
-			p.Description,
-			formatTime(p.CreatedAt),
-		}
-	}
-	return out
+type BoardView struct {
+	Board   *model.Board        `json:"board"`
+	Columns []BoardColumnBucket `json:"columns"`
 }
 
-func boardRows(bs []*model.Board) [][]string {
-	out := make([][]string, len(bs))
-	for i, b := range bs {
-		defaultMark := ""
-		if b.IsDefault {
-			defaultMark = "yes"
-		}
-		out[i] = []string{
-			strconv.FormatInt(b.ID, 10),
-			b.Name,
-			defaultMark,
-			formatTime(b.CreatedAt),
-		}
-	}
-	return out
+type BoardColumnBucket struct {
+	Column *model.Column `json:"column"`
+	Tasks  []*model.Task `json:"tasks"`
 }
 
-func columnRows(cs []*model.Column) [][]string {
-	out := make([][]string, len(cs))
-	for i, c := range cs {
-		out[i] = []string{
-			strconv.FormatInt(c.ID, 10),
-			c.Name,
-			strconv.Itoa(c.Position),
-			c.Color,
+func renderBoardView(r *presenter.Renderer, v BoardView) error {
+	if v.Board != nil {
+		if err := r.Board(v.Board); err != nil {
+			return err
 		}
 	}
-	return out
+	for _, bucket := range v.Columns {
+		if bucket.Column == nil {
+			continue
+		}
+		if _, err := fmt.Fprintf(r, "\n[ %s ]\n", bucket.Column.Name); err != nil {
+			return err
+		}
+		if len(bucket.Tasks) == 0 {
+			if _, err := fmt.Fprintln(r, "  (empty)"); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := r.TaskList(bucket.Tasks); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func taskRows(ts []*model.Task) [][]string {
-	out := make([][]string, len(ts))
-	for i, t := range ts {
-		due := ""
-		if t.DueDate != nil {
-			due = t.DueDate.Format("2006-01-02")
-		}
-		out[i] = []string{
-			strconv.FormatInt(t.ID, 10),
-			t.ColumnName,
-			t.Title,
-			t.Priority.String(),
-			due,
-			formatTime(t.UpdatedAt),
+func renderMap(r *presenter.Renderer, m map[string]any) error {
+	for k, v := range m {
+		if _, err := fmt.Fprintf(r, "%s: %v\n", k, formatMapValue(v)); err != nil {
+			return err
 		}
 	}
-	return out
+	return nil
 }
 
-func formatTime(t time.Time) string {
-	if t.IsZero() {
-		return ""
+func formatMapValue(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case time.Time:
+		return t.Format("2006-01-02 15:04")
+	case int64:
+		return strconv.FormatInt(t, 10)
+	case int:
+		return strconv.Itoa(t)
+	default:
+		return fmt.Sprintf("%v", v)
 	}
-	return t.Format("2006-01-02 15:04")
 }
 
 func ParseFlagInt64(s string) (int64, error) {

@@ -92,7 +92,7 @@ func TestOutput_Pretty_ProjectSingle(t *testing.T) {
 	require.NoError(t, o.Write(OK(p)))
 	out := buf.String()
 	assert.Contains(t, out, "ID:")
-	assert.Contains(t, out, "NAME:")
+	assert.Contains(t, out, "Name:")
 	assert.Contains(t, out, "alpha")
 	assert.Contains(t, out, "first")
 }
@@ -102,8 +102,7 @@ func TestOutput_Pretty_FallsBackToJSON(t *testing.T) {
 	o := NewOutput(&buf, "pretty", true)
 	require.NoError(t, o.Write(OK(map[string]any{"foo": "bar"})))
 	out := buf.String()
-	assert.Contains(t, out, `"foo"`)
-	assert.Contains(t, out, `"bar"`)
+	assert.Contains(t, out, "foo: bar")
 }
 
 func TestOutput_FormatExplicitJSON(t *testing.T) {
