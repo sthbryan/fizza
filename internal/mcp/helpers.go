@@ -27,11 +27,11 @@ func splitCSV(s string) []string {
 	return out
 }
 
-func parsePriority(s string) (string, error) {
+func parsePriority(s string) (model.Priority, error) {
 	if s == "" {
-		return model.DefaultPriority, nil
+		return model.Priority{Value: model.DefaultPriority}, nil
 	}
-	return model.ParsePriority(s)
+	return model.NewPriority(s)
 }
 
 func findBoardAndColumns(ctx context.Context, conn *sql.DB, project, board string) (*model.Board, []*model.Column, error) {
@@ -100,7 +100,7 @@ func parseDue(s string) (*time.Time, error) {
 	return &t, nil
 }
 
-func buildTaskFromInput(board *model.Board, target *model.Column, title, priority, desc, due, parent string) (*model.Task, error) {
+func buildTaskFromInput(board *model.Board, target *model.Column, title string, priority model.Priority, desc, due, parent string) (*model.Task, error) {
 	t := &model.Task{
 		BoardID:     board.ID,
 		ColumnID:    target.ID,
@@ -134,7 +134,7 @@ func buildTaskPatch(in taskUpdateInput) (db.TaskPatch, error) {
 		patch.Description = &v
 	}
 	if in.Priority != "" {
-		pri, err := model.ParsePriority(in.Priority)
+		pri, err := model.NewPriority(in.Priority)
 		if err != nil {
 			return patch, err
 		}

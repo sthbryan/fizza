@@ -280,7 +280,7 @@ func taskRows(ts []*model.Task) [][]string {
 			strconv.FormatInt(t.ID, 10),
 			t.ColumnName,
 			t.Title,
-			t.Priority,
+			t.Priority.String(),
 			due,
 			formatTime(t.UpdatedAt),
 		}

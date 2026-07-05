@@ -54,7 +54,7 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			pri, err := model.ParsePriority(priority)
+			pri, err := model.NewPriority(priority)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -118,7 +118,7 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			tasks, err := db.ListTasksInBoard(ctx, conn, b.ID, column)
+			tasks, err := db.ListTasksInBoard(ctx, conn, b.ID, db.TaskFilter{ColumnName: column})
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -239,7 +239,7 @@ func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
 				patch.Description = &desc
 			}
 			if cmd.Flags().Changed("priority") {
-				pri, err := model.ParsePriority(priority)
+				pri, err := model.NewPriority(priority)
 				if err != nil {
 					return report(cmd, rf, err)
 				}

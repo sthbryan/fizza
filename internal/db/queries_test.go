@@ -88,7 +88,7 @@ func TestCRUD_Task_FullLifecycle(t *testing.T) {
 		ColumnID:    todo.ID,
 		Title:       "first task",
 		Description: "with details",
-		Priority:    model.PriorityHigh,
+		Priority:    model.Priority{Value: model.PriorityHigh},
 	}
 	require.NoError(t, CreateTask(ctx, conn, t1))
 	assert.NotZero(t, t1.ID)
@@ -96,11 +96,11 @@ func TestCRUD_Task_FullLifecycle(t *testing.T) {
 	assert.Equal(t, "todo", t1.ColumnName)
 	assert.False(t, t1.CreatedAt.IsZero())
 
-	t2 := &model.Task{BoardID: b.ID, ColumnID: todo.ID, Title: "second", Priority: model.PriorityMedium}
+	t2 := &model.Task{BoardID: b.ID, ColumnID: todo.ID, Title: "second", Priority: model.Priority{Value: model.PriorityMedium}}
 	require.NoError(t, CreateTask(ctx, conn, t2))
 	assert.Equal(t, 2000.0, t2.Position, "second task in same column gets next step")
 
-	list, err := ListTasksInBoard(ctx, conn, b.ID, "")
+	list, err := ListTasksInBoard(ctx, conn, b.ID, TaskFilter{})
 	require.NoError(t, err)
 	assert.Len(t, list, 2)
 	assert.Equal(t, "first task", list[0].Title)
@@ -144,7 +144,7 @@ func TestTask_SubtasksAndCascade(t *testing.T) {
 	parent := &model.Task{BoardID: b.ID, ColumnID: todo.ID, Title: "epic"}
 	require.NoError(t, CreateTask(ctx, conn, parent))
 
-	childA := &model.Task{BoardID: b.ID, ColumnID: todo.ID, Title: "child A", Priority: model.PriorityLow}
+	childA := &model.Task{BoardID: b.ID, ColumnID: todo.ID, Title: "child A", Priority: model.Priority{Value: model.PriorityLow}}
 	parentID := parent.ID
 	childA.ParentID = &parentID
 	require.NoError(t, CreateTask(ctx, conn, childA))
@@ -185,7 +185,7 @@ func TestTask_PrefixLookup(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), got.ID)
 
-	list, _ := ListTasksInBoard(ctx, conn, b.ID, "")
+	list, _ := ListTasksInBoard(ctx, conn, b.ID, TaskFilter{})
 	if len(list) > 9 {
 		_, err = GetTaskByPrefix(ctx, conn, "1")
 		assert.True(t, errors.Is(err, ErrNotFound) || err != nil,

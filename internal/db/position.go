@@ -16,6 +16,36 @@ const (
 	RebalanceGapRel = 1e-6
 )
 
+func computePositionBefore(ctx context.Context, q querier, columnID int64, beforeTaskID int64) (float64, error) {
+	var beforePos sql.NullFloat64
+	err := q.QueryRowContext(ctx,
+		`SELECT position FROM tasks WHERE id = ? AND column_id = ?`, beforeTaskID, columnID,
+	).Scan(&beforePos)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("%w: task %d", ErrNotFound, beforeTaskID)
+		}
+		return 0, fmt.Errorf("db: get before task: %w", err)
+	}
+	var prevPos sql.NullFloat64
+	err = q.QueryRowContext(ctx,
+		`SELECT MAX(position) FROM tasks
+		 WHERE column_id = ? AND position < ? AND id != ?`,
+		columnID, beforePos.Float64, beforeTaskID,
+	).Scan(&prevPos)
+	if err != nil {
+		return 0, fmt.Errorf("db: get prev: %w", err)
+	}
+	if !prevPos.Valid {
+		return beforePos.Float64 - PositionStep, nil
+	}
+	gap := beforePos.Float64 - prevPos.Float64
+	if gap < MinInsertGap {
+		return 0, errGapTooSmall
+	}
+	return (prevPos.Float64 + beforePos.Float64) / 2, nil
+}
+
 func computeNextPosition(ctx context.Context, q querier, columnID int64, afterTaskID *int64) (float64, error) {
 	if afterTaskID != nil {
 		var prevPos, nextPos sql.NullFloat64

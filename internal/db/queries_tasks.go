@@ -22,19 +22,27 @@ const taskSelect = `
 type TaskPatch struct {
 	Title         *string
 	Description   *string
-	Priority      *string
+	Priority      *model.Priority
 	DueDate       *time.Time
 	ClearDueDate  bool
 	ParentID      *int64
 	ClearParentID bool
 }
 
+type TaskFilter struct {
+	ColumnName string
+	Priorities []model.Priority
+	DueBefore  *time.Time
+	DueAfter   *time.Time
+	Search     string
+}
+
 func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 	if t.ColumnID == 0 {
 		return errors.New("db: task.ColumnID required")
 	}
-	if strings.TrimSpace(t.Priority) == "" {
-		t.Priority = model.DefaultPriority
+	if t.Priority.IsZero() {
+		t.Priority = model.Priority{Value: model.DefaultPriority}
 	}
 	if err := t.Validate(); err != nil {
 		return err
@@ -66,7 +74,7 @@ func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 		INSERT INTO tasks
 		  (board_id, column_id, parent_id, title, description, priority, position, due_date)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		t.BoardID, t.ColumnID, dbutil.NullableInt(t.ParentID), t.Title, t.Description, t.Priority, pos, dueParam,
+		t.BoardID, t.ColumnID, dbutil.NullableInt(t.ParentID), t.Title, t.Description, t.Priority.String(), pos, dueParam,
 	)
 	if err != nil {
 		return fmt.Errorf("db: insert task: %w", err)
@@ -131,12 +139,31 @@ func GetTaskByPrefix(ctx context.Context, q querier, prefix string) (*model.Task
 	}
 }
 
-func ListTasksInBoard(ctx context.Context, q querier, boardID int64, columnName string) ([]*model.Task, error) {
+func ListTasksInBoard(ctx context.Context, q querier, boardID int64, filter TaskFilter) ([]*model.Task, error) {
 	args := []any{boardID}
 	where := "WHERE t.board_id = ?"
-	if columnName != "" {
+	if filter.ColumnName != "" {
 		where += " AND c.name = ?"
-		args = append(args, columnName)
+		args = append(args, filter.ColumnName)
+	}
+	if len(filter.Priorities) > 0 {
+		where += " AND t.priority IN (?" + strings.Repeat(",?", len(filter.Priorities)-1) + ")"
+		for _, p := range filter.Priorities {
+			args = append(args, p.String())
+		}
+	}
+	if filter.DueBefore != nil {
+		where += " AND t.due_date IS NOT NULL AND t.due_date <= ?"
+		args = append(args, dbutil.FormatDueDate(*filter.DueBefore))
+	}
+	if filter.DueAfter != nil {
+		where += " AND t.due_date IS NOT NULL AND t.due_date >= ?"
+		args = append(args, dbutil.FormatDueDate(*filter.DueAfter))
+	}
+	if filter.Search != "" {
+		where += " AND (t.title LIKE ? OR t.description LIKE ?)"
+		needle := "%" + filter.Search + "%"
+		args = append(args, needle, needle)
 	}
 	return runListTasks(ctx, q, taskSelect+" "+where+" ORDER BY c.position, t.position", args)
 }
@@ -161,12 +188,8 @@ func UpdateTask(ctx context.Context, q querier, id int64, patch TaskPatch) error
 		args = append(args, *patch.Description)
 	}
 	if patch.Priority != nil {
-		p, err := model.ParsePriority(*patch.Priority)
-		if err != nil {
-			return err
-		}
 		sets = append(sets, "priority = ?")
-		args = append(args, p)
+		args = append(args, patch.Priority.String())
 	}
 	if patch.DueDate != nil {
 		sets = append(sets, "due_date = ?")
@@ -201,6 +224,10 @@ func UpdateTask(ctx context.Context, q querier, id int64, patch TaskPatch) error
 }
 
 func MoveTask(ctx context.Context, q querier, taskID, targetColumnID int64) error {
+	return MoveTaskAt(ctx, q, taskID, targetColumnID, nil)
+}
+
+func MoveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
 	var currentCol int64
 	err := q.QueryRowContext(ctx,
 		`SELECT column_id FROM tasks WHERE id = ?`, taskID,
@@ -211,7 +238,7 @@ func MoveTask(ctx context.Context, q querier, taskID, targetColumnID int64) erro
 		}
 		return fmt.Errorf("db: get task column: %w", err)
 	}
-	if currentCol == targetColumnID {
+	if currentCol == targetColumnID && beforeTaskID == nil {
 		return nil
 	}
 
@@ -226,12 +253,21 @@ func MoveTask(ctx context.Context, q querier, taskID, targetColumnID int64) erro
 		return fmt.Errorf("db: get column: %w", err)
 	}
 
-	pos, err := computeNextPosition(ctx, q, targetColumnID, nil)
+	var pos float64
+	if beforeTaskID != nil {
+		pos, err = computePositionBefore(ctx, q, targetColumnID, *beforeTaskID)
+	} else {
+		pos, err = computeNextPosition(ctx, q, targetColumnID, nil)
+	}
 	if errors.Is(err, errGapTooSmall) {
 		if _, rerr := RebalanceColumn(ctx, q, targetColumnID); rerr != nil {
 			return fmt.Errorf("db: rebalance before move: %w", rerr)
 		}
-		pos, err = computeNextPosition(ctx, q, targetColumnID, nil)
+		if beforeTaskID != nil {
+			pos, err = computePositionBefore(ctx, q, targetColumnID, *beforeTaskID)
+		} else {
+			pos, err = computeNextPosition(ctx, q, targetColumnID, nil)
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("db: compute position for move: %w", err)
@@ -283,12 +319,13 @@ func scanTask(s rowScanner) (*model.Task, error) {
 	var (
 		t          model.Task
 		parentID   sql.NullInt64
+		prio       string
 		dueDate    sql.NullString
 		creAt, upd string
 	)
 	if err := s.Scan(
 		&t.ID, &t.BoardID, &t.ColumnID, &t.ColumnName,
-		&parentID, &t.Title, &t.Description, &t.Priority, &t.Position,
+		&parentID, &t.Title, &t.Description, &prio, &t.Position,
 		&dueDate, &creAt, &upd,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -296,6 +333,11 @@ func scanTask(s rowScanner) (*model.Task, error) {
 		}
 		return nil, fmt.Errorf("db: scan task: %w", err)
 	}
+	parsedPrio, err := model.NewPriority(prio)
+	if err != nil {
+		return nil, fmt.Errorf("db: parse priority %q: %w", prio, err)
+	}
+	t.Priority = parsedPrio
 	if parentID.Valid {
 		v := parentID.Int64
 		t.ParentID = &v
@@ -307,7 +349,6 @@ func scanTask(s rowScanner) (*model.Task, error) {
 		}
 		t.DueDate = &parsed
 	}
-	var err error
 	if t.CreatedAt, err = dbutil.ParseTime(creAt); err != nil {
 		return nil, err
 	}

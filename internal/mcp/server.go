@@ -279,7 +279,7 @@ func registerTaskTools(s *mcp.Server, conn *sql.DB) {
 		if err != nil {
 			return nil, nil, err
 		}
-		tasks, err := db.ListTasksInBoard(ctx, conn, board.ID, in.Column)
+		tasks, err := db.ListTasksInBoard(ctx, conn, board.ID, db.TaskFilter{ColumnName: in.Column})
 		if err != nil {
 			return nil, nil, err
 		}
