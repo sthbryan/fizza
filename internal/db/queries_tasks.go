@@ -57,6 +57,43 @@ func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 		}
 	}
 
+	exec := q
+	committed := false
+	if txer, ok := q.(transactor); ok {
+		tx, err := txer.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("db: begin tx: %w", err)
+		}
+		defer func() {
+			if !committed {
+				_ = tx.Rollback()
+			}
+		}()
+		exec = tx
+		if err := createTaskInsert(ctx, exec, t); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("db: commit create task: %w", err)
+		}
+		committed = true
+	} else {
+		if err := createTaskInsert(ctx, exec, t); err != nil {
+			return err
+		}
+	}
+
+	ensureHealthyPosition(ctx, q, t.ColumnID)
+
+	fresh, err := GetTask(ctx, q, t.ID)
+	if err != nil {
+		return err
+	}
+	*t = *fresh
+	return nil
+}
+
+func createTaskInsert(ctx context.Context, q querier, t *model.Task) error {
 	var pos float64
 	var err error
 	if t.Position == 0 {
@@ -94,14 +131,6 @@ func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 	}
 	t.ID = id
 	t.Position = pos
-
-	ensureHealthyPosition(ctx, q, t.ColumnID)
-
-	fresh, err := GetTask(ctx, q, id)
-	if err != nil {
-		return err
-	}
-	*t = *fresh
 	return nil
 }
 
@@ -306,27 +335,42 @@ func MoveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, be
 		return fmt.Errorf("db: get column: %w", err)
 	}
 
+	exec := q
+	committed := false
+	if txer, ok := q.(transactor); ok {
+		tx, err := txer.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("db: begin tx: %w", err)
+		}
+		defer func() {
+			if !committed {
+				_ = tx.Rollback()
+			}
+		}()
+		exec = tx
+	}
+
 	var pos float64
 	if beforeTaskID != nil {
-		pos, err = computePositionBefore(ctx, q, targetColumnID, *beforeTaskID)
+		pos, err = computePositionBefore(ctx, exec, targetColumnID, *beforeTaskID)
 	} else {
-		pos, err = computeNextPosition(ctx, q, targetColumnID, nil)
+		pos, err = computeNextPosition(ctx, exec, targetColumnID, nil)
 	}
 	if errors.Is(err, errGapTooSmall) {
-		if _, rerr := RebalanceColumn(ctx, q, targetColumnID); rerr != nil {
+		if _, rerr := RebalanceColumn(ctx, exec, targetColumnID); rerr != nil {
 			return fmt.Errorf("db: rebalance before move: %w", rerr)
 		}
 		if beforeTaskID != nil {
-			pos, err = computePositionBefore(ctx, q, targetColumnID, *beforeTaskID)
+			pos, err = computePositionBefore(ctx, exec, targetColumnID, *beforeTaskID)
 		} else {
-			pos, err = computeNextPosition(ctx, q, targetColumnID, nil)
+			pos, err = computeNextPosition(ctx, exec, targetColumnID, nil)
 		}
 	}
 	if err != nil {
 		return fmt.Errorf("db: compute position for move: %w", err)
 	}
 
-	_, err = q.ExecContext(ctx, `
+	_, err = exec.ExecContext(ctx, `
 		UPDATE tasks
 		SET column_id = ?, position = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
 		WHERE id = ?`,
@@ -334,6 +378,13 @@ func MoveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, be
 	)
 	if err != nil {
 		return fmt.Errorf("db: move task: %w", err)
+	}
+
+	if tx, ok := exec.(*sql.Tx); ok {
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("db: commit move task: %w", err)
+		}
+		committed = true
 	}
 	ensureHealthyPosition(ctx, q, targetColumnID)
 	return nil
