@@ -322,7 +322,15 @@ func MoveTask(ctx context.Context, q querier, taskID, targetColumnID int64) erro
 	return MoveTaskAt(ctx, q, taskID, targetColumnID, nil)
 }
 
+func MoveTaskForce(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
+	return moveTaskAt(ctx, q, taskID, targetColumnID, beforeTaskID, true)
+}
+
 func MoveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
+	return moveTaskAt(ctx, q, taskID, targetColumnID, beforeTaskID, false)
+}
+
+func moveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64, force bool) error {
 	var currentCol int64
 	err := q.QueryRowContext(ctx,
 		`SELECT column_id FROM tasks WHERE id = ?`, taskID,
@@ -338,14 +346,27 @@ func MoveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, be
 	}
 
 	var targetBoard int64
+	var wipLimit sql.NullInt64
 	err = q.QueryRowContext(ctx,
-		`SELECT board_id FROM columns WHERE id = ?`, targetColumnID,
-	).Scan(&targetBoard)
+		`SELECT board_id, wip_limit FROM columns WHERE id = ?`, targetColumnID,
+	).Scan(&targetBoard, &wipLimit)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%w: column %d", ErrNotFound, targetColumnID)
 		}
 		return fmt.Errorf("db: get column: %w", err)
+	}
+
+	if !force && wipLimit.Valid && currentCol != targetColumnID {
+		var count int64
+		if err := q.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, targetColumnID,
+		).Scan(&count); err != nil {
+			return fmt.Errorf("db: count tasks in target column: %w", err)
+		}
+		if count >= wipLimit.Int64 {
+			return ErrWIPLimitReached
+		}
 	}
 
 	exec := q
