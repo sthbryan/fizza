@@ -1,0 +1,29 @@
+package model
+
+import (
+	"errors"
+	"strings"
+	"time"
+)
+
+var (
+	ErrTagNameEmpty = errors.New("tag name cannot be empty")
+	ErrTagNameLong  = errors.New("tag name too long (max 64 chars)")
+)
+
+func ValidateTag(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return ErrTagNameEmpty
+	}
+	if len(name) > 64 {
+		return ErrTagNameLong
+	}
+	return nil
+}
+
+type Tag struct {
+	ID        int64     `json:"id"`
+	ProjectID int64     `json:"project_id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
