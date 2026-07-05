@@ -35,6 +35,7 @@ type TaskFilter struct {
 	DueBefore  *time.Time
 	DueAfter   *time.Time
 	Search     string
+	Tags       []string
 }
 
 func CreateTask(ctx context.Context, q querier, t *model.Task) error {
@@ -180,6 +181,7 @@ func GetTaskByPrefix(ctx context.Context, q querier, prefix string) (*model.Task
 func ListTasksInBoard(ctx context.Context, q querier, boardID int64, filter TaskFilter) ([]*model.Task, error) {
 	args := []any{boardID}
 	where := "WHERE t.board_id = ?"
+	distinct := ""
 	if filter.ColumnName != "" {
 		where += " AND c.name = ?"
 		args = append(args, filter.ColumnName)
@@ -203,7 +205,18 @@ func ListTasksInBoard(ctx context.Context, q querier, boardID int64, filter Task
 		needle := "%" + filter.Search + "%"
 		args = append(args, needle, needle)
 	}
-	return runListTasks(ctx, q, taskSelect+" "+where+" ORDER BY c.position, t.position", args)
+	if len(filter.Tags) > 0 {
+		where += " AND tags.name IN (?" + strings.Repeat(",?", len(filter.Tags)-1) + ")"
+		for _, n := range filter.Tags {
+			args = append(args, n)
+		}
+		distinct = "DISTINCT "
+	}
+	query := strings.Replace(taskSelect, "SELECT", "SELECT "+distinct, 1)
+	if len(filter.Tags) > 0 {
+		query += " JOIN task_tags ON task_tags.task_id = t.id JOIN tags ON tags.id = task_tags.tag_id"
+	}
+	return runListTasks(ctx, q, query+" "+where+" ORDER BY c.position, t.position", args)
 }
 
 func ListTasksInColumn(ctx context.Context, q querier, columnID int64) ([]*model.Task, error) {

@@ -16,7 +16,7 @@ func TestOpen_InMemory(t *testing.T) {
 
 	versions, err := AppliedVersions(context.Background(), conn)
 	require.NoError(t, err)
-	assert.Equal(t, []int64{1, 2, 3, 4}, versions)
+	assert.Equal(t, []int64{1, 2, 3, 4, 5}, versions)
 
 	for _, table := range []string{"projects", "boards", "columns", "tasks", "events", "tags", "task_tags", "schema_migrations"} {
 		var name string
@@ -48,7 +48,7 @@ func TestOpen_Idempotent(t *testing.T) {
 
 	versions, err := AppliedVersions(context.Background(), conn2)
 	require.NoError(t, err)
-	assert.Equal(t, []int64{1, 2, 3, 4}, versions)
+	assert.Equal(t, []int64{1, 2, 3, 4, 5}, versions)
 }
 
 func TestOpen_EmptyPathFails(t *testing.T) {

@@ -14,6 +14,7 @@ const (
 	MinInsertGap    = 1e-9
 	RebalanceLimit  = 50
 	RebalanceGapRel = 1e-6
+	RebalanceWindow = 20
 )
 
 func computePositionBefore(ctx context.Context, q querier, columnID int64, beforeTaskID int64) (float64, error) {
@@ -113,9 +114,17 @@ func needsRebalance(ctx context.Context, q querier, columnID int64) (bool, error
 }
 
 func RebalanceColumn(ctx context.Context, q querier, columnID int64) (int, error) {
+	return rebalanceColumn(ctx, q, columnID, 0)
+}
+
+func RebalanceColumnWindow(ctx context.Context, q querier, columnID, aroundID int64) (int, error) {
+	return rebalanceColumn(ctx, q, columnID, aroundID)
+}
+
+func rebalanceColumn(ctx context.Context, q querier, columnID, aroundID int64) (int, error) {
 	txer, ok := q.(transactor)
 	if !ok {
-		return 0, errors.New("db: RebalanceColumn requires *sql.DB or *sql.Tx")
+		return 0, errors.New("db: rebalance requires *sql.DB or *sql.Tx")
 	}
 	tx, err := txer.BeginTx(ctx, nil)
 	if err != nil {
@@ -123,28 +132,22 @@ func RebalanceColumn(ctx context.Context, q querier, columnID int64) (int, error
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	rows, err := tx.QueryContext(ctx,
-		`SELECT id FROM tasks WHERE column_id = ? ORDER BY position, id`, columnID)
+	ids, err := selectRebalanceIDs(ctx, tx, columnID, aroundID)
 	if err != nil {
-		return 0, fmt.Errorf("db: select for rebalance: %w", err)
-	}
-	var ids []int64
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			_ = rows.Close()
-			return 0, err
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
 		return 0, err
 	}
-	_ = rows.Close()
-
 	if len(ids) == 0 {
 		return 0, tx.Commit()
+	}
+
+	windowed := aroundID > 0
+	var base float64
+	if windowed {
+		if err := tx.QueryRowContext(ctx,
+			`SELECT position FROM tasks WHERE id = ?`, aroundID,
+		).Scan(&base); err != nil {
+			return 0, fmt.Errorf("db: read around position: %w", err)
+		}
 	}
 
 	stmt, err := tx.PrepareContext(ctx, `UPDATE tasks SET position = ? WHERE id = ?`)
@@ -154,7 +157,13 @@ func RebalanceColumn(ctx context.Context, q querier, columnID int64) (int, error
 	defer stmt.Close()
 
 	for i, id := range ids {
-		newPos := float64(i+1) * PositionStep
+		var newPos float64
+		if windowed {
+			half := float64(len(ids)/2) * PositionStep
+			newPos = base - half + float64(i+1)*PositionStep
+		} else {
+			newPos = float64(i+1) * PositionStep
+		}
 		if _, err := stmt.ExecContext(ctx, newPos, id); err != nil {
 			return 0, fmt.Errorf("db: rebalance id=%d: %w", id, err)
 		}
@@ -164,6 +173,51 @@ func RebalanceColumn(ctx context.Context, q querier, columnID int64) (int, error
 		return 0, fmt.Errorf("db: commit rebalance: %w", err)
 	}
 	return len(ids), nil
+}
+
+func selectRebalanceIDs(ctx context.Context, tx *sql.Tx, columnID, aroundID int64) ([]int64, error) {
+	if aroundID > 0 {
+		half := RebalanceWindow / 2
+		rows, err := tx.QueryContext(ctx, `
+			SELECT id FROM (
+				SELECT id, position FROM tasks
+				WHERE column_id = ? AND position >= (SELECT position FROM tasks WHERE id = ?)
+				ORDER BY position LIMIT ?
+			)
+			UNION
+			SELECT id FROM (
+				SELECT id, position FROM tasks
+				WHERE column_id = ? AND position < (SELECT position FROM tasks WHERE id = ?)
+				ORDER BY position DESC LIMIT ?
+			)
+			ORDER BY id`,
+			columnID, aroundID, half,
+			columnID, aroundID, half,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("db: select window: %w", err)
+		}
+		return scanIDs(rows)
+	}
+	rows, err := tx.QueryContext(ctx,
+		`SELECT id FROM tasks WHERE column_id = ? ORDER BY position, id`, columnID)
+	if err != nil {
+		return nil, fmt.Errorf("db: select all: %w", err)
+	}
+	return scanIDs(rows)
+}
+
+func scanIDs(rows *sql.Rows) ([]int64, error) {
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 func ensureHealthyPosition(ctx context.Context, q querier, columnID int64) {
