@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -10,7 +11,8 @@ import (
 )
 
 func TestOpenPool_TwoHandles(t *testing.T) {
-	pool, err := OpenPool(context.Background(), ":memory:", 2, 1)
+	dir := t.TempDir()
+	pool, err := OpenPool(context.Background(), filepath.Join(dir, "fizza.db"), 2, 1)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = pool.Close() })
 
@@ -24,7 +26,8 @@ func TestOpenPool_TwoHandles(t *testing.T) {
 }
 
 func TestOpenPool_ConcurrentReaders(t *testing.T) {
-	pool, err := OpenPool(context.Background(), ":memory:", 4, 1)
+	dir := t.TempDir()
+	pool, err := OpenPool(context.Background(), filepath.Join(dir, "fizza.db"), 4, 1)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = pool.Close() })
 

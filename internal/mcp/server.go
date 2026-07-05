@@ -19,11 +19,12 @@ func Run(ctx context.Context, version string) error {
 	if err != nil {
 		return fmt.Errorf("resolve db path: %w", err)
 	}
-	conn, err := db.Open(ctx, path)
+	pool, err := db.OpenPool(ctx, path, 4, 1)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
-	defer conn.Close()
+	defer pool.Close()
+	conn := pool.Write
 
 	if version == "" {
 		version = "dev"
