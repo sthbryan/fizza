@@ -47,6 +47,15 @@ func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 	if err := t.Validate(); err != nil {
 		return err
 	}
+	if t.ParentID != nil {
+		cycle, err := WouldCreateCycle(ctx, q, 0, *t.ParentID)
+		if err != nil {
+			return fmt.Errorf("db: check parent: %w", err)
+		}
+		if cycle {
+			return model.ErrTaskCycle
+		}
+	}
 
 	var pos float64
 	var err error
@@ -186,9 +195,43 @@ func ListSubtasks(ctx context.Context, q querier, parentID int64) ([]*model.Task
 	return runListTasks(ctx, q, taskSelect+" WHERE t.parent_id = ? ORDER BY t.position", []any{parentID})
 }
 
+func WouldCreateCycle(ctx context.Context, q querier, taskID, proposedParent int64) (bool, error) {
+	if taskID == proposedParent {
+		return true, nil
+	}
+	current := proposedParent
+	for i := 0; i < 10000; i++ {
+		var parent sql.NullInt64
+		err := q.QueryRowContext(ctx, `SELECT parent_id FROM tasks WHERE id = ?`, current).Scan(&parent)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return false, nil
+			}
+			return false, err
+		}
+		if !parent.Valid {
+			return false, nil
+		}
+		if parent.Int64 == taskID {
+			return true, nil
+		}
+		current = parent.Int64
+	}
+	return true, fmt.Errorf("db: parent chain too long (possible cycle)")
+}
+
 func UpdateTask(ctx context.Context, q querier, id int64, patch TaskPatch) error {
 	sets := []string{}
 	args := []any{}
+	if patch.ParentID != nil {
+		cycle, err := WouldCreateCycle(ctx, q, id, *patch.ParentID)
+		if err != nil {
+			return fmt.Errorf("db: check parent: %w", err)
+		}
+		if cycle {
+			return model.ErrTaskCycle
+		}
+	}
 	if patch.Title != nil {
 		sets = append(sets, "title = ?")
 		args = append(args, *patch.Title)

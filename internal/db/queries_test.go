@@ -215,3 +215,23 @@ func TestDeleteBoard_BlockedByTasks(t *testing.T) {
 	require.Error(t, err, "FK RESTRICT must prevent delete when tasks exist")
 	assert.False(t, IsNotFound(err))
 }
+
+func TestTask_CyclePrevention(t *testing.T) {
+	conn := newTestDB(t)
+	ctx := context.Background()
+	p, _ := CreateProject(ctx, conn, "alpha", "")
+	boards, _ := ListBoards(ctx, conn, p.ID)
+	b := boards[0]
+	cols, _ := ListColumns(ctx, conn, b.ID)
+
+	parent := &model.Task{BoardID: b.ID, ColumnID: cols[0].ID, Title: "parent"}
+	require.NoError(t, CreateTask(ctx, conn, parent))
+	child := &model.Task{BoardID: b.ID, ColumnID: cols[0].ID, Title: "child"}
+	pid := parent.ID
+	child.ParentID = &pid
+	require.NoError(t, CreateTask(ctx, conn, child))
+
+	err := UpdateTask(ctx, conn, parent.ID, TaskPatch{ParentID: &child.ID})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, model.ErrTaskCycle)
+}
