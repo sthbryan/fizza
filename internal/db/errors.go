@@ -2,7 +2,9 @@ package db
 
 import (
 	"errors"
-	"strings"
+
+	sqlite "modernc.org/sqlite"
+	lib "modernc.org/sqlite/lib"
 )
 
 var (
@@ -14,7 +16,11 @@ func isUniqueViolation(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(err.Error(), "UNIQUE constraint failed")
+	var sqlErr *sqlite.Error
+	if errors.As(err, &sqlErr) {
+		return sqlErr.Code() == lib.SQLITE_CONSTRAINT_UNIQUE
+	}
+	return false
 }
 
 func IsNotFound(err error) bool  { return errors.Is(err, ErrNotFound) }
