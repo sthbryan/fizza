@@ -172,6 +172,16 @@ func ListTasksInColumn(ctx context.Context, q querier, columnID int64) ([]*model
 	return runListTasks(ctx, q, taskSelect+" WHERE t.column_id = ? ORDER BY t.position", []any{columnID})
 }
 
+func FirstTaskInColumn(ctx context.Context, q querier, columnID int64) (*model.Task, error) {
+	row := q.QueryRowContext(ctx, taskSelect+" WHERE t.column_id = ? ORDER BY t.position LIMIT 1", columnID)
+	return scanTask(row)
+}
+
+func NextTaskInColumn(ctx context.Context, q querier, columnID, afterID int64) (*model.Task, error) {
+	row := q.QueryRowContext(ctx, taskSelect+" WHERE t.column_id = ? AND t.id > ? ORDER BY t.id LIMIT 1", columnID, afterID)
+	return scanTask(row)
+}
+
 func ListSubtasks(ctx context.Context, q querier, parentID int64) ([]*model.Task, error) {
 	return runListTasks(ctx, q, taskSelect+" WHERE t.parent_id = ? ORDER BY t.position", []any{parentID})
 }

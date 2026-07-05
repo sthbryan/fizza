@@ -33,6 +33,8 @@ func New(conn *sql.DB, project, board, column string) *Service {
 
 func (s *Service) DB() *sql.DB { return s.conn }
 
+func (s *Service) Close() error { return s.conn.Close() }
+
 func (s *Service) Resolve(ctx context.Context) (*Resolved, error) {
 	if s.resolved != nil {
 		return s.resolved, nil

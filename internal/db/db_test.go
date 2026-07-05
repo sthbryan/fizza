@@ -16,9 +16,9 @@ func TestOpen_InMemory(t *testing.T) {
 
 	versions, err := AppliedVersions(context.Background(), conn)
 	require.NoError(t, err)
-	assert.Equal(t, []int64{1}, versions)
+	assert.Equal(t, []int64{1, 2}, versions)
 
-	for _, table := range []string{"projects", "boards", "columns", "tasks", "schema_migrations"} {
+	for _, table := range []string{"projects", "boards", "columns", "tasks", "events", "schema_migrations"} {
 		var name string
 		err := conn.QueryRow(
 			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table,
@@ -48,7 +48,7 @@ func TestOpen_Idempotent(t *testing.T) {
 
 	versions, err := AppliedVersions(context.Background(), conn2)
 	require.NoError(t, err)
-	assert.Equal(t, []int64{1}, versions)
+	assert.Equal(t, []int64{1, 2}, versions)
 }
 
 func TestOpen_EmptyPathFails(t *testing.T) {
@@ -73,18 +73,32 @@ func TestOpen_FinalSchemaShape(t *testing.T) {
 	row := conn.QueryRow(`SELECT type FROM pragma_table_info('tasks') WHERE name='position'`)
 	var colType string
 	require.NoError(t, row.Scan(&colType))
-	assert.Equal(t, "REAL", colType, "tasks.position must be REAL after 0003")
+	assert.Equal(t, "REAL", colType)
 
 	row = conn.QueryRow(`
 		SELECT on_delete FROM pragma_foreign_key_list('tasks')
 		WHERE "table" = 'boards' LIMIT 1`)
 	var rule string
 	require.NoError(t, row.Scan(&rule))
-	assert.Equal(t, "RESTRICT", rule, "tasks.board_id FK must be RESTRICT after 0002")
+	assert.Equal(t, "RESTRICT", rule)
 
 	row = conn.QueryRow(`
 		SELECT on_delete FROM pragma_foreign_key_list('tasks')
 		WHERE "table" = 'columns' LIMIT 1`)
 	require.NoError(t, row.Scan(&rule))
-	assert.Equal(t, "RESTRICT", rule, "tasks.column_id FK must be RESTRICT")
+	assert.Equal(t, "RESTRICT", rule)
+}
+
+func TestMigrationStatus(t *testing.T) {
+	conn, err := Open(context.Background(), ":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+	pending, applied, err := MigrationStatus(context.Background(), conn)
+	require.NoError(t, err)
+	assert.Empty(t, pending)
+	assert.NotEmpty(t, applied)
+	for _, a := range applied {
+		assert.NotEmpty(t, a.Checksum, "applied migrations must have a stored checksum")
+		assert.NotEmpty(t, a.AppliedAt)
+	}
 }

@@ -2,23 +2,27 @@ package cli
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/fizza/fizza/internal/db"
-	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
+	"github.com/fizza/fizza/internal/service"
 	"github.com/spf13/cobra"
 )
 
 func newTaskCmd(rf *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{Use: "task", Short: "Manage tasks"}
 	cmd.AddCommand(newTaskAddCmd(rf))
+	cmd.AddCommand(newTaskBulkCmd(rf))
 	cmd.AddCommand(newTaskListCmd(rf))
 	cmd.AddCommand(newTaskShowCmd(rf))
+	cmd.AddCommand(newTaskTreeCmd(rf))
 	cmd.AddCommand(newTaskMoveCmd(rf))
 	cmd.AddCommand(newTaskUpdateCmd(rf))
 	cmd.AddCommand(newTaskDeleteCmd(rf))
+	cmd.AddCommand(newTaskHistoryCmd(rf))
 	return cmd
 }
 
@@ -34,51 +38,24 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
-			project, err := rf.resolveProject()
-			if err != nil {
-				return report(cmd, rf, err)
-			}
 			ctx := cmd.Context()
-			conn, err := rf.openDB(ctx)
+			svc, err := rf.openDBWith(ctx, "", board, column)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer conn.Close()
+			defer svc.Close()
 
-			b, err := findBoard(ctx, conn, project, board)
-			if err != nil {
+			if _, err := svc.ResolveBoard(ctx); err != nil {
 				return report(cmd, rf, err)
 			}
-			targetCol, err := resolveColumn(ctx, conn, b.ID, column)
-			if err != nil {
-				return report(cmd, rf, err)
-			}
+
 			pri, err := model.NewPriority(priority)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			t := &model.Task{
-				BoardID:     b.ID,
-				ColumnID:    targetCol.ID,
-				Title:       args[0],
-				Description: desc,
-				Priority:    pri,
-			}
-			if due != "" {
-				parsed, err := dbutil.ParseDueDate(due)
-				if err != nil {
-					return report(cmd, rf, err)
-				}
-				t.DueDate = &parsed
-			}
-			if parent != "" {
-				pid, err := parseInt64(parent)
-				if err != nil {
-					return report(cmd, rf, fmt.Errorf("invalid --parent: %w", err))
-				}
-				t.ParentID = &pid
-			}
-			if err := db.CreateTask(ctx, conn, t); err != nil {
+			in := serviceTaskInput(args[0], desc, pri, due, parent)
+			t, err := svc.CreateTask(ctx, in)
+			if err != nil {
 				return report(cmd, rf, err)
 			}
 			return writeOK(cmd, rf, t)
@@ -93,31 +70,139 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 	return c
 }
 
+func serviceTaskInput(title, desc string, pri model.Priority, due, parent string) taskInput {
+	in := taskInput{Title: title, Description: desc, Priority: pri}
+	if due != "" {
+		parsed, err := parseCLIDueDate(due)
+		if err == nil {
+			in.DueDate = &parsed
+		}
+	}
+	if parent != "" {
+		pid, err := parseInt64(parent)
+		if err == nil {
+			in.ParentID = &pid
+		}
+	}
+	return in
+}
+
+type taskInput = struct {
+	Title       string
+	Description string
+	Priority    model.Priority
+	DueDate     *time.Time
+	ParentID    *int64
+	ColumnID    int64
+}
+
+func parseCLIDueDate(s string) (time.Time, error) {
+	for _, layout := range []string{"2006-01-02", time.RFC3339Nano, time.RFC3339} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC(), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unparseable date %q", s)
+}
+
+func newTaskBulkCmd(rf *rootFlags) *cobra.Command {
+	var board, fromFile string
+	c := &cobra.Command{
+		Use:   "bulk add",
+		Short: "Add many tasks from a JSON file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustFlags(cmd, "board", "from"); err != nil {
+				return report(cmd, rf, err)
+			}
+			data, err := readFileOrStdin(fromFile, cmd.InOrStdin())
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			var items []bulkTaskSpec
+			if err := decodeJSON(data, &items); err != nil {
+				return report(cmd, rf, fmt.Errorf("%w: invalid JSON: %v", ErrValidation, err))
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDBWith(ctx, "", board, "")
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+			r, err := svc.ResolveBoard(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			created := []*model.Task{}
+			for i, item := range items {
+				pri, err := model.NewPriority(item.Priority)
+				if err != nil {
+					return report(cmd, rf, fmt.Errorf("%w: item %d priority: %v", ErrValidation, i, err))
+				}
+				in := taskInput{
+					Title:       strings.TrimSpace(item.Title),
+					Description: item.Description,
+					Priority:    pri,
+				}
+				if item.Due != "" {
+					d, err := parseCLIDueDate(item.Due)
+					if err != nil {
+						return report(cmd, rf, fmt.Errorf("%w: item %d due: %v", ErrValidation, i, err))
+					}
+					in.DueDate = &d
+				}
+				if item.Column != "" {
+					c, err := db.GetColumnByName(ctx, svc.DB(), r.Board.ID, item.Column)
+					if err != nil {
+						return report(cmd, rf, fmt.Errorf("%w: item %d column: %v", ErrValidation, i, err))
+					}
+					in.ColumnID = c.ID
+				}
+				t, err := svc.CreateTask(ctx, in)
+				if err != nil {
+					return report(cmd, rf, fmt.Errorf("%w: item %d: %v", ErrValidation, i, err))
+				}
+				created = append(created, t)
+			}
+			return writeOK(cmd, rf, map[string]any{
+				"created": len(created),
+				"tasks":   created,
+			})
+		},
+	}
+	c.Flags().StringVar(&board, "board", "", "Board name (required)")
+	c.Flags().StringVar(&fromFile, "from", "", "Path to JSON file (or - for stdin)")
+	return c
+}
+
+type bulkTaskSpec struct {
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+	Priority    string `json:"priority,omitempty"`
+	Due         string `json:"due,omitempty"`
+	Column      string `json:"column,omitempty"`
+}
+
 func newTaskListCmd(rf *rootFlags) *cobra.Command {
-	var board, column string
+	var board, column, priority, dueBefore, dueAfter, search string
 	c := &cobra.Command{
 		Use:   "list",
-		Short: "List tasks in a board",
+		Short: "List tasks in a board (with optional filters)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
-			project, err := rf.resolveProject()
-			if err != nil {
-				return report(cmd, rf, err)
-			}
 			ctx := cmd.Context()
-			conn, err := rf.openDB(ctx)
+			svc, err := rf.openDBWith(ctx, "", board, "")
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer conn.Close()
+			defer svc.Close()
 
-			b, err := findBoard(ctx, conn, project, board)
+			filter, err := buildTaskFilter(column, priority, dueBefore, dueAfter, search)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			tasks, err := db.ListTasksInBoard(ctx, conn, b.ID, db.TaskFilter{ColumnName: column})
+			tasks, err := svc.ListTasks(ctx, filter)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -129,7 +214,43 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 	}
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
 	c.Flags().StringVar(&column, "column", "", "Filter by column name")
+	c.Flags().StringVar(&priority, "priority", "", "Filter by priority (comma-separated)")
+	c.Flags().StringVar(&dueBefore, "due-before", "", "Only tasks with due_date <= date (YYYY-MM-DD)")
+	c.Flags().StringVar(&dueAfter, "due-after", "", "Only tasks with due_date >= date (YYYY-MM-DD)")
+	c.Flags().StringVar(&search, "search", "", "Substring search on title/description")
 	return c
+}
+
+func buildTaskFilter(column, priorityCSV, dueBefore, dueAfter, search string) (db.TaskFilter, error) {
+	filter := db.TaskFilter{ColumnName: column, Search: search}
+	if priorityCSV != "" {
+		for _, p := range strings.Split(priorityCSV, ",") {
+			p = strings.TrimSpace(p)
+			if p == "" {
+				continue
+			}
+			pri, err := model.NewPriority(p)
+			if err != nil {
+				return filter, err
+			}
+			filter.Priorities = append(filter.Priorities, pri)
+		}
+	}
+	if dueBefore != "" {
+		t, err := parseCLIDueDate(dueBefore)
+		if err != nil {
+			return filter, fmt.Errorf("%w: --due-before: %v", ErrValidation, err)
+		}
+		filter.DueBefore = &t
+	}
+	if dueAfter != "" {
+		t, err := parseCLIDueDate(dueAfter)
+		if err != nil {
+			return filter, fmt.Errorf("%w: --due-after: %v", ErrValidation, err)
+		}
+		filter.DueAfter = &t
+	}
+	return filter, nil
 }
 
 func newTaskShowCmd(rf *rootFlags) *cobra.Command {
@@ -141,13 +262,13 @@ func newTaskShowCmd(rf *rootFlags) *cobra.Command {
 				return report(cmd, rf, err)
 			}
 			ctx := cmd.Context()
-			conn, err := rf.openDB(ctx)
+			svc, err := rf.openDB(ctx)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer conn.Close()
+			defer svc.Close()
 
-			t, err := db.GetTaskByPrefix(ctx, conn, args[0])
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -156,11 +277,67 @@ func newTaskShowCmd(rf *rootFlags) *cobra.Command {
 	}
 }
 
+func newTaskTreeCmd(rf *rootFlags) *cobra.Command {
+	var depth int
+	c := &cobra.Command{
+		Use:   "tree <id>",
+		Short: "Show a task with its descendants (parent/child tree)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+
+			root, err := svc.GetTaskByPrefix(ctx, args[0])
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			tree, err := buildTaskTree(ctx, svc.DB(), root, depth, 0)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, tree)
+		},
+	}
+	c.Flags().IntVar(&depth, "depth", 3, "Maximum nesting depth (0 = unlimited)")
+	return c
+}
+
+func buildTaskTree(ctx context.Context, conn db.Querier, root *model.Task, maxDepth, current int) (*TaskNode, error) {
+	if maxDepth > 0 && current >= maxDepth {
+		return &TaskNode{Task: root, Children: nil}, nil
+	}
+	subs, err := db.ListSubtasks(ctx, conn, root.ID)
+	if err != nil {
+		return nil, err
+	}
+	node := &TaskNode{Task: root, Children: make([]*TaskNode, 0, len(subs))}
+	for _, sub := range subs {
+		child, err := buildTaskTree(ctx, conn, sub, maxDepth, current+1)
+		if err != nil {
+			return nil, err
+		}
+		node.Children = append(node.Children, child)
+	}
+	return node, nil
+}
+
+type TaskNode struct {
+	Task     *model.Task  `json:"task"`
+	Children []*TaskNode  `json:"children,omitempty"`
+}
+
 func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
-	var board string
+	var board, before, after string
+	var top bool
 	c := &cobra.Command{
 		Use:   "move <id> <column>",
-		Short: "Move a task to a column",
+		Short: "Move a task to a column (supports --top/--before/--after)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := mustArgs(cmd, args, 2); err != nil {
 				return report(cmd, rf, err)
@@ -168,36 +345,36 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 			if err := mustFlags(cmd, "board"); err != nil {
 				return report(cmd, rf, err)
 			}
-			project, err := rf.resolveProject()
-			if err != nil {
-				return report(cmd, rf, err)
-			}
 			ctx := cmd.Context()
-			conn, err := rf.openDB(ctx)
+			svc, err := rf.openDBWith(ctx, "", board, args[1])
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer conn.Close()
+			defer svc.Close()
 
-			t, err := db.GetTaskByPrefix(ctx, conn, args[0])
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			b, err := findBoard(ctx, conn, project, board)
+			r, err := svc.ResolveBoard(ctx)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			if t.BoardID != b.ID {
+			if t.BoardID != r.Board.ID {
 				return report(cmd, rf, fmt.Errorf("%w: task belongs to a different board", db.ErrNotFound))
 			}
-			target, err := db.GetColumnByName(ctx, conn, b.ID, args[1])
+			col, err := db.GetColumnByName(ctx, svc.DB(), r.Board.ID, args[1])
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			if err := db.MoveTask(ctx, conn, t.ID, target.ID); err != nil {
+			beforeID, err := resolveBeforeTarget(ctx, svc, col.ID, top, before, after)
+			if err != nil {
 				return report(cmd, rf, err)
 			}
-			updated, err := db.GetTask(ctx, conn, t.ID)
+			if err := svc.MoveTask(ctx, t.ID, col.ID, beforeID); err != nil {
+				return report(cmd, rf, err)
+			}
+			updated, err := svc.GetTask(ctx, t.ID)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -205,7 +382,47 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&board, "board", "", "Board name (required)")
+	c.Flags().StringVar(&before, "before", "", "Place before this task ID")
+	c.Flags().StringVar(&after, "after", "", "Place after this task ID")
+	c.Flags().BoolVar(&top, "top", false, "Place at the top of the column")
 	return c
+}
+
+func resolveBeforeTarget(ctx context.Context, svc *service.Service, colID int64, top bool, before, after string) (*int64, error) {
+	switch {
+	case top:
+		first, err := db.FirstTaskInColumn(ctx, svc.DB(), colID)
+		if err != nil {
+			return nil, err
+		}
+		if first == nil {
+			return nil, nil
+		}
+		id := first.ID
+		return &id, nil
+	case before != "":
+		b, err := svc.GetTaskByPrefix(ctx, before)
+		if err != nil {
+			return nil, err
+		}
+		id := b.ID
+		return &id, nil
+	case after != "":
+		a, err := svc.GetTaskByPrefix(ctx, after)
+		if err != nil {
+			return nil, err
+		}
+		next, err := db.NextTaskInColumn(ctx, svc.DB(), colID, a.ID)
+		if err != nil {
+			return nil, err
+		}
+		if next == nil {
+			return nil, nil
+		}
+		id := next.ID
+		return &id, nil
+	}
+	return nil, nil
 }
 
 func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
@@ -219,13 +436,13 @@ func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
 				return report(cmd, rf, err)
 			}
 			ctx := cmd.Context()
-			conn, err := rf.openDB(ctx)
+			svc, err := rf.openDB(ctx)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer conn.Close()
+			defer svc.Close()
 
-			t, err := db.GetTaskByPrefix(ctx, conn, args[0])
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -247,7 +464,7 @@ func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
 			if clearDue {
 				patch.ClearDueDate = true
 			} else if due != "" {
-				parsed, err := dbutil.ParseDueDate(due)
+				parsed, err := parseCLIDueDate(due)
 				if err != nil {
 					return report(cmd, rf, err)
 				}
@@ -263,10 +480,7 @@ func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
 				patch.ParentID = &pid
 			}
 
-			if err := db.UpdateTask(ctx, conn, t.ID, patch); err != nil {
-				return report(cmd, rf, err)
-			}
-			updated, err := db.GetTask(ctx, conn, t.ID)
+			updated, err := svc.UpdateTask(ctx, t.ID, patch)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -293,13 +507,13 @@ func newTaskDeleteCmd(rf *rootFlags) *cobra.Command {
 				return report(cmd, rf, err)
 			}
 			ctx := cmd.Context()
-			conn, err := rf.openDB(ctx)
+			svc, err := rf.openDB(ctx)
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer conn.Close()
+			defer svc.Close()
 
-			t, err := db.GetTaskByPrefix(ctx, conn, args[0])
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
 			if err != nil {
 				return report(cmd, rf, err)
 			}
@@ -309,7 +523,7 @@ func newTaskDeleteCmd(rf *rootFlags) *cobra.Command {
 				_ = out.Write(env)
 				return newExitError(ExitConflict, nil)
 			}
-			if err := db.DeleteTask(ctx, conn, t.ID); err != nil {
+			if err := svc.DeleteTask(ctx, t.ID); err != nil {
 				return report(cmd, rf, err)
 			}
 			return writeOK(cmd, rf, map[string]any{"deleted": t.ID, "title": t.Title})
@@ -319,55 +533,33 @@ func newTaskDeleteCmd(rf *rootFlags) *cobra.Command {
 	return c
 }
 
-func findBoard(ctx context.Context, conn *sql.DB, project, board string) (*model.Board, error) {
-	p, err := db.GetProjectByName(ctx, conn, project)
-	if err != nil {
-		return nil, err
-	}
-	boards, err := db.ListBoards(ctx, conn, p.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, b := range boards {
-		if b.Name == board {
-			return b, nil
-		}
-	}
-	return nil, fmt.Errorf("%w: board %q in project %q", db.ErrNotFound, board, project)
-}
+func newTaskHistoryCmd(rf *rootFlags) *cobra.Command {
+	var limit int
+	c := &cobra.Command{
+		Use:   "history <id>",
+		Short: "Show the event log for a task",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
 
-func resolveColumn(ctx context.Context, conn *sql.DB, boardID int64, name string) (*model.Column, error) {
-	cols, err := db.ListColumns(ctx, conn, boardID)
-	if err != nil {
-		return nil, err
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			events, err := db.ListEvents(ctx, svc.DB(), &t.ID, limit)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, events)
+		},
 	}
-	if name == "" {
-		if len(cols) == 0 {
-			return nil, fmt.Errorf("%w: board has no columns", db.ErrNotFound)
-		}
-		return cols[0], nil
-	}
-	for _, c := range cols {
-		if c.Name == name {
-			return c, nil
-		}
-	}
-	return nil, fmt.Errorf("%w: column %q", db.ErrNotFound, name)
-}
-
-func parseInt64(s string) (int64, error) {
-	if s == "" {
-		return 0, fmt.Errorf("empty")
-	}
-	var n int64
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return 0, fmt.Errorf("not numeric: %q", s)
-		}
-		n = n*10 + int64(r-'0')
-		if n > 1<<62 {
-			return 0, fmt.Errorf("too large: %q", s)
-		}
-	}
-	return n, nil
+	c.Flags().IntVar(&limit, "limit", 50, "Maximum events to return")
+	return c
 }

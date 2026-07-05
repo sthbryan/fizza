@@ -2,14 +2,13 @@ package cli
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 
 	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
+	"github.com/fizza/fizza/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -45,19 +44,39 @@ func (rf *rootFlags) output(w io.Writer) *Output {
 	return NewOutput(w, format, noColor)
 }
 
-func (rf *rootFlags) openDB(ctx context.Context) (*sql.DB, error) {
+func (rf *rootFlags) openDB(ctx context.Context) (*service.Service, error) {
 	path, err := config.DBPath()
 	if err != nil {
 		return nil, err
 	}
-	return db.Open(ctx, path)
+	conn, err := db.Open(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	project := rf.conf.Project
+	if cmd := currentCmdProject(); cmd != "" {
+		project = cmd
+	}
+	return service.New(conn, project, "", ""), nil
 }
 
-func (rf *rootFlags) resolveProject() (string, error) {
-	if rf.conf.Project == "" {
-		return "", fmt.Errorf("%w: no default project set (run `fizza project set <name>` first)", ErrValidation)
+func (rf *rootFlags) openDBWith(ctx context.Context, project, board, column string) (*service.Service, error) {
+	path, err := config.DBPath()
+	if err != nil {
+		return nil, err
 	}
-	return rf.conf.Project, nil
+	conn, err := db.Open(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	if project == "" {
+		project = rf.conf.Project
+	}
+	return service.New(conn, project, board, column), nil
+}
+
+func currentCmdProject() string {
+	return os.Getenv("FIZZA_CMD_PROJECT")
 }
 
 func newRootCmd() *cobra.Command {
@@ -90,6 +109,8 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newBoardCmd(rf))
 	cmd.AddCommand(newTaskCmd(rf))
 	cmd.AddCommand(newConfigCmd(rf))
+	cmd.AddCommand(newSchemaCmd(rf))
+	cmd.AddCommand(newDoctorCmd(rf))
 	cmd.AddCommand(newMCPCmd(rf))
 
 	return cmd

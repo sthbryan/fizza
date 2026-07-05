@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -87,28 +89,45 @@ func Migrate(ctx context.Context, conn *sql.DB) error {
 	}
 	if _, err := conn.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
 		version    INTEGER PRIMARY KEY,
-		applied_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+		applied_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+		checksum   TEXT    NOT NULL DEFAULT ''
 	)`); err != nil {
 		return fmt.Errorf("create schema_migrations: %w", err)
 	}
 	applied := map[int64]bool{}
-	rows, err := conn.QueryContext(ctx, `SELECT version FROM schema_migrations`)
+	checksums := map[int64]string{}
+	rows, err := conn.QueryContext(ctx, `SELECT version, COALESCE(checksum,'') FROM schema_migrations`)
 	if err != nil {
 		return fmt.Errorf("select applied: %w", err)
 	}
 	for rows.Next() {
 		var v int64
-		if err := rows.Scan(&v); err != nil {
+		var cs string
+		if err := rows.Scan(&v, &cs); err != nil {
 			_ = rows.Close()
 			return fmt.Errorf("scan applied: %w", err)
 		}
 		applied[v] = true
+		checksums[v] = cs
 	}
 	if err := rows.Err(); err != nil {
 		_ = rows.Close()
 		return fmt.Errorf("rows applied: %w", err)
 	}
 	_ = rows.Close()
+
+	for _, m := range migs {
+		stored, ok := checksums[m.Version]
+		if !ok || stored == "" {
+			continue
+		}
+		sum := sha256.Sum256([]byte(m.Body))
+		actual := hex.EncodeToString(sum[:])
+		if actual != stored {
+			return fmt.Errorf("migration %s checksum mismatch (want %s, got %s); the migration file has been modified after being applied",
+				m.Name, stored, actual)
+		}
+	}
 
 	for _, m := range migs {
 		if applied[m.Version] {
@@ -122,8 +141,10 @@ func Migrate(ctx context.Context, conn *sql.DB) error {
 			_ = tx.Rollback()
 			return fmt.Errorf("exec %s: %w", m.Name, err)
 		}
+		sum := sha256.Sum256([]byte(m.Body))
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO schema_migrations (version) VALUES (?)`, m.Version); err != nil {
+			`INSERT INTO schema_migrations (version, checksum) VALUES (?, ?)`,
+			m.Version, hex.EncodeToString(sum[:])); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("record %s: %w", m.Name, err)
 		}
@@ -147,6 +168,34 @@ func AppliedVersions(ctx context.Context, conn *sql.DB) ([]int64, error) {
 			return nil, err
 		}
 		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+type SchemaObject struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+	SQL  string `json:"sql"`
+}
+
+func Schema(ctx context.Context, conn *sql.DB) ([]SchemaObject, error) {
+	rows, err := conn.QueryContext(ctx,
+		`SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SchemaObject
+	for rows.Next() {
+		var s SchemaObject
+		var sqlText *string
+		if err := rows.Scan(&s.Type, &s.Name, &sqlText); err != nil {
+			return nil, err
+		}
+		if sqlText != nil {
+			s.SQL = *sqlText
+		}
+		out = append(out, s)
 	}
 	return out, rows.Err()
 }
