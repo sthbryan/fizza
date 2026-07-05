@@ -14,7 +14,7 @@ import (
 )
 
 type Service struct {
-	conn       *sql.DB
+	pool       *db.Pool
 	project    string
 	board      string
 	column     string
@@ -28,12 +28,20 @@ type Resolved struct {
 }
 
 func New(conn *sql.DB, project, board, column string) *Service {
-	return &Service{conn: conn, project: project, board: board, column: column}
+	return &Service{pool: db.NewSinglePool(conn), project: project, board: board, column: column}
 }
 
-func (s *Service) DB() *sql.DB { return s.conn }
+func NewWithPool(pool *db.Pool, project, board, column string) *Service {
+	return &Service{pool: pool, project: project, board: board, column: column}
+}
 
-func (s *Service) Close() error { return s.conn.Close() }
+func (s *Service) DB() *sql.DB { return s.pool.Write }
+
+func (s *Service) Reader() *sql.DB { return s.pool.Read }
+
+func (s *Service) Pool() *db.Pool { return s.pool }
+
+func (s *Service) Close() error { return s.pool.Close() }
 
 func (s *Service) Resolve(ctx context.Context) (*Resolved, error) {
 	if s.resolved != nil {
@@ -41,7 +49,7 @@ func (s *Service) Resolve(ctx context.Context) (*Resolved, error) {
 	}
 	r := &Resolved{}
 	if s.project != "" {
-		p, err := db.GetProjectByName(ctx, s.conn, s.project)
+		p, err := db.GetProjectByName(ctx, s.pool.Write, s.project)
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +59,7 @@ func (s *Service) Resolve(ctx context.Context) (*Resolved, error) {
 		if r.Project == nil {
 			return nil, errors.New("service: board requires project")
 		}
-		b, err := findBoardByName(ctx, s.conn, r.Project.ID, s.board)
+		b, err := findBoardByName(ctx, s.pool.Write, r.Project.ID, s.board)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +69,7 @@ func (s *Service) Resolve(ctx context.Context) (*Resolved, error) {
 		if r.Board == nil {
 			return nil, errors.New("service: column requires board")
 		}
-		c, err := db.GetColumnByName(ctx, s.conn, r.Board.ID, s.column)
+		c, err := db.GetColumnByName(ctx, s.pool.Write, r.Board.ID, s.column)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +112,7 @@ func (s *Service) ResolveColumn(ctx context.Context, defaultToFirst bool) (*Reso
 	if r.Column != nil {
 		return r, nil
 	}
-	cols, err := db.ListColumns(ctx, s.conn, r.Board.ID)
+	cols, err := db.ListColumns(ctx, s.pool.Write, r.Board.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +149,7 @@ type ProjectCounts struct {
 
 func (s *Service) ProjectCounts(ctx context.Context) (ProjectCounts, error) {
 	var c ProjectCounts
-	row := s.conn.QueryRowContext(ctx,
+	row := s.pool.Write.QueryRowContext(ctx,
 		`SELECT
 			(SELECT COUNT(*) FROM projects),
 			(SELECT COUNT(*) FROM boards),
@@ -171,7 +179,7 @@ func (s *Service) CreateTask(ctx context.Context, in TaskCreateInput) (*model.Ta
 		if r.Column != nil {
 			col = r.Column.ID
 		} else {
-			cols, err := db.ListColumns(ctx, s.conn, r.Board.ID)
+			cols, err := db.ListColumns(ctx, s.pool.Write, r.Board.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -193,7 +201,7 @@ func (s *Service) CreateTask(ctx context.Context, in TaskCreateInput) (*model.Ta
 		DueDate:     in.DueDate,
 		ParentID:    in.ParentID,
 	}
-	if err := db.CreateTask(ctx, s.conn, t); err != nil {
+	if err := db.CreateTask(ctx, s.pool.Write, t); err != nil {
 		return nil, err
 	}
 	return t, nil
@@ -204,30 +212,30 @@ func (s *Service) ListTasks(ctx context.Context, filter db.TaskFilter) ([]*model
 	if err != nil {
 		return nil, err
 	}
-	return db.ListTasksInBoard(ctx, s.conn, r.Board.ID, filter)
+	return db.ListTasksInBoard(ctx, s.pool.Write, r.Board.ID, filter)
 }
 
 func (s *Service) MoveTask(ctx context.Context, taskID, targetColumnID int64, beforeTaskID *int64) error {
-	return db.MoveTaskAt(ctx, s.conn, taskID, targetColumnID, beforeTaskID)
+	return db.MoveTaskAt(ctx, s.pool.Write, taskID, targetColumnID, beforeTaskID)
 }
 
 func (s *Service) UpdateTask(ctx context.Context, id int64, patch db.TaskPatch) (*model.Task, error) {
-	if err := db.UpdateTask(ctx, s.conn, id, patch); err != nil {
+	if err := db.UpdateTask(ctx, s.pool.Write, id, patch); err != nil {
 		return nil, err
 	}
-	return db.GetTask(ctx, s.conn, id)
+	return db.GetTask(ctx, s.pool.Write, id)
 }
 
 func (s *Service) DeleteTask(ctx context.Context, id int64) error {
-	return db.DeleteTask(ctx, s.conn, id)
+	return db.DeleteTask(ctx, s.pool.Write, id)
 }
 
 func (s *Service) GetTask(ctx context.Context, id int64) (*model.Task, error) {
-	return db.GetTask(ctx, s.conn, id)
+	return db.GetTask(ctx, s.pool.Write, id)
 }
 
 func (s *Service) GetTaskByPrefix(ctx context.Context, prefix string) (*model.Task, error) {
-	return db.GetTaskByPrefix(ctx, s.conn, prefix)
+	return db.GetTaskByPrefix(ctx, s.pool.Write, prefix)
 }
 
 func ParseDue(s string) (*time.Time, error) {

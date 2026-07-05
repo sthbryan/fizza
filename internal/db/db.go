@@ -30,28 +30,89 @@ type Migration struct {
 }
 
 func Open(ctx context.Context, path string) (*sql.DB, error) {
+	pool, err := OpenPool(ctx, path, 1, 1)
+	if err != nil {
+		return nil, err
+	}
+	return pool.Write, nil
+}
+
+type Pool struct {
+	Write  *sql.DB
+	Read   *sql.DB
+	path   string
+}
+
+func OpenPool(ctx context.Context, path string, maxReaders, maxWriters int) (*Pool, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, errors.New("db: empty path")
 	}
-	conn, err := sql.Open("sqlite", fmt.Sprintf(walDSN, filepath.Clean(path)))
-	if err != nil {
-		return nil, fmt.Errorf("db: open: %w", err)
+	if maxReaders < 1 {
+		maxReaders = 1
 	}
-	conn.SetMaxOpenConns(1)
-	conn.SetMaxIdleConns(1)
-	conn.SetConnMaxLifetime(0)
+	if maxWriters < 1 {
+		maxWriters = 1
+	}
+	dsn := fmt.Sprintf(walDSN, filepath.Clean(path))
+
+	writer, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("db: open writer: %w", err)
+	}
+	writer.SetMaxOpenConns(maxWriters)
+	writer.SetMaxIdleConns(maxWriters)
+	writer.SetConnMaxLifetime(0)
+
+	reader, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		_ = writer.Close()
+		return nil, fmt.Errorf("db: open reader: %w", err)
+	}
+	reader.SetMaxOpenConns(maxReaders)
+	reader.SetMaxIdleConns(maxReaders)
+	reader.SetConnMaxLifetime(0)
 
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if err := conn.PingContext(pingCtx); err != nil {
-		_ = conn.Close()
-		return nil, fmt.Errorf("db: ping: %w", err)
+	if err := writer.PingContext(pingCtx); err != nil {
+		_ = writer.Close()
+		_ = reader.Close()
+		return nil, fmt.Errorf("db: ping writer: %w", err)
 	}
-	if err := Migrate(ctx, conn); err != nil {
-		_ = conn.Close()
+	if err := reader.PingContext(pingCtx); err != nil {
+		_ = writer.Close()
+		_ = reader.Close()
+		return nil, fmt.Errorf("db: ping reader: %w", err)
+	}
+	if err := Migrate(ctx, writer); err != nil {
+		_ = writer.Close()
+		_ = reader.Close()
 		return nil, fmt.Errorf("db: migrate: %w", err)
 	}
-	return conn, nil
+	return &Pool{Write: writer, Read: reader, path: filepath.Clean(path)}, nil
+}
+
+func (p *Pool) Close() error {
+	if p == nil {
+		return nil
+	}
+	werr := p.Write.Close()
+	rerr := p.Read.Close()
+	if werr != nil {
+		return werr
+	}
+	return rerr
+}
+
+func (p *Pool) Path() string {
+	if p == nil {
+		return ""
+	}
+	return p.path
+}
+
+func NewSinglePool(conn *sql.DB) *Pool {
+	return &Pool{Write: conn, Read: conn, path: ""}
 }
 
 func LoadMigrations() ([]Migration, error) {
