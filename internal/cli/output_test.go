@@ -31,6 +31,8 @@ func TestClassifyError(t *testing.T) {
 		{nil, "", ExitOK},
 		{db.ErrNotFound, CodeNotFound, ExitNotFound},
 		{db.ErrDuplicate, CodeDuplicate, ExitDuplicate},
+		{ErrValidation, CodeValidation, ExitValidation},
+		{newExitError(ExitConflict, nil), CodeConflict, ExitConflict},
 	}
 	for _, c := range cases {
 		env, exit := ClassifyError(c.err)
@@ -41,6 +43,17 @@ func TestClassifyError(t *testing.T) {
 		assert.Equal(t, c.wantCode, env.Error.Code)
 		assert.Equal(t, c.wantExit, exit)
 	}
+}
+
+func TestExitError_CarriesCode(t *testing.T) {
+	ee := newExitError(ExitConflict, nil)
+	assert.Equal(t, ExitConflict, ee.Code)
+	assert.NoError(t, ee.Err)
+	assert.Equal(t, "", ee.Error())
+
+	wrapped := newExitError(ExitNotFound, db.ErrNotFound)
+	assert.Equal(t, ExitNotFound, wrapped.Code)
+	assert.True(t, db.IsNotFound(wrapped.Err))
 }
 
 func TestOutput_JSON(t *testing.T) {

@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,6 +19,18 @@ func SetVersion(v string) { version = v }
 
 func Execute() error {
 	return newRootCmd().ExecuteContext(context.Background())
+}
+
+func ExecuteWithCode() (int, error) {
+	err := Execute()
+	if err == nil {
+		return ExitOK, nil
+	}
+	var ee *ExitError
+	if errors.As(err, &ee) {
+		return ee.Code, ee.Err
+	}
+	return ExitGeneric, err
 }
 
 type rootFlags struct {

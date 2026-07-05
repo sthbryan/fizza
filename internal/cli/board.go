@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/fizza/fizza/internal/db"
@@ -191,7 +190,7 @@ func newBoardDeleteCmd(rf *rootFlags) *cobra.Command {
 				env := Fail(CodeConflict, fmt.Sprintf("refusing to delete %q without --force", args[0]))
 				out := rf.output(cmd.ErrOrStderr())
 				_ = out.Write(env)
-				os.Exit(ExitConflict)
+				return newExitError(ExitConflict, nil)
 			}
 
 			if err := db.DeleteBoard(ctx, conn, found.ID); err != nil {

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
@@ -153,7 +152,7 @@ func newProjectDeleteCmd(rf *rootFlags) *cobra.Command {
 				if werr := out.Write(env); werr != nil {
 					return werr
 				}
-				os.Exit(ExitConflict)
+				return newExitError(ExitConflict, nil)
 			}
 			if err := db.DeleteProject(ctx, conn, p.ID); err != nil {
 				return report(cmd, rf, err)
@@ -174,6 +173,5 @@ func report(cmd *cobra.Command, rf *rootFlags, err error) error {
 	env, exit := ClassifyError(err)
 	out := rf.output(cmd.ErrOrStderr())
 	_ = out.Write(env)
-	os.Exit(exit)
-	return nil
+	return newExitError(exit, err)
 }

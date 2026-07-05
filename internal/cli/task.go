@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/dbutil"
@@ -308,7 +307,7 @@ func newTaskDeleteCmd(rf *rootFlags) *cobra.Command {
 				env := Fail(CodeConflict, fmt.Sprintf("refusing to delete task %d without --force", t.ID))
 				out := rf.output(cmd.ErrOrStderr())
 				_ = out.Write(env)
-				os.Exit(ExitConflict)
+				return newExitError(ExitConflict, nil)
 			}
 			if err := db.DeleteTask(ctx, conn, t.ID); err != nil {
 				return report(cmd, rf, err)

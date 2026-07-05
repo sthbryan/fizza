@@ -46,6 +46,24 @@ type Envelope struct {
 	Error *ErrorPayload `json:"error,omitempty"`
 }
 
+type ExitError struct {
+	Code int
+	Err  error
+}
+
+func (e *ExitError) Error() string {
+	if e.Err == nil {
+		return ""
+	}
+	return e.Err.Error()
+}
+
+func (e *ExitError) Unwrap() error { return e.Err }
+
+func newExitError(code int, err error) *ExitError {
+	return &ExitError{Code: code, Err: err}
+}
+
 func OK(data any) Envelope { return Envelope{OK: true, Data: data} }
 
 func Fail(code ErrorCode, msg string) Envelope {
@@ -53,6 +71,26 @@ func Fail(code ErrorCode, msg string) Envelope {
 }
 
 func ClassifyError(err error) (Envelope, int) {
+	var ee *ExitError
+	if errors.As(err, &ee) {
+		switch ee.Code {
+		case ExitConflict:
+			return Fail(CodeConflict, conflictMessage(ee)), ExitConflict
+		case ExitNotFound:
+			return Fail(CodeNotFound, notFoundMessage(ee)), ExitNotFound
+		case ExitDuplicate:
+			return Fail(CodeDuplicate, ee.Error()), ExitDuplicate
+		case ExitValidation:
+			return Fail(CodeValidation, validationMessage(ee.Err)), ExitValidation
+		case ExitOK:
+			return OK(nil), ExitOK
+		default:
+			if ee.Err == nil {
+				return Fail(CodeInternal, "error"), ExitGeneric
+			}
+			return ClassifyError(ee.Err)
+		}
+	}
 	switch {
 	case err == nil:
 		return OK(nil), ExitOK
@@ -74,6 +112,20 @@ func validationMessage(err error) string {
 		return msg[len(prefix):]
 	}
 	return msg
+}
+
+func conflictMessage(ee *ExitError) string {
+	if ee.Err == nil {
+		return "conflict"
+	}
+	return ee.Err.Error()
+}
+
+func notFoundMessage(ee *ExitError) string {
+	if ee.Err == nil {
+		return "not found"
+	}
+	return ee.Err.Error()
 }
 
 type Output struct {
