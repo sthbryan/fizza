@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math"
 )
 
 const PositionStep = 1000.0
@@ -226,8 +225,4 @@ func ensureHealthyPosition(ctx context.Context, q Querier, columnID int64) {
 		return
 	}
 	_, _ = RebalanceColumn(ctx, q, columnID)
-}
-
-func positionsEqual(a, b float64) bool {
-	return math.Abs(a-b) < 1e-12
 }
