@@ -52,13 +52,13 @@ func main() {
 		return nil
 	})
 
-	step("tools/list has 14", func() error {
+	step("tools/list has 19", func() error {
 		tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
 		if err != nil {
 			return err
 		}
-		if len(tools.Tools) != 14 {
-			return fmt.Errorf("got %d tools, want 14", len(tools.Tools))
+		if len(tools.Tools) != 19 {
+			return fmt.Errorf("got %d tools, want 19", len(tools.Tools))
 		}
 		return nil
 	})

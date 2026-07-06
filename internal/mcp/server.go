@@ -40,6 +40,7 @@ func Run(ctx context.Context, version string) error {
 	registerProjectTools(server, conn)
 	registerBoardTools(server, conn)
 	registerTaskTools(server, conn)
+	registerTagTools(server, conn)
 
 	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		fmt.Fprintln(os.Stderr, "mcp server:", err)
@@ -368,4 +369,117 @@ func registerTaskTools(s *mcp.Server, conn *sql.DB) {
 		}
 		return nil, map[string]any{"deleted": t.ID, "title": t.Title}, nil
 	})
+}
+
+type tagInput struct {
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to current)"`
+	Name    string `json:"name" jsonschema:"tag name"`
+}
+
+type tagListInput struct {
+	Project string `json:"project,omitempty" jsonschema:"project name"`
+}
+
+type tagDeleteInput struct {
+	ID    int64 `json:"id" jsonschema:"tag id"`
+	Force bool  `json:"force,omitempty" jsonschema:"skip confirmation"`
+}
+
+type tagAttachInput struct {
+	TaskID int64 `json:"task_id" jsonschema:"task id"`
+	TagID  int64 `json:"tag_id" jsonschema:"tag id"`
+}
+
+func registerTagTools(s *mcp.Server, conn *sql.DB) {
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "tag_add",
+		Description: "Create a tag in a project.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagInput) (*mcp.CallToolResult, any, error) {
+		project := in.Project
+		if project == "" {
+			p, err := defaultProject()
+			if err != nil {
+				return nil, nil, err
+			}
+			project = p
+		}
+		p, err := db.GetProjectByName(ctx, conn, project)
+		if err != nil {
+			return nil, nil, err
+		}
+		t, err := db.CreateTag(ctx, conn, p.ID, in.Name)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, t, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "tag_list",
+		Description: "List tags in a project.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagListInput) (*mcp.CallToolResult, any, error) {
+		project := in.Project
+		if project == "" {
+			project, _ = defaultProject()
+		}
+		if project == "" {
+			return nil, nil, fmt.Errorf("project required")
+		}
+		p, err := db.GetProjectByName(ctx, conn, project)
+		if err != nil {
+			return nil, nil, err
+		}
+		tags, err := db.ListTags(ctx, conn, p.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if tags == nil {
+			tags = []*model.Tag{}
+		}
+		return nil, tags, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "tag_delete",
+		Description: "Delete a tag. Requires force=true.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagDeleteInput) (*mcp.CallToolResult, any, error) {
+		if !in.Force {
+			return nil, nil, fmt.Errorf("refusing to delete tag %d: pass force=true", in.ID)
+		}
+		if err := db.DeleteTag(ctx, conn, in.ID); err != nil {
+			return nil, nil, err
+		}
+		return nil, map[string]any{"deleted": in.ID}, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "tag_attach",
+		Description: "Attach a tag to a task.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagAttachInput) (*mcp.CallToolResult, any, error) {
+		if err := db.AddTagToTask(ctx, conn, in.TaskID, in.TagID); err != nil {
+			return nil, nil, err
+		}
+		return nil, map[string]any{"task_id": in.TaskID, "tag_id": in.TagID}, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "tag_detach",
+		Description: "Detach a tag from a task.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagAttachInput) (*mcp.CallToolResult, any, error) {
+		if err := db.RemoveTagFromTask(ctx, conn, in.TaskID, in.TagID); err != nil {
+			return nil, nil, err
+		}
+		return nil, map[string]any{"task_id": in.TaskID, "tag_id": in.TagID}, nil
+	})
+}
+
+func defaultProject() (string, error) {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return "", err
+	}
+	if cfg.Project == "" {
+		return "", fmt.Errorf("no default project set")
+	}
+	return cfg.Project, nil
 }
