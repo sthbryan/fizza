@@ -2,11 +2,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 
-	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 )
 
@@ -32,28 +29,24 @@ func CreateTag(ctx context.Context, q Querier, projectID int64, name string) (*m
 }
 
 func GetTag(ctx context.Context, q Querier, id int64) (*model.Tag, error) {
-	row := q.QueryRowContext(ctx,
+	var t model.Tag
+	err := q.GetContext(ctx, &t,
 		`SELECT id, project_id, name, created_at FROM tags WHERE id = ?`, id)
-	return scanTag(row)
+	if err != nil {
+		return nil, mapErrNotFound(err, fmt.Sprintf("tag %d", id))
+	}
+	return &t, nil
 }
 
 func ListTags(ctx context.Context, q Querier, projectID int64) ([]*model.Tag, error) {
-	rows, err := q.QueryContext(ctx,
+	var out []*model.Tag
+	err := q.SelectContext(ctx, &out,
 		`SELECT id, project_id, name, created_at FROM tags
 		 WHERE project_id = ? ORDER BY name`, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("db: list tags: %w", err)
 	}
-	defer rows.Close()
-	var out []*model.Tag
-	for rows.Next() {
-		t, err := scanTag(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, t)
-	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func DeleteTag(ctx context.Context, q Querier, tagID int64) error {
@@ -96,7 +89,8 @@ func RemoveTagFromTask(ctx context.Context, q Querier, taskID, tagID int64) erro
 }
 
 func ListTagsForTask(ctx context.Context, q Querier, taskID int64) ([]*model.Tag, error) {
-	rows, err := q.QueryContext(ctx, `
+	var out []*model.Tag
+	err := q.SelectContext(ctx, &out, `
 		SELECT t.id, t.project_id, t.name, t.created_at
 		FROM tags t
 		JOIN task_tags tt ON tt.tag_id = t.id
@@ -105,16 +99,7 @@ func ListTagsForTask(ctx context.Context, q Querier, taskID int64) ([]*model.Tag
 	if err != nil {
 		return nil, fmt.Errorf("db: list tags for task: %w", err)
 	}
-	defer rows.Close()
-	var out []*model.Tag
-	for rows.Next() {
-		t, err := scanTag(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, t)
-	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func ListTaskIDsForTag(ctx context.Context, q Querier, tagID int64) ([]int64, error) {
@@ -133,23 +118,4 @@ func ListTaskIDsForTag(ctx context.Context, q Querier, tagID int64) ([]int64, er
 		out = append(out, id)
 	}
 	return out, rows.Err()
-}
-
-func scanTag(s rowScanner) (*model.Tag, error) {
-	var (
-		t     model.Tag
-		creAt string
-	)
-	if err := s.Scan(&t.ID, &t.ProjectID, &t.Name, &creAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: tag", ErrNotFound)
-		}
-		return nil, fmt.Errorf("db: scan tag: %w", err)
-	}
-	parsed, err := dbutil.ParseTime(creAt)
-	if err != nil {
-		return nil, fmt.Errorf("db: parse created_at: %w", err)
-	}
-	t.CreatedAt = dbutil.Time{Time: parsed}
-	return &t, nil
 }
