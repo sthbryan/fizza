@@ -135,6 +135,11 @@ If your agent doesn't support MCP but can run subprocesses, point it at `fizza` 
 | `task_move` | Move a task to a different column |
 | `task_update` | Update one or more fields of a task |
 | `task_delete` | Delete a task (cascades subtasks) |
+| `tag_add` | Create a tag in a project |
+| `tag_list` | List tags in a project |
+| `tag_delete` | Delete a tag (cascades) |
+| `tag_attach` | Attach a tag to a task |
+| `tag_detach` | Detach a tag from a task |
 
 All tools accept and return JSON. The MCP server enforces the same schema; invalid inputs are rejected before any DB write.
 
@@ -183,13 +188,37 @@ fizza board show <name>
 fizza board delete <name> [--force]
 
 fizza task add <title> --board <name> [--column <name>] [--desc "..."] [--priority low|medium|high|urgent] [--due 2026-07-01] [--parent <id>]
-fizza task list --board <name> [--column <name>]
+fizza task list --board <name> [--column <name>] [--priority low,medium] [--due-before YYYY-MM-DD] [--due-after YYYY-MM-DD] [--search "needle"]
 fizza task show <id>
-fizza task move <id> <column> --board <name>
+fizza task tree <id> [--depth N]
+fizza task move <id> <column> --board <name> [--top | --before <id> | --after <id>]
 fizza task update <id> [--title "..."] [--desc "..."] [--priority ...] [--due ...] [--clear-due] [--parent <id>] [--clear-parent]
 fizza task delete <id> [--force]
+fizza task history <id> [--limit N]
+fizza task bulk add --board <name> --from <file>
+
+fizza tag add <name> [--project <name>]
+fizza tag list
+fizza tag delete <id> [--force]
+fizza tag attach <task-id> <tag-id>
+fizza tag detach <task-id> <tag-id>
+
+fizza board create <name> [--columns "todo,in_progress,review,done"]
+fizza board list
+fizza board show <name>
+fizza board delete <name> [--force]
+fizza board set-wip <board> <column> [--limit N | --clear]
+
+fizza project export <name>             # JSON to stdout
+fizza project import --from <file>       # JSON import
+
+fizza schema show                        # all tables/indexes/DDL
+fizza schema migrations                  # applied/pending + sha256 checksums
+
+fizza doctor                             # integrity_check + migration status + free disk
 
 fizza mcp                                # run as MCP server on stdio
+fizza serve [--host 127.0.0.1] [--port 8080] [--addr <host:port>] [--read-timeout 30s] [--write-timeout 30s]
 
 # Global flags
 --format json|pretty                     # default json
