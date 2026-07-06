@@ -113,63 +113,25 @@ func DeleteBoard(ctx context.Context, q Querier, id int64) error {
 }
 
 func GetColumnByName(ctx context.Context, q Querier, boardID int64, name string) (*model.Column, error) {
-	var (
-		c    model.Column
-		pos  int
-		c2   sql.NullString
-		wip  sql.NullInt64
-	)
-	err := q.QueryRowContext(ctx,
-		`SELECT id, board_id, name, position, color, wip_limit FROM columns
-		 WHERE board_id = ? AND name = ?`, boardID, name,
-	).Scan(&c.ID, &c.BoardID, &c.Name, &pos, &c2, &wip)
+	var c model.Column
+	err := q.GetContext(ctx, &c,
+		`SELECT id, board_id, name, position, COALESCE(color, '') AS color, wip_limit FROM columns
+		 WHERE board_id = ? AND name = ?`, boardID, name)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: column %q in board %d", ErrNotFound, name, boardID)
-		}
-		return nil, fmt.Errorf("db: get column: %w", err)
-	}
-	c.Position = pos
-	if c2.Valid {
-		c.Color = c2.String
-	}
-	if wip.Valid {
-		v := int(wip.Int64)
-		c.WIPLimit = &v
+		return nil, mapErrNotFound(err, fmt.Sprintf("column %q in board %d", name, boardID))
 	}
 	return &c, nil
 }
 
 func ListColumns(ctx context.Context, q Querier, boardID int64) ([]*model.Column, error) {
-	rows, err := q.QueryContext(ctx,
-		`SELECT id, board_id, name, position, color, wip_limit FROM columns
+	var out []*model.Column
+	err := q.SelectContext(ctx, &out,
+		`SELECT id, board_id, name, position, COALESCE(color, '') AS color, wip_limit FROM columns
 		 WHERE board_id = ? ORDER BY position`, boardID)
 	if err != nil {
 		return nil, fmt.Errorf("db: list columns: %w", err)
 	}
-	defer rows.Close()
-	var out []*model.Column
-	for rows.Next() {
-		var (
-			c    model.Column
-			pos  int
-			colr sql.NullString
-			wip  sql.NullInt64
-		)
-		if err := rows.Scan(&c.ID, &c.BoardID, &c.Name, &pos, &colr, &wip); err != nil {
-			return nil, err
-		}
-		c.Position = pos
-		if colr.Valid {
-			c.Color = colr.String
-		}
-		if wip.Valid {
-			v := int(wip.Int64)
-			c.WIPLimit = &v
-		}
-		out = append(out, &c)
-	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func UpdateColumnWIPLimit(ctx context.Context, q Querier, columnID int64, limit *int) error {
