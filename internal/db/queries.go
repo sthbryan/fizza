@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 )
 
@@ -71,33 +70,33 @@ func CreateProject(ctx context.Context, q Querier, name, description string) (*m
 }
 
 func GetProject(ctx context.Context, q Querier, id int64) (*model.Project, error) {
-	row := q.QueryRowContext(ctx,
+	var p model.Project
+	err := q.GetContext(ctx, &p,
 		`SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?`, id)
-	return scanProject(row)
+	if err != nil {
+		return nil, mapErrNotFound(err, "project")
+	}
+	return &p, nil
 }
 
 func GetProjectByName(ctx context.Context, q Querier, name string) (*model.Project, error) {
-	row := q.QueryRowContext(ctx,
+	var p model.Project
+	err := q.GetContext(ctx, &p,
 		`SELECT id, name, description, created_at, updated_at FROM projects WHERE name = ?`, name)
-	return scanProject(row)
+	if err != nil {
+		return nil, mapErrNotFound(err, "project")
+	}
+	return &p, nil
 }
 
 func ListProjects(ctx context.Context, q Querier) ([]*model.Project, error) {
-	rows, err := q.QueryContext(ctx,
+	var out []*model.Project
+	err := q.SelectContext(ctx, &out,
 		`SELECT id, name, description, created_at, updated_at FROM projects ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("db: list projects: %w", err)
 	}
-	defer rows.Close()
-	var out []*model.Project
-	for rows.Next() {
-		p, err := scanProject(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, p)
-	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func DeleteProject(ctx context.Context, q Querier, id int64) error {
@@ -115,39 +114,9 @@ func DeleteProject(ctx context.Context, q Querier, id int64) error {
 	return nil
 }
 
-func scanProject(s rowScanner) (*model.Project, error) {
-	var (
-		p     model.Project
-		creAt string
-		updAt string
-	)
-	if err := s.Scan(&p.ID, &p.Name, &p.Description, &creAt, &updAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: project", ErrNotFound)
-		}
-		return nil, fmt.Errorf("db: scan project: %w", err)
-	}
-	var err error
-	if p.CreatedAt, err = parseTimeAsDBUtil(creAt); err != nil {
-		return nil, fmt.Errorf("db: parse created_at: %w", err)
-	}
-	if p.UpdatedAt, err = parseTimeAsDBUtil(updAt); err != nil {
-		return nil, fmt.Errorf("db: parse updated_at: %w", err)
-	}
-	return &p, nil
-}
-
 func mapErrNotFound(err error, kind string) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("%w: %s", ErrNotFound, kind)
 	}
 	return fmt.Errorf("db: scan %s: %w", kind, err)
-}
-
-func parseTimeAsDBUtil(s string) (dbutil.Time, error) {
-	t, err := dbutil.ParseTime(s)
-	if err != nil {
-		return dbutil.Time{}, err
-	}
-	return dbutil.Time{Time: t}, nil
 }
