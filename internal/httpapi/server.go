@@ -124,6 +124,10 @@ func writeErr(w http.ResponseWriter, status int, code, message string) {
 	})
 }
 
+func isJSONUnknownFieldErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "unknown field")
+}
+
 func mapError(err error) (int, string) {
 	switch {
 	case err == nil:
@@ -134,10 +138,14 @@ func mapError(err error) (int, string) {
 			msg = msg[len("validation: "):]
 		}
 		return http.StatusBadRequest, "VALIDATION:" + msg
+	case isValidationErr(err):
+		return http.StatusBadRequest, "VALIDATION:" + err.Error()
 	case db.IsNotFound(err):
 		return http.StatusNotFound, "NOT_FOUND:" + err.Error()
 	case db.IsDuplicate(err):
 		return http.StatusConflict, "DUPLICATE:" + err.Error()
+	case errors.Is(err, db.ErrWIPLimitReached):
+		return http.StatusConflict, "CONFLICT:" + err.Error()
 	case errors.Is(err, model.ErrTaskCycle):
 		return http.StatusBadRequest, "VALIDATION:" + err.Error()
 	}
@@ -154,6 +162,9 @@ func mapError(err error) (int, string) {
 	}
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		return http.StatusBadRequest, "VALIDATION:empty request body"
+	}
+	if isJSONUnknownFieldErr(err) {
+		return http.StatusBadRequest, "VALIDATION:" + err.Error()
 	}
 	return http.StatusInternalServerError, "INTERNAL:" + err.Error()
 }
@@ -179,6 +190,26 @@ func decodeJSONBody(r *http.Request, v any) error {
 		return err
 	}
 	return nil
+}
+
+func isValidationErr(err error) bool {
+	switch {
+	case errors.Is(err, model.ErrProjectNameEmpty),
+		errors.Is(err, model.ErrProjectNameLong),
+		errors.Is(err, model.ErrProjectDescLong),
+		errors.Is(err, model.ErrBoardNameEmpty),
+		errors.Is(err, model.ErrBoardNameLong),
+		errors.Is(err, model.ErrColumnNameEmpty),
+		errors.Is(err, model.ErrColumnNameLong),
+		errors.Is(err, model.ErrTitleEmpty),
+		errors.Is(err, model.ErrTaskNoBoard),
+		errors.Is(err, model.ErrTaskNoColumn),
+		errors.Is(err, model.ErrInvalidPriority),
+		errors.Is(err, model.ErrTagNameEmpty),
+		errors.Is(err, model.ErrTagNameLong):
+		return true
+	}
+	return false
 }
 
 func (s *Server) routes() {

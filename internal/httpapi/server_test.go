@@ -336,8 +336,10 @@ func TestUpdateTask(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	env = decode(t, bytes.NewReader(body))
 	assert.True(t, env.OK)
-	require.NoError(t, json.Unmarshal(env.Data, &updated))
-	assert.Nil(t, updated.DueDate)
+	var cleared model.Task
+	require.NoError(t, json.Unmarshal(env.Data, &cleared))
+	assert.Nil(t, cleared.DueDate)
+	updated = cleared
 
 	resp, body = doJSON(t, "PATCH", fmt.Sprintf("%s/v1/tasks/%d", ts.URL, task.ID), map[string]any{
 		"priority": "wrong",
@@ -494,7 +496,7 @@ func TestGetTask_Prefix(t *testing.T) {
 
 func TestCreateTask_NoBoard(t *testing.T) {
 	ts, _ := newTestServer(t, "alpha")
-	resp, body := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/nope/tasks", map[string]any{"title": "x"})
+	resp, _ := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/nope/tasks", map[string]any{"title": "x"})
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 

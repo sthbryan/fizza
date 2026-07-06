@@ -108,10 +108,12 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newProjectCmd(rf))
 	cmd.AddCommand(newBoardCmd(rf))
 	cmd.AddCommand(newTaskCmd(rf))
+	cmd.AddCommand(newTagCmd(rf))
 	cmd.AddCommand(newConfigCmd(rf))
 	cmd.AddCommand(newSchemaCmd(rf))
 	cmd.AddCommand(newDoctorCmd(rf))
 	cmd.AddCommand(newMCPCmd(rf))
+	cmd.AddCommand(newServeCmd(rf))
 
 	return cmd
 }
