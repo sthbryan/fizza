@@ -66,6 +66,15 @@ vet:
 	@echo "Running go vet..."
 	go vet ./...
 
+# Format Go source files with gofmt (CI checks this with `gofmt -l .`)
+.PHONY: fmt
+fmt:
+	@echo "Running gofmt -w..."
+	gofmt -w .
+	@echo "Checking for unformatted files..."
+	@test -z "$$(gofmt -l .)" || (echo "ERROR: gofmt found unformatted files:" && gofmt -l . && exit 1)
+	@echo "All files formatted."
+
 # Smoke-test the MCP server end-to-end
 .PHONY: mcp-test
 mcp-test: build
@@ -100,6 +109,7 @@ help:
 	@echo "  test           - Run go tests"
 	@echo "  test-race      - Run tests with -race detector"
 	@echo "  vet            - Run go vet"
+	@echo "  fmt            - Run gofmt -w and verify CI formatting check passes"
 	@echo "  mcp-test       - Smoke-test the MCP server end-to-end"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  install        - Install binary using go install"
