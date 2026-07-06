@@ -35,9 +35,6 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			if err := mustArgs(cmd, args, 1); err != nil {
 				return report(cmd, rf, err)
 			}
-			if err := mustFlags(cmd, "board"); err != nil {
-				return report(cmd, rf, err)
-			}
 			ctx := cmd.Context()
 			svc, err := rf.openDBWith(ctx, "", board, column)
 			if err != nil {
@@ -61,7 +58,7 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, t)
 		},
 	}
-	c.Flags().StringVar(&board, "board", "", "Board name (required)")
+	c.Flags().StringVar(&board, "board", "", "Board name (defaults to config)")
 	c.Flags().StringVar(&column, "column", "", "Column name (default: first column)")
 	c.Flags().StringVar(&desc, "desc", "", "Task description")
 	c.Flags().StringVar(&priority, "priority", model.DefaultPriority, "low|medium|high|urgent")
@@ -111,7 +108,7 @@ func newTaskBulkCmd(rf *rootFlags) *cobra.Command {
 		Use:   "bulk add",
 		Short: "Add many tasks from a JSON file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := mustFlags(cmd, "board", "from"); err != nil {
+			if err := mustFlags(cmd, "from"); err != nil {
 				return report(cmd, rf, err)
 			}
 			data, err := readFileOrStdin(fromFile, cmd.InOrStdin())
@@ -169,7 +166,7 @@ func newTaskBulkCmd(rf *rootFlags) *cobra.Command {
 			})
 		},
 	}
-	c.Flags().StringVar(&board, "board", "", "Board name (required)")
+	c.Flags().StringVar(&board, "board", "", "Board name (defaults to config)")
 	c.Flags().StringVar(&fromFile, "from", "", "Path to JSON file (or - for stdin)")
 	return c
 }
@@ -188,9 +185,6 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List tasks in a board (with optional filters)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := mustFlags(cmd, "board"); err != nil {
-				return report(cmd, rf, err)
-			}
 			ctx := cmd.Context()
 			svc, err := rf.openDBWith(ctx, "", board, "")
 			if err != nil {
@@ -212,7 +206,7 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, tasks)
 		},
 	}
-	c.Flags().StringVar(&board, "board", "", "Board name (required)")
+	c.Flags().StringVar(&board, "board", "", "Board name (defaults to config)")
 	c.Flags().StringVar(&column, "column", "", "Filter by column name")
 	c.Flags().StringVar(&priority, "priority", "", "Filter by priority (comma-separated)")
 	c.Flags().StringVar(&dueBefore, "due-before", "", "Only tasks with due_date <= date (YYYY-MM-DD)")
@@ -342,9 +336,6 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 			if err := mustArgs(cmd, args, 2); err != nil {
 				return report(cmd, rf, err)
 			}
-			if err := mustFlags(cmd, "board"); err != nil {
-				return report(cmd, rf, err)
-			}
 			ctx := cmd.Context()
 			svc, err := rf.openDBWith(ctx, "", board, args[1])
 			if err != nil {
@@ -381,7 +372,7 @@ func newTaskMoveCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, updated)
 		},
 	}
-	c.Flags().StringVar(&board, "board", "", "Board name (required)")
+	c.Flags().StringVar(&board, "board", "", "Board name (defaults to config)")
 	c.Flags().StringVar(&before, "before", "", "Place before this task ID")
 	c.Flags().StringVar(&after, "after", "", "Place after this task ID")
 	c.Flags().BoolVar(&top, "top", false, "Place at the top of the column")

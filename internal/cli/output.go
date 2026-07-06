@@ -14,6 +14,7 @@ import (
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/fizza/fizza/internal/presenter"
+	"github.com/fizza/fizza/internal/service"
 )
 
 const (
@@ -94,7 +95,7 @@ func ClassifyError(err error) (Envelope, int) {
 	switch {
 	case err == nil:
 		return OK(nil), ExitOK
-	case errors.Is(err, ErrValidation):
+	case errors.Is(err, ErrValidation) || errors.Is(err, model.ErrValidation) || errors.Is(err, service.ErrValidation):
 		return Fail(CodeValidation, validationMessage(err)), ExitValidation
 	case db.IsNotFound(err):
 		return Fail(CodeNotFound, err.Error()), ExitNotFound

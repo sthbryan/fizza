@@ -34,7 +34,7 @@ func newConfigShowCmd(rf *rootFlags) *cobra.Command {
 func newConfigSetCmd(rf *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set <key> <value>",
-		Short: "Set a config value (mode | project)",
+		Short: "Set a config value (mode | project | board)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := mustArgs(cmd, args, 2); err != nil {
 				return report(cmd, rf, err)
@@ -59,8 +59,14 @@ func newConfigSetCmd(rf *rootFlags) *cobra.Command {
 						ErrValidation))
 				}
 				cfg.Project = value
+			case "board":
+				if value == "" {
+					return report(cmd, rf, fmt.Errorf("%w: board value cannot be empty (use `fizza config unset board`)",
+						ErrValidation))
+				}
+				cfg.Board = value
 			default:
-				return report(cmd, rf, fmt.Errorf("%w: unknown config key %q (want mode or project)",
+				return report(cmd, rf, fmt.Errorf("%w: unknown config key %q (want mode, project, or board)",
 					ErrValidation, key))
 			}
 
@@ -75,7 +81,7 @@ func newConfigSetCmd(rf *rootFlags) *cobra.Command {
 func newConfigUnsetCmd(rf *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "unset <key>",
-		Short: "Unset a config value (project)",
+		Short: "Unset a config value (project | board)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := mustArgs(cmd, args, 1); err != nil {
 				return report(cmd, rf, err)
@@ -87,6 +93,9 @@ func newConfigUnsetCmd(rf *rootFlags) *cobra.Command {
 			switch args[0] {
 			case "project":
 				cfg.Project = ""
+				cfg.Board = ""
+			case "board":
+				cfg.Board = ""
 			case "mode":
 				return report(cmd, rf, fmt.Errorf("%w: mode cannot be unset (use `fizza config set mode llm`)",
 					ErrValidation))

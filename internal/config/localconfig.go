@@ -95,10 +95,12 @@ func parseLocalConfig(r io.Reader, source string, cfg *Config) error {
 		switch key {
 		case "PROJECT":
 			cfg.Project = val
+		case "BOARD":
+			cfg.Board = val
 		case "MODE":
 			cfg.Mode = strings.ToLower(val)
 		default:
-			return &localParseError{path: source, line: lineNo, msg: fmt.Sprintf("unknown key %q (want PROJECT or MODE)", key)}
+			return &localParseError{path: source, line: lineNo, msg: fmt.Sprintf("unknown key %q (want PROJECT, BOARD, or MODE)", key)}
 		}
 	}
 	if err := scanner.Err(); err != nil {

@@ -86,6 +86,7 @@ var (
 	ErrColumnNameEmpty  = errors.New("column name cannot be empty")
 	ErrColumnNameLong   = errors.New("column name too long (max 32 chars)")
 	ErrTaskCycle        = errors.New("task parent would create a cycle")
+	ErrValidation        = errors.New("validation")
 )
 
 type Task struct {

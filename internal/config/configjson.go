@@ -19,6 +19,7 @@ const (
 type Config struct {
 	Mode    string `json:"mode"`
 	Project string `json:"project"`
+	Board   string `json:"board,omitempty"`
 }
 
 func DefaultConfig() Config {
@@ -82,6 +83,9 @@ func mergeConfig(global, local Config) Config {
 	out := global
 	if local.Project != "" {
 		out.Project = local.Project
+	}
+	if local.Board != "" {
+		out.Board = local.Board
 	}
 	if local.Mode != "" {
 		out.Mode = local.Mode

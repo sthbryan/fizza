@@ -72,6 +72,9 @@ func (rf *rootFlags) openDBWith(ctx context.Context, project, board, column stri
 	if project == "" {
 		project = rf.conf.Project
 	}
+	if board == "" {
+		board = rf.conf.Board
+	}
 	return service.New(conn, project, board, column), nil
 }
 

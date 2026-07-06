@@ -64,6 +64,17 @@ func (s *Service) Resolve(ctx context.Context) (*Resolved, error) {
 			return nil, err
 		}
 		r.Board = b
+	} else if r.Project != nil {
+		boards, err := db.ListBoards(ctx, s.pool.Write, r.Project.ID)
+		if err != nil {
+			return nil, err
+		}
+		if len(boards) == 1 {
+			r.Board = boards[0]
+		} else if len(boards) > 1 {
+			return nil, fmt.Errorf("%w: project %q has %d boards; set a default board with `fizza config set board <name>` or pass --board",
+				ErrValidation, r.Project.Name, len(boards))
+		}
 	}
 	if s.column != "" {
 		if r.Board == nil {
@@ -96,10 +107,13 @@ func (s *Service) ResolveBoard(ctx context.Context) (*Resolved, error) {
 		return nil, err
 	}
 	if r.Project == nil {
-		return nil, fmt.Errorf("%w: no default project set", ErrValidation)
+		return nil, fmt.Errorf("%w: no default project set (run `fizza project set <name>`)", ErrValidation)
 	}
 	if r.Board == nil {
-		return nil, fmt.Errorf("%w: board %q in project %q", db.ErrNotFound, s.board, s.project)
+		if s.board != "" {
+			return nil, fmt.Errorf("%w: board %q in project %q", db.ErrNotFound, s.board, s.project)
+		}
+		return nil, fmt.Errorf("%w: no default board in project %q (set with `fizza board set <name>`)", ErrValidation, r.Project.Name)
 	}
 	return r, nil
 }
@@ -126,7 +140,7 @@ func (s *Service) ResolveColumn(ctx context.Context, defaultToFirst bool) (*Reso
 	return nil, fmt.Errorf("%w: column %q in board %q", db.ErrNotFound, s.column, s.board)
 }
 
-var ErrValidation = errors.New("validation")
+var ErrValidation = model.ErrValidation
 
 func findBoardByName(ctx context.Context, conn *sql.DB, projectID int64, name string) (*model.Board, error) {
 	boards, err := db.ListBoards(ctx, conn, projectID)

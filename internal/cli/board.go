@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/spf13/cobra"
@@ -16,7 +17,43 @@ func newBoardCmd(rf *rootFlags) *cobra.Command {
 	cmd.AddCommand(newBoardShowCmd(rf))
 	cmd.AddCommand(newBoardDeleteCmd(rf))
 	cmd.AddCommand(newBoardSetWIPCmd(rf))
+	cmd.AddCommand(newBoardSetCmd(rf))
 	return cmd
+}
+
+func newBoardSetCmd(rf *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "set <name>",
+		Short: "Set the default board for this project (shortcut for `fizza config set board <name>`)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+			p, err := svc.ResolveProject(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			if _, err := findBoardInBoard(ctx, svc.DB(), p.ID, args[0]); err != nil {
+				return report(cmd, rf, err)
+			}
+			cfg, err := config.LoadConfig()
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			cfg.Project = p.Name
+			cfg.Board = args[0]
+			if err := config.SaveConfig(cfg); err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, cfg)
+		},
+	}
 }
 
 func newBoardSetWIPCmd(rf *rootFlags) *cobra.Command {
@@ -69,21 +106,24 @@ func newBoardSetWIPCmd(rf *rootFlags) *cobra.Command {
 }
 
 func findColumnInBoard(ctx context.Context, conn db.Querier, projectID int64, board, column string) (*model.Column, error) {
+	b, err := findBoardInBoard(ctx, conn, projectID, board)
+	if err != nil {
+		return nil, err
+	}
+	return db.GetColumnByName(ctx, conn, b.ID, column)
+}
+
+func findBoardInBoard(ctx context.Context, conn db.Querier, projectID int64, board string) (*model.Board, error) {
 	boards, err := db.ListBoards(ctx, conn, projectID)
 	if err != nil {
 		return nil, err
 	}
-	var b *model.Board
-	for _, x := range boards {
-		if x.Name == board {
-			b = x
-			break
+	for _, b := range boards {
+		if b.Name == board {
+			return b, nil
 		}
 	}
-	if b == nil {
-		return nil, fmt.Errorf("%w: board %q in project", db.ErrNotFound, board)
-	}
-	return db.GetColumnByName(ctx, conn, b.ID, column)
+	return nil, fmt.Errorf("%w: board %q in project", db.ErrNotFound, board)
 }
 
 func newBoardCreateCmd(rf *rootFlags) *cobra.Command {
