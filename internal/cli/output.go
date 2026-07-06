@@ -102,6 +102,8 @@ func ClassifyError(err error) (Envelope, int) {
 		return Fail(CodeDuplicate, err.Error()), ExitDuplicate
 	case errors.Is(err, model.ErrTaskCycle):
 		return Fail(CodeValidation, err.Error()), ExitValidation
+	case errors.Is(err, db.ErrWIPLimitReached):
+		return Fail(CodeConflict, err.Error()), ExitConflict
 	default:
 		return Fail(CodeInternal, err.Error()), ExitGeneric
 	}

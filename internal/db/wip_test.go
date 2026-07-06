@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/fizza/fizza/internal/model"
@@ -9,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func seedWIPFixture(t *testing.T) (board *model.Board, todo, inProgress, done *model.Column) {
+func seedWIPFixture(t *testing.T) (conn *sql.DB, board *model.Board, todo, inProgress, done *model.Column) {
 	t.Helper()
-	conn := newTestDB(t)
+	conn = newTestDB(t)
 	ctx := context.Background()
 	p, err := CreateProject(ctx, conn, "alpha", "")
 	require.NoError(t, err)
@@ -19,13 +20,12 @@ func seedWIPFixture(t *testing.T) (board *model.Board, todo, inProgress, done *m
 	require.NoError(t, err)
 	cols, err := ListColumns(ctx, conn, boards[0].ID)
 	require.NoError(t, err)
-	return boards[0], cols[0], cols[1], cols[2]
+	return conn, boards[0], cols[0], cols[1], cols[2]
 }
 
 func TestWIP_ColumnExposesLimit(t *testing.T) {
-	conn := newTestDB(t)
 	ctx := context.Background()
-	_, todo, inProgress, _ := seedWIPFixture(t)
+	conn, _, todo, inProgress, _ := seedWIPFixture(t)
 
 	require.NoError(t, UpdateColumnWIPLimit(ctx, conn, inProgress.ID, intPtr(3)))
 
@@ -52,9 +52,9 @@ func TestWIP_ColumnExposesLimit(t *testing.T) {
 }
 
 func TestWIP_MoveRejectsOverLimit(t *testing.T) {
-	conn := newTestDB(t)
+	 
 	ctx := context.Background()
-	b, todo, inProgress, _ := seedWIPFixture(t)
+	conn, b, todo, inProgress, _ := seedWIPFixture(t)
 
 	limit := 2
 	require.NoError(t, UpdateColumnWIPLimit(ctx, conn, inProgress.ID, &limit))
@@ -85,9 +85,9 @@ func TestWIP_MoveRejectsOverLimit(t *testing.T) {
 }
 
 func TestWIP_MoveForceBypasses(t *testing.T) {
-	conn := newTestDB(t)
+	 
 	ctx := context.Background()
-	b, todo, inProgress, _ := seedWIPFixture(t)
+	conn, b, todo, inProgress, _ := seedWIPFixture(t)
 
 	limit := 2
 	require.NoError(t, UpdateColumnWIPLimit(ctx, conn, inProgress.ID, &limit))
@@ -116,9 +116,9 @@ func TestWIP_MoveForceBypasses(t *testing.T) {
 }
 
 func TestWIP_NullLimitAllowsAnyCount(t *testing.T) {
-	conn := newTestDB(t)
+	 
 	ctx := context.Background()
-	b, todo, inProgress, _ := seedWIPFixture(t)
+	conn, b, todo, inProgress, _ := seedWIPFixture(t)
 
 	mk := func(title string) *model.Task {
 		t1 := &model.Task{BoardID: b.ID, ColumnID: todo.ID, Title: title}
@@ -134,9 +134,9 @@ func TestWIP_NullLimitAllowsAnyCount(t *testing.T) {
 }
 
 func TestWIP_ClearLimit(t *testing.T) {
-	conn := newTestDB(t)
+	 
 	ctx := context.Background()
-	_, _, inProgress, _ := seedWIPFixture(t)
+	conn, _, _, inProgress, _ := seedWIPFixture(t)
 
 	require.NoError(t, UpdateColumnWIPLimit(ctx, conn, inProgress.ID, intPtr(4)))
 	require.NoError(t, UpdateColumnWIPLimit(ctx, conn, inProgress.ID, nil))

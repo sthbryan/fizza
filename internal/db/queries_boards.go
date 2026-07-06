@@ -146,14 +146,15 @@ func DeleteBoard(ctx context.Context, q querier, id int64) error {
 
 func GetColumnByName(ctx context.Context, q querier, boardID int64, name string) (*model.Column, error) {
 	var (
-		c   model.Column
-		pos int
-		c2  sql.NullString
+		c    model.Column
+		pos  int
+		c2   sql.NullString
+		wip  sql.NullInt64
 	)
 	err := q.QueryRowContext(ctx,
-		`SELECT id, board_id, name, position, color FROM columns
+		`SELECT id, board_id, name, position, color, wip_limit FROM columns
 		 WHERE board_id = ? AND name = ?`, boardID, name,
-	).Scan(&c.ID, &c.BoardID, &c.Name, &pos, &c2)
+	).Scan(&c.ID, &c.BoardID, &c.Name, &pos, &c2, &wip)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: column %q in board %d", ErrNotFound, name, boardID)
@@ -164,12 +165,16 @@ func GetColumnByName(ctx context.Context, q querier, boardID int64, name string)
 	if c2.Valid {
 		c.Color = c2.String
 	}
+	if wip.Valid {
+		v := int(wip.Int64)
+		c.WIPLimit = &v
+	}
 	return &c, nil
 }
 
 func ListColumns(ctx context.Context, q querier, boardID int64) ([]*model.Column, error) {
 	rows, err := q.QueryContext(ctx,
-		`SELECT id, board_id, name, position, color FROM columns
+		`SELECT id, board_id, name, position, color, wip_limit FROM columns
 		 WHERE board_id = ? ORDER BY position`, boardID)
 	if err != nil {
 		return nil, fmt.Errorf("db: list columns: %w", err)
@@ -181,15 +186,39 @@ func ListColumns(ctx context.Context, q querier, boardID int64) ([]*model.Column
 			c    model.Column
 			pos  int
 			colr sql.NullString
+			wip  sql.NullInt64
 		)
-		if err := rows.Scan(&c.ID, &c.BoardID, &c.Name, &pos, &colr); err != nil {
+		if err := rows.Scan(&c.ID, &c.BoardID, &c.Name, &pos, &colr, &wip); err != nil {
 			return nil, err
 		}
 		c.Position = pos
 		if colr.Valid {
 			c.Color = colr.String
 		}
+		if wip.Valid {
+			v := int(wip.Int64)
+			c.WIPLimit = &v
+		}
 		out = append(out, &c)
 	}
 	return out, rows.Err()
+}
+
+func UpdateColumnWIPLimit(ctx context.Context, q querier, columnID int64, limit *int) error {
+	var wipParam any
+	if limit != nil {
+		wipParam = *limit
+	}
+	var existing int64
+	err := q.QueryRowContext(ctx, `SELECT id FROM columns WHERE id = ?`, columnID).Scan(&existing)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: column %d", ErrNotFound, columnID)
+		}
+		return fmt.Errorf("db: check column: %w", err)
+	}
+	if _, err := q.ExecContext(ctx, `UPDATE columns SET wip_limit = ? WHERE id = ?`, wipParam, columnID); err != nil {
+		return fmt.Errorf("db: update wip limit: %w", err)
+	}
+	return nil
 }

@@ -16,6 +16,7 @@ type Column struct {
 	Name     string `json:"name"`
 	Position int    `json:"position"`
 	Color    string `json:"color,omitempty"`
+	WIPLimit *int   `json:"wip_limit,omitempty"`
 }
 
 type TaskCount struct {

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fizza/fizza/internal/db"
@@ -14,7 +15,75 @@ func newBoardCmd(rf *rootFlags) *cobra.Command {
 	cmd.AddCommand(newBoardListCmd(rf))
 	cmd.AddCommand(newBoardShowCmd(rf))
 	cmd.AddCommand(newBoardDeleteCmd(rf))
+	cmd.AddCommand(newBoardSetWIPCmd(rf))
 	return cmd
+}
+
+func newBoardSetWIPCmd(rf *rootFlags) *cobra.Command {
+	var limit int
+	var clear bool
+	c := &cobra.Command{
+		Use:   "set-wip <board> <column>",
+		Short: "Set or clear the WIP limit on a column",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 2); err != nil {
+				return report(cmd, rf, err)
+			}
+			if clear && cmd.Flags().Changed("limit") {
+				return report(cmd, rf, fmt.Errorf("%w: --clear and --limit are mutually exclusive", ErrValidation))
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+			p, err := svc.ResolveProject(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			col, err := findColumnInBoard(ctx, svc.DB(), p.ID, args[0], args[1])
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			var lim *int
+			if !clear {
+				if limit < 0 {
+					return report(cmd, rf, fmt.Errorf("%w: --limit must be >= 0", ErrValidation))
+				}
+				lim = &limit
+			}
+			if err := db.UpdateColumnWIPLimit(ctx, svc.DB(), col.ID, lim); err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, map[string]any{
+				"board":     args[0],
+				"column":    args[1],
+				"wip_limit": lim,
+			})
+		},
+	}
+	c.Flags().IntVar(&limit, "limit", 0, "WIP limit (>= 0)")
+	c.Flags().BoolVar(&clear, "clear", false, "Remove the WIP limit")
+	return c
+}
+
+func findColumnInBoard(ctx context.Context, conn db.Querier, projectID int64, board, column string) (*model.Column, error) {
+	boards, err := db.ListBoards(ctx, conn, projectID)
+	if err != nil {
+		return nil, err
+	}
+	var b *model.Board
+	for _, x := range boards {
+		if x.Name == board {
+			b = x
+			break
+		}
+	}
+	if b == nil {
+		return nil, fmt.Errorf("%w: board %q in project", db.ErrNotFound, board)
+	}
+	return db.GetColumnByName(ctx, conn, b.ID, column)
 }
 
 func newBoardCreateCmd(rf *rootFlags) *cobra.Command {
