@@ -180,44 +180,55 @@ func GetTaskByPrefix(ctx context.Context, q Querier, prefix string) (*model.Task
 }
 
 func ListTasksInBoard(ctx context.Context, q Querier, boardID int64, filter TaskFilter) ([]*model.Task, error) {
-	args := []any{boardID}
-	where := "WHERE t.board_id = ?"
-	distinct := ""
+	var (
+		where    []string
+		args     []any
+		distinct string
+		joins    []string
+	)
+	where = append(where, "t.board_id = ?")
+	args = append(args, boardID)
 	if filter.ColumnName != "" {
-		where += " AND c.name = ?"
+		where = append(where, "c.name = ?")
 		args = append(args, filter.ColumnName)
 	}
 	if len(filter.Priorities) > 0 {
-		where += " AND t.priority IN (?" + strings.Repeat(",?", len(filter.Priorities)-1) + ")"
-		for _, p := range filter.Priorities {
-			args = append(args, p.String())
+		priVals := make([]string, len(filter.Priorities))
+		for i, p := range filter.Priorities {
+			priVals[i] = p.String()
 		}
+		where = append(where, "t.priority IN (?)")
+		args = append(args, priVals)
 	}
 	if filter.DueBefore != nil {
-		where += " AND t.due_date IS NOT NULL AND t.due_date <= ?"
+		where = append(where, "t.due_date IS NOT NULL AND t.due_date <= ?")
 		args = append(args, dbutil.FormatDueDate(*filter.DueBefore))
 	}
 	if filter.DueAfter != nil {
-		where += " AND t.due_date IS NOT NULL AND t.due_date >= ?"
+		where = append(where, "t.due_date IS NOT NULL AND t.due_date >= ?")
 		args = append(args, dbutil.FormatDueDate(*filter.DueAfter))
 	}
 	if filter.Search != "" {
-		where += " AND (t.title LIKE ? OR t.description LIKE ?)"
+		where = append(where, "(t.title LIKE ? OR t.description LIKE ?)")
 		needle := "%" + filter.Search + "%"
 		args = append(args, needle, needle)
 	}
 	if len(filter.Tags) > 0 {
-		where += " AND tags.name IN (?" + strings.Repeat(",?", len(filter.Tags)-1) + ")"
-		for _, n := range filter.Tags {
-			args = append(args, n)
-		}
+		where = append(where, "tags.name IN (?)")
+		args = append(args, filter.Tags)
+		joins = append(joins, "JOIN task_tags ON task_tags.task_id = t.id JOIN tags ON tags.id = task_tags.tag_id")
 		distinct = "DISTINCT "
 	}
-	query := strings.Replace(taskSelect, "SELECT", "SELECT "+distinct, 1)
-	if len(filter.Tags) > 0 {
-		query += " JOIN task_tags ON task_tags.task_id = t.id JOIN tags ON tags.id = task_tags.tag_id"
+	query := strings.Replace(taskSelect, "SELECT", "SELECT "+distinct, 1) +
+		" " + strings.Join(joins, " ") +
+		" WHERE " + strings.Join(where, " AND ") +
+		" ORDER BY c.position, t.position"
+	expanded, expandedArgs, err := sqlx.In(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("db: expand IN clauses: %w", err)
 	}
-	return runListTasks(ctx, q, query+" "+where+" ORDER BY c.position, t.position", args)
+	expanded = q.Rebind(expanded)
+	return runListTasks(ctx, q, expanded, expandedArgs)
 }
 
 func ListTasksInColumn(ctx context.Context, q Querier, columnID int64) ([]*model.Task, error) {

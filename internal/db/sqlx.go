@@ -10,6 +10,8 @@ import (
 type Querier interface {
 	sqlx.ExtContext
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	GetContext(ctx context.Context, dest interface{}, query string, args ...any) error
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...any) error
 }
 
 type Transactor interface {

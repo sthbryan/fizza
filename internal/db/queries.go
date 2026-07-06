@@ -136,3 +136,10 @@ func scanProject(s rowScanner) (*model.Project, error) {
 	}
 	return &p, nil
 }
+
+func mapErrNotFound(err error, kind string) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("%w: %s", ErrNotFound, kind)
+	}
+	return fmt.Errorf("db: scan %s: %w", kind, err)
+}

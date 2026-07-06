@@ -3,20 +3,20 @@ package model
 import "time"
 
 type Board struct {
-	ID        int64     `json:"id"`
-	ProjectID int64     `json:"project_id"`
-	Name      string    `json:"name"`
-	IsDefault bool      `json:"is_default"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64     `json:"id" db:"id"`
+	ProjectID int64     `json:"project_id" db:"project_id"`
+	Name      string    `json:"name" db:"name"`
+	IsDefault bool      `json:"is_default" db:"is_default"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 type Column struct {
-	ID       int64  `json:"id"`
-	BoardID  int64  `json:"board_id"`
-	Name     string `json:"name"`
-	Position int    `json:"position"`
-	Color    string `json:"color,omitempty"`
-	WIPLimit *int   `json:"wip_limit,omitempty"`
+	ID       int64  `json:"id" db:"id"`
+	BoardID  int64  `json:"board_id" db:"board_id"`
+	Name     string `json:"name" db:"name"`
+	Position int    `json:"position" db:"position"`
+	Color    string `json:"color,omitempty" db:"color"`
+	WIPLimit *int   `json:"wip_limit,omitempty" db:"wip_limit"`
 }
 
 type TaskCount struct {
