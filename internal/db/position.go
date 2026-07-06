@@ -17,7 +17,7 @@ const (
 )
 
 func computePositionBefore(ctx context.Context, q Querier, columnID int64, beforeTaskID int64) (float64, error) {
-	var beforePos sql.NullFloat64
+	var beforePos float64
 	err := q.QueryRowContext(ctx,
 		`SELECT position FROM tasks WHERE id = ? AND column_id = ?`, beforeTaskID, columnID,
 	).Scan(&beforePos)
@@ -27,28 +27,28 @@ func computePositionBefore(ctx context.Context, q Querier, columnID int64, befor
 		}
 		return 0, fmt.Errorf("db: get before task: %w", err)
 	}
-	var prevPos sql.NullFloat64
+	var prevPos *float64
 	err = q.QueryRowContext(ctx,
 		`SELECT MAX(position) FROM tasks
 		 WHERE column_id = ? AND position < ? AND id != ?`,
-		columnID, beforePos.Float64, beforeTaskID,
+		columnID, beforePos, beforeTaskID,
 	).Scan(&prevPos)
 	if err != nil {
 		return 0, fmt.Errorf("db: get prev: %w", err)
 	}
-	if !prevPos.Valid {
-		return beforePos.Float64 - PositionStep, nil
+	if prevPos == nil {
+		return beforePos - PositionStep, nil
 	}
-	gap := beforePos.Float64 - prevPos.Float64
+	gap := beforePos - *prevPos
 	if gap < MinInsertGap {
 		return 0, errGapTooSmall
 	}
-	return (prevPos.Float64 + beforePos.Float64) / 2, nil
+	return (*prevPos + beforePos) / 2, nil
 }
 
 func computeNextPosition(ctx context.Context, q Querier, columnID int64, afterTaskID *int64) (float64, error) {
 	if afterTaskID != nil {
-		var prevPos, nextPos sql.NullFloat64
+		var prevPos, nextPos *float64
 		err := q.QueryRowContext(ctx, `
 			SELECT
 				(SELECT position FROM tasks WHERE id = ?) AS prev,
@@ -60,26 +60,29 @@ func computeNextPosition(ctx context.Context, q Querier, columnID int64, afterTa
 		if err != nil {
 			return 0, fmt.Errorf("db: neighbors: %w", err)
 		}
-		if !prevPos.Valid {
+		if prevPos == nil {
 			return 0, errors.New("db: afterTaskID not found")
 		}
-		if !nextPos.Valid {
-			return prevPos.Float64 + PositionStep, nil
+		if nextPos == nil {
+			return *prevPos + PositionStep, nil
 		}
-		gap := nextPos.Float64 - prevPos.Float64
+		gap := *nextPos - *prevPos
 		if gap < MinInsertGap {
 			return 0, errGapTooSmall
 		}
-		return (prevPos.Float64 + nextPos.Float64) / 2, nil
+		return (*prevPos + *nextPos) / 2, nil
 	}
 
-	var maxPos sql.NullFloat64
+	var maxPos *float64
 	if err := q.QueryRowContext(ctx,
 		`SELECT MAX(position) FROM tasks WHERE column_id = ?`, columnID,
 	).Scan(&maxPos); err != nil {
 		return 0, fmt.Errorf("db: max position: %w", err)
 	}
-	return maxPos.Float64 + PositionStep, nil
+	if maxPos == nil {
+		return PositionStep, nil
+	}
+	return *maxPos + PositionStep, nil
 }
 
 var errGapTooSmall = errors.New("db: position gap too small, rebalance required")
@@ -95,7 +98,7 @@ func needsRebalance(ctx context.Context, q Querier, columnID int64) (bool, error
 		return false, nil
 	}
 
-	var minGap sql.NullFloat64
+	var minGap *float64
 	err := q.QueryRowContext(ctx, `
 		SELECT MIN(p2 - p1) FROM (
 			SELECT position AS p1,
@@ -106,10 +109,10 @@ func needsRebalance(ctx context.Context, q Querier, columnID int64) (bool, error
 	if err != nil {
 		return false, err
 	}
-	if !minGap.Valid {
+	if minGap == nil {
 		return false, nil
 	}
-	return minGap.Float64 < PositionStep*RebalanceGapRel, nil
+	return *minGap < PositionStep*RebalanceGapRel, nil
 }
 
 func RebalanceColumn(ctx context.Context, q Querier, columnID int64) (int, error) {

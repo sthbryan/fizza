@@ -261,7 +261,7 @@ func WouldCreateCycle(ctx context.Context, q Querier, taskID, proposedParent int
 	}
 	current := proposedParent
 	for i := 0; i < 10000; i++ {
-		var parent sql.NullInt64
+		var parent *int64
 		err := q.QueryRowContext(ctx, `SELECT parent_id FROM tasks WHERE id = ?`, current).Scan(&parent)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -269,13 +269,13 @@ func WouldCreateCycle(ctx context.Context, q Querier, taskID, proposedParent int
 			}
 			return false, err
 		}
-		if !parent.Valid {
+		if parent == nil {
 			return false, nil
 		}
-		if parent.Int64 == taskID {
+		if *parent == taskID {
 			return true, nil
 		}
-		current = parent.Int64
+		current = *parent
 	}
 	return true, fmt.Errorf("db: parent chain too long (possible cycle)")
 }
@@ -364,7 +364,7 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 	}
 
 	var targetBoard int64
-	var wipLimit sql.NullInt64
+	var wipLimit *int64
 	err = q.QueryRowContext(ctx,
 		`SELECT board_id, wip_limit FROM columns WHERE id = ?`, targetColumnID,
 	).Scan(&targetBoard, &wipLimit)
@@ -375,14 +375,14 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 		return fmt.Errorf("db: get column: %w", err)
 	}
 
-	if !force && wipLimit.Valid && currentCol != targetColumnID {
+	if !force && wipLimit != nil && currentCol != targetColumnID {
 		var count int64
 		if err := q.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, targetColumnID,
 		).Scan(&count); err != nil {
 			return fmt.Errorf("db: count tasks in target column: %w", err)
 		}
-		if count >= wipLimit.Int64 {
+		if count >= *wipLimit {
 			return ErrWIPLimitReached
 		}
 	}
