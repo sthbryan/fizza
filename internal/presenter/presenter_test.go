@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fizza/fizza/internal/config"
+	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +16,7 @@ func TestProject(t *testing.T) {
 	var buf bytes.Buffer
 	r := New(&buf, true)
 	now := time.Date(2026, 7, 5, 12, 0, 0, 0, time.UTC)
-	require.NoError(t, r.Project(&model.Project{ID: 1, Name: "alpha", Description: "d", CreatedAt: now, UpdatedAt: now}))
+	require.NoError(t, r.Project(&model.Project{ID: 1, Name: "alpha", Description: "d", CreatedAt: dbutil.Time{Time: now}, UpdatedAt: dbutil.Time{Time: now}}))
 	out := buf.String()
 	assert.Contains(t, out, "ID:")
 	assert.Contains(t, out, "alpha")
@@ -33,7 +34,7 @@ func TestBoard(t *testing.T) {
 	var buf bytes.Buffer
 	r := New(&buf, true)
 	now := time.Date(2026, 7, 5, 12, 0, 0, 0, time.UTC)
-	require.NoError(t, r.Board(&model.Board{ID: 2, ProjectID: 1, Name: "main", IsDefault: true, CreatedAt: now}))
+	require.NoError(t, r.Board(&model.Board{ID: 2, ProjectID: 1, Name: "main", IsDefault: true, CreatedAt: dbutil.Time{Time: now}}))
 	out := buf.String()
 	assert.Contains(t, out, "yes")
 	assert.Contains(t, out, "main")

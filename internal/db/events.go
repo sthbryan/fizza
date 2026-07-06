@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 )
 
@@ -115,7 +116,7 @@ func ListEvents(ctx context.Context, q Querier, taskID *int64, limit int) ([]*mo
 	return out, rows.Err()
 }
 
-func parseTimeLocal(s string) (time.Time, error) {
+func parseTimeLocal(s string) (dbutil.Time, error) {
 	for _, layout := range []string{
 		"2006-01-02T15:04:05.000000Z07:00",
 		"2006-01-02T15:04:05.000Z07:00",
@@ -123,8 +124,8 @@ func parseTimeLocal(s string) (time.Time, error) {
 		time.RFC3339,
 	} {
 		if t, err := time.Parse(layout, s); err == nil {
-			return t.UTC(), nil
+			return dbutil.Time{Time: t.UTC()}, nil
 		}
 	}
-	return time.Time{}, fmt.Errorf("unparseable timestamp %q", s)
+	return dbutil.Time{}, fmt.Errorf("unparseable timestamp %q", s)
 }

@@ -5,9 +5,9 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/fizza/fizza/internal/config"
+	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/rodaine/table"
 )
@@ -250,7 +250,7 @@ func (r *Renderer) kv(headers, row []string) error {
 	return nil
 }
 
-func formatTime(t time.Time) string {
+func formatTime(t dbutil.Time) string {
 	if t.IsZero() {
 		return ""
 	}

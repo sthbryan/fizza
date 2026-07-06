@@ -99,7 +99,7 @@ func GetBoard(ctx context.Context, q Querier, id int64) (*model.Board, error) {
 	if err != nil {
 		return nil, err
 	}
-	b.CreatedAt = t
+	b.CreatedAt = dbutil.Time{Time: t}
 	return &b, nil
 }
 
@@ -126,7 +126,7 @@ func ListBoards(ctx context.Context, q Querier, projectID int64) ([]*model.Board
 		if err != nil {
 			return nil, err
 		}
-		b.CreatedAt = t
+		b.CreatedAt = dbutil.Time{Time: t}
 		out = append(out, &b)
 	}
 	return out, rows.Err()

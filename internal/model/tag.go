@@ -3,7 +3,8 @@ package model
 import (
 	"errors"
 	"strings"
-	"time"
+
+	"github.com/fizza/fizza/internal/dbutil"
 )
 
 var (
@@ -22,8 +23,8 @@ func ValidateTag(name string) error {
 }
 
 type Tag struct {
-	ID        int64     `json:"id" db:"id"`
-	ProjectID int64     `json:"project_id" db:"project_id"`
-	Name      string    `json:"name" db:"name"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ID        int64       `json:"id" db:"id"`
+	ProjectID int64       `json:"project_id" db:"project_id"`
+	Name      string      `json:"name" db:"name"`
+	CreatedAt dbutil.Time `json:"created_at" db:"created_at"`
 }

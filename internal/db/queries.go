@@ -128,10 +128,10 @@ func scanProject(s rowScanner) (*model.Project, error) {
 		return nil, fmt.Errorf("db: scan project: %w", err)
 	}
 	var err error
-	if p.CreatedAt, err = dbutil.ParseTime(creAt); err != nil {
+	if p.CreatedAt, err = parseTimeAsDBUtil(creAt); err != nil {
 		return nil, fmt.Errorf("db: parse created_at: %w", err)
 	}
-	if p.UpdatedAt, err = dbutil.ParseTime(updAt); err != nil {
+	if p.UpdatedAt, err = parseTimeAsDBUtil(updAt); err != nil {
 		return nil, fmt.Errorf("db: parse updated_at: %w", err)
 	}
 	return &p, nil
@@ -142,4 +142,12 @@ func mapErrNotFound(err error, kind string) error {
 		return fmt.Errorf("%w: %s", ErrNotFound, kind)
 	}
 	return fmt.Errorf("db: scan %s: %w", kind, err)
+}
+
+func parseTimeAsDBUtil(s string) (dbutil.Time, error) {
+	t, err := dbutil.ParseTime(s)
+	if err != nil {
+		return dbutil.Time{}, err
+	}
+	return dbutil.Time{Time: t}, nil
 }

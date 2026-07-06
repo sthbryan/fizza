@@ -499,10 +499,10 @@ func scanTask(s rowScanner) (*model.Task, error) {
 		}
 		t.DueDate = &parsed
 	}
-	if t.CreatedAt, err = dbutil.ParseTime(creAt); err != nil {
+	if t.CreatedAt, err = parseTimeAsDBUtil(creAt); err != nil {
 		return nil, err
 	}
-	if t.UpdatedAt, err = dbutil.ParseTime(upd); err != nil {
+	if t.UpdatedAt, err = parseTimeAsDBUtil(upd); err != nil {
 		return nil, err
 	}
 	return &t, nil

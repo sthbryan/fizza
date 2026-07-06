@@ -150,6 +150,6 @@ func scanTag(s rowScanner) (*model.Tag, error) {
 	if err != nil {
 		return nil, fmt.Errorf("db: parse created_at: %w", err)
 	}
-	t.CreatedAt = parsed
+	t.CreatedAt = dbutil.Time{Time: parsed}
 	return &t, nil
 }
