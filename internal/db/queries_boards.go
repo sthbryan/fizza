@@ -80,56 +80,24 @@ func CreateBoardWithColumns(ctx context.Context, q Querier, projectID int64, nam
 }
 
 func GetBoard(ctx context.Context, q Querier, id int64) (*model.Board, error) {
-	var (
-		b     model.Board
-		def   int
-		creAt string
-	)
-	err := q.QueryRowContext(ctx,
-		`SELECT id, project_id, name, is_default, created_at FROM boards WHERE id = ?`, id,
-	).Scan(&b.ID, &b.ProjectID, &b.Name, &def, &creAt)
+	var b model.Board
+	err := q.GetContext(ctx, &b,
+		`SELECT id, project_id, name, is_default, created_at FROM boards WHERE id = ?`, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: board %d", ErrNotFound, id)
-		}
-		return nil, fmt.Errorf("db: scan board: %w", err)
+		return nil, mapErrNotFound(err, fmt.Sprintf("board %d", id))
 	}
-	b.IsDefault = def != 0
-	t, err := dbutil.ParseTime(creAt)
-	if err != nil {
-		return nil, err
-	}
-	b.CreatedAt = dbutil.Time{Time: t}
 	return &b, nil
 }
 
 func ListBoards(ctx context.Context, q Querier, projectID int64) ([]*model.Board, error) {
-	rows, err := q.QueryContext(ctx,
+	var out []*model.Board
+	err := q.SelectContext(ctx, &out,
 		`SELECT id, project_id, name, is_default, created_at
 		 FROM boards WHERE project_id = ? ORDER BY name`, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("db: list boards: %w", err)
 	}
-	defer rows.Close()
-	var out []*model.Board
-	for rows.Next() {
-		var (
-			b     model.Board
-			def   int
-			creAt string
-		)
-		if err := rows.Scan(&b.ID, &b.ProjectID, &b.Name, &def, &creAt); err != nil {
-			return nil, err
-		}
-		b.IsDefault = def != 0
-		t, err := dbutil.ParseTime(creAt)
-		if err != nil {
-			return nil, err
-		}
-		b.CreatedAt = dbutil.Time{Time: t}
-		out = append(out, &b)
-	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func DeleteBoard(ctx context.Context, q Querier, id int64) error {
