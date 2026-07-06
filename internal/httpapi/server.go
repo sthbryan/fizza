@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/fizza/fizza/internal/service"
+	"github.com/jmoiron/sqlx"
 )
 
 type Server struct {
@@ -23,7 +23,7 @@ type Server struct {
 	addr string
 }
 
-func New(conn *sql.DB, project string) *Server {
+func New(conn *sqlx.DB, project string) *Server {
 	svc := service.New(conn, project, "", "")
 	s := &Server{
 		svc: svc,
@@ -602,7 +602,7 @@ func (s *Server) handleDeleteTask(w http.ResponseWriter, r *http.Request) {
 	writeOK(w, http.StatusOK, map[string]any{"deleted": t.ID, "title": t.Title})
 }
 
-func findBoard(ctx context.Context, conn *sql.DB, projectName, boardName string) (*model.Board, []*model.Column, error) {
+func findBoard(ctx context.Context, conn *sqlx.DB, projectName, boardName string) (*model.Board, []*model.Column, error) {
 	p, err := db.GetProjectByName(ctx, conn, projectName)
 	if err != nil {
 		return nil, nil, err
@@ -628,7 +628,7 @@ func findBoard(ctx context.Context, conn *sql.DB, projectName, boardName string)
 	return found, cols, nil
 }
 
-func findBoardByName(ctx context.Context, conn *sql.DB, boardName string) (*model.Board, []*model.Column, error) {
+func findBoardByName(ctx context.Context, conn *sqlx.DB, boardName string) (*model.Board, []*model.Column, error) {
 	projects, err := db.ListProjects(ctx, conn)
 	if err != nil {
 		return nil, nil, err

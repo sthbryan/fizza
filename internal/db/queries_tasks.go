@@ -10,6 +10,7 @@ import (
 
 	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
+	"github.com/jmoiron/sqlx"
 )
 
 const taskSelect = `
@@ -38,7 +39,7 @@ type TaskFilter struct {
 	Tags       []string
 }
 
-func CreateTask(ctx context.Context, q querier, t *model.Task) error {
+func CreateTask(ctx context.Context, q Querier, t *model.Task) error {
 	if t.ColumnID == 0 {
 		return errors.New("db: task.ColumnID required")
 	}
@@ -60,8 +61,8 @@ func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 
 	exec := q
 	committed := false
-	if txer, ok := q.(transactor); ok {
-		tx, err := txer.BeginTx(ctx, nil)
+	if txer, ok := q.(Transactor); ok {
+		tx, err := txer.BeginTxx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("db: begin tx: %w", err)
 		}
@@ -94,7 +95,7 @@ func CreateTask(ctx context.Context, q querier, t *model.Task) error {
 	return nil
 }
 
-func createTaskInsert(ctx context.Context, q querier, t *model.Task) error {
+func createTaskInsert(ctx context.Context, q Querier, t *model.Task) error {
 	var pos float64
 	var err error
 	if t.Position == 0 {
@@ -135,12 +136,12 @@ func createTaskInsert(ctx context.Context, q querier, t *model.Task) error {
 	return nil
 }
 
-func GetTask(ctx context.Context, q querier, id int64) (*model.Task, error) {
+func GetTask(ctx context.Context, q Querier, id int64) (*model.Task, error) {
 	row := q.QueryRowContext(ctx, taskSelect+` WHERE t.id = ?`, id)
 	return scanTask(row)
 }
 
-func GetTaskByPrefix(ctx context.Context, q querier, prefix string) (*model.Task, error) {
+func GetTaskByPrefix(ctx context.Context, q Querier, prefix string) (*model.Task, error) {
 	prefix = strings.TrimSpace(prefix)
 	if prefix == "" {
 		return nil, errors.New("db: empty prefix")
@@ -178,7 +179,7 @@ func GetTaskByPrefix(ctx context.Context, q querier, prefix string) (*model.Task
 	}
 }
 
-func ListTasksInBoard(ctx context.Context, q querier, boardID int64, filter TaskFilter) ([]*model.Task, error) {
+func ListTasksInBoard(ctx context.Context, q Querier, boardID int64, filter TaskFilter) ([]*model.Task, error) {
 	args := []any{boardID}
 	where := "WHERE t.board_id = ?"
 	distinct := ""
@@ -219,25 +220,25 @@ func ListTasksInBoard(ctx context.Context, q querier, boardID int64, filter Task
 	return runListTasks(ctx, q, query+" "+where+" ORDER BY c.position, t.position", args)
 }
 
-func ListTasksInColumn(ctx context.Context, q querier, columnID int64) ([]*model.Task, error) {
+func ListTasksInColumn(ctx context.Context, q Querier, columnID int64) ([]*model.Task, error) {
 	return runListTasks(ctx, q, taskSelect+" WHERE t.column_id = ? ORDER BY t.position", []any{columnID})
 }
 
-func FirstTaskInColumn(ctx context.Context, q querier, columnID int64) (*model.Task, error) {
+func FirstTaskInColumn(ctx context.Context, q Querier, columnID int64) (*model.Task, error) {
 	row := q.QueryRowContext(ctx, taskSelect+" WHERE t.column_id = ? ORDER BY t.position LIMIT 1", columnID)
 	return scanTask(row)
 }
 
-func NextTaskInColumn(ctx context.Context, q querier, columnID, afterID int64) (*model.Task, error) {
+func NextTaskInColumn(ctx context.Context, q Querier, columnID, afterID int64) (*model.Task, error) {
 	row := q.QueryRowContext(ctx, taskSelect+" WHERE t.column_id = ? AND t.id > ? ORDER BY t.id LIMIT 1", columnID, afterID)
 	return scanTask(row)
 }
 
-func ListSubtasks(ctx context.Context, q querier, parentID int64) ([]*model.Task, error) {
+func ListSubtasks(ctx context.Context, q Querier, parentID int64) ([]*model.Task, error) {
 	return runListTasks(ctx, q, taskSelect+" WHERE t.parent_id = ? ORDER BY t.position", []any{parentID})
 }
 
-func WouldCreateCycle(ctx context.Context, q querier, taskID, proposedParent int64) (bool, error) {
+func WouldCreateCycle(ctx context.Context, q Querier, taskID, proposedParent int64) (bool, error) {
 	if taskID == proposedParent {
 		return true, nil
 	}
@@ -262,7 +263,7 @@ func WouldCreateCycle(ctx context.Context, q querier, taskID, proposedParent int
 	return true, fmt.Errorf("db: parent chain too long (possible cycle)")
 }
 
-func UpdateTask(ctx context.Context, q querier, id int64, patch TaskPatch) error {
+func UpdateTask(ctx context.Context, q Querier, id int64, patch TaskPatch) error {
 	sets := []string{}
 	args := []any{}
 	if patch.ParentID != nil {
@@ -318,19 +319,19 @@ func UpdateTask(ctx context.Context, q querier, id int64, patch TaskPatch) error
 	return nil
 }
 
-func MoveTask(ctx context.Context, q querier, taskID, targetColumnID int64) error {
+func MoveTask(ctx context.Context, q Querier, taskID, targetColumnID int64) error {
 	return MoveTaskAt(ctx, q, taskID, targetColumnID, nil)
 }
 
-func MoveTaskForce(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
+func MoveTaskForce(ctx context.Context, q Querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
 	return moveTaskAt(ctx, q, taskID, targetColumnID, beforeTaskID, true)
 }
 
-func MoveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
+func MoveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, beforeTaskID *int64) error {
 	return moveTaskAt(ctx, q, taskID, targetColumnID, beforeTaskID, false)
 }
 
-func moveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, beforeTaskID *int64, force bool) error {
+func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, beforeTaskID *int64, force bool) error {
 	var currentCol int64
 	err := q.QueryRowContext(ctx,
 		`SELECT column_id FROM tasks WHERE id = ?`, taskID,
@@ -371,8 +372,8 @@ func moveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, be
 
 	exec := q
 	committed := false
-	if txer, ok := q.(transactor); ok {
-		tx, err := txer.BeginTx(ctx, nil)
+	if txer, ok := q.(Transactor); ok {
+		tx, err := txer.BeginTxx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("db: begin tx: %w", err)
 		}
@@ -414,7 +415,7 @@ func moveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, be
 		return fmt.Errorf("db: move task: %w", err)
 	}
 
-	if tx, ok := exec.(*sql.Tx); ok {
+	if tx, ok := exec.(*sqlx.Tx); ok {
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("db: commit move task: %w", err)
 		}
@@ -424,7 +425,7 @@ func moveTaskAt(ctx context.Context, q querier, taskID, targetColumnID int64, be
 	return nil
 }
 
-func DeleteTask(ctx context.Context, q querier, id int64) error {
+func DeleteTask(ctx context.Context, q Querier, id int64) error {
 	res, err := q.ExecContext(ctx, `DELETE FROM tasks WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete task: %w", err)
@@ -436,7 +437,7 @@ func DeleteTask(ctx context.Context, q querier, id int64) error {
 	return nil
 }
 
-func runListTasks(ctx context.Context, q querier, query string, args []any) ([]*model.Task, error) {
+func runListTasks(ctx context.Context, q Querier, query string, args []any) ([]*model.Task, error) {
 	rows, err := q.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("db: list tasks: %w", err)

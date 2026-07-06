@@ -17,7 +17,7 @@ const (
 	RebalanceWindow = 20
 )
 
-func computePositionBefore(ctx context.Context, q querier, columnID int64, beforeTaskID int64) (float64, error) {
+func computePositionBefore(ctx context.Context, q Querier, columnID int64, beforeTaskID int64) (float64, error) {
 	var beforePos sql.NullFloat64
 	err := q.QueryRowContext(ctx,
 		`SELECT position FROM tasks WHERE id = ? AND column_id = ?`, beforeTaskID, columnID,
@@ -47,7 +47,7 @@ func computePositionBefore(ctx context.Context, q querier, columnID int64, befor
 	return (prevPos.Float64 + beforePos.Float64) / 2, nil
 }
 
-func computeNextPosition(ctx context.Context, q querier, columnID int64, afterTaskID *int64) (float64, error) {
+func computeNextPosition(ctx context.Context, q Querier, columnID int64, afterTaskID *int64) (float64, error) {
 	if afterTaskID != nil {
 		var prevPos, nextPos sql.NullFloat64
 		err := q.QueryRowContext(ctx, `
@@ -85,7 +85,7 @@ func computeNextPosition(ctx context.Context, q querier, columnID int64, afterTa
 
 var errGapTooSmall = errors.New("db: position gap too small, rebalance required")
 
-func needsRebalance(ctx context.Context, q querier, columnID int64) (bool, error) {
+func needsRebalance(ctx context.Context, q Querier, columnID int64) (bool, error) {
 	var count int
 	if err := q.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, columnID,
@@ -113,20 +113,20 @@ func needsRebalance(ctx context.Context, q querier, columnID int64) (bool, error
 	return minGap.Float64 < PositionStep*RebalanceGapRel, nil
 }
 
-func RebalanceColumn(ctx context.Context, q querier, columnID int64) (int, error) {
+func RebalanceColumn(ctx context.Context, q Querier, columnID int64) (int, error) {
 	return rebalanceColumn(ctx, q, columnID, 0)
 }
 
-func RebalanceColumnWindow(ctx context.Context, q querier, columnID, aroundID int64) (int, error) {
+func RebalanceColumnWindow(ctx context.Context, q Querier, columnID, aroundID int64) (int, error) {
 	return rebalanceColumn(ctx, q, columnID, aroundID)
 }
 
-func rebalanceColumn(ctx context.Context, q querier, columnID, aroundID int64) (int, error) {
-	txer, ok := q.(transactor)
+func rebalanceColumn(ctx context.Context, q Querier, columnID, aroundID int64) (int, error) {
+	txer, ok := q.(Transactor)
 	if !ok {
 		return 0, errors.New("db: rebalance requires *sql.DB or *sql.Tx")
 	}
-	tx, err := txer.BeginTx(ctx, nil)
+	tx, err := txer.BeginTxx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("db: begin tx: %w", err)
 	}
@@ -143,7 +143,7 @@ func rebalanceColumn(ctx context.Context, q querier, columnID, aroundID int64) (
 	windowed := aroundID > 0
 	var base float64
 	if windowed {
-		if err := tx.QueryRowContext(ctx,
+		if err := q.QueryRowContext(ctx,
 			`SELECT position FROM tasks WHERE id = ?`, aroundID,
 		).Scan(&base); err != nil {
 			return 0, fmt.Errorf("db: read around position: %w", err)
@@ -175,10 +175,10 @@ func rebalanceColumn(ctx context.Context, q querier, columnID, aroundID int64) (
 	return len(ids), nil
 }
 
-func selectRebalanceIDs(ctx context.Context, tx *sql.Tx, columnID, aroundID int64) ([]int64, error) {
+func selectRebalanceIDs(ctx context.Context, q Querier, columnID, aroundID int64) ([]int64, error) {
 	if aroundID > 0 {
 		half := RebalanceWindow / 2
-		rows, err := tx.QueryContext(ctx, `
+		rows, err := q.QueryContext(ctx, `
 			SELECT id FROM (
 				SELECT id, position FROM tasks
 				WHERE column_id = ? AND position >= (SELECT position FROM tasks WHERE id = ?)
@@ -199,7 +199,7 @@ func selectRebalanceIDs(ctx context.Context, tx *sql.Tx, columnID, aroundID int6
 		}
 		return scanIDs(rows)
 	}
-	rows, err := tx.QueryContext(ctx,
+	rows, err := q.QueryContext(ctx,
 		`SELECT id FROM tasks WHERE column_id = ? ORDER BY position, id`, columnID)
 	if err != nil {
 		return nil, fmt.Errorf("db: select all: %w", err)
@@ -220,7 +220,7 @@ func scanIDs(rows *sql.Rows) ([]int64, error) {
 	return ids, rows.Err()
 }
 
-func ensureHealthyPosition(ctx context.Context, q querier, columnID int64) {
+func ensureHealthyPosition(ctx context.Context, q Querier, columnID int64) {
 	needed, err := needsRebalance(ctx, q, columnID)
 	if err != nil || !needed {
 		return

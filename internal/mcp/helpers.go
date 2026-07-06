@@ -2,7 +2,6 @@ package mcp
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
+	"github.com/jmoiron/sqlx"
 )
 
 func splitCSV(s string) []string {
@@ -34,7 +34,7 @@ func parsePriority(s string) (model.Priority, error) {
 	return model.NewPriority(s)
 }
 
-func findBoardAndColumns(ctx context.Context, conn *sql.DB, project, board string) (*model.Board, []*model.Column, error) {
+func findBoardAndColumns(ctx context.Context, conn *sqlx.DB, project, board string) (*model.Board, []*model.Column, error) {
 	p, err := db.GetProjectByName(ctx, conn, project)
 	if err != nil {
 		return nil, nil, err

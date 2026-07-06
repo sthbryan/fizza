@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
+	"github.com/jmoiron/sqlx"
 )
 
 type Service struct {
@@ -27,7 +27,7 @@ type Resolved struct {
 	Column  *model.Column
 }
 
-func New(conn *sql.DB, project, board, column string) *Service {
+func New(conn *sqlx.DB, project, board, column string) *Service {
 	return &Service{pool: db.NewSinglePool(conn), project: project, board: board, column: column}
 }
 
@@ -35,9 +35,9 @@ func NewWithPool(pool *db.Pool, project, board, column string) *Service {
 	return &Service{pool: pool, project: project, board: board, column: column}
 }
 
-func (s *Service) DB() *sql.DB { return s.pool.Write }
+func (s *Service) DB() *sqlx.DB { return s.pool.Write }
 
-func (s *Service) Reader() *sql.DB { return s.pool.Read }
+func (s *Service) Reader() *sqlx.DB { return s.pool.Read }
 
 func (s *Service) Pool() *db.Pool { return s.pool }
 
@@ -142,7 +142,7 @@ func (s *Service) ResolveColumn(ctx context.Context, defaultToFirst bool) (*Reso
 
 var ErrValidation = model.ErrValidation
 
-func findBoardByName(ctx context.Context, conn *sql.DB, projectID int64, name string) (*model.Board, error) {
+func findBoardByName(ctx context.Context, conn *sqlx.DB, projectID int64, name string) (*model.Board, error) {
 	boards, err := db.ListBoards(ctx, conn, projectID)
 	if err != nil {
 		return nil, err

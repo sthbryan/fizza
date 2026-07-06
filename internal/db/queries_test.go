@@ -2,17 +2,17 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/fizza/fizza/internal/model"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDB(t *testing.T) *sql.DB {
+func newTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 	conn, err := Open(context.Background(), ":memory:")
 	require.NoError(t, err)

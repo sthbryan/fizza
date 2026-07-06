@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
 
@@ -29,7 +30,7 @@ type Migration struct {
 	Body    string
 }
 
-func Open(ctx context.Context, path string) (*sql.DB, error) {
+func Open(ctx context.Context, path string) (*sqlx.DB, error) {
 	pool, err := OpenPool(ctx, path, 1, 1)
 	if err != nil {
 		return nil, err
@@ -38,9 +39,9 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 }
 
 type Pool struct {
-	Write  *sql.DB
-	Read   *sql.DB
-	path   string
+	Write *sqlx.DB
+	Read  *sqlx.DB
+	path  string
 }
 
 func OpenPool(ctx context.Context, path string, maxReaders, maxWriters int) (*Pool, error) {
@@ -72,6 +73,9 @@ func OpenPool(ctx context.Context, path string, maxReaders, maxWriters int) (*Po
 	reader.SetMaxIdleConns(maxReaders)
 	reader.SetConnMaxLifetime(0)
 
+	wx := sqlx.NewDb(writer, "sqlite")
+	rx := sqlx.NewDb(reader, "sqlite")
+
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := writer.PingContext(pingCtx); err != nil {
@@ -84,12 +88,12 @@ func OpenPool(ctx context.Context, path string, maxReaders, maxWriters int) (*Po
 		_ = reader.Close()
 		return nil, fmt.Errorf("db: ping reader: %w", err)
 	}
-	if err := Migrate(ctx, writer); err != nil {
+	if err := Migrate(ctx, sqlx.NewDb(writer, "sqlite")); err != nil {
 		_ = writer.Close()
 		_ = reader.Close()
 		return nil, fmt.Errorf("db: migrate: %w", err)
 	}
-	return &Pool{Write: writer, Read: reader, path: filepath.Clean(path)}, nil
+	return &Pool{Write: wx, Read: rx, path: filepath.Clean(path)}, nil
 }
 
 func (p *Pool) Close() error {
@@ -111,7 +115,7 @@ func (p *Pool) Path() string {
 	return p.path
 }
 
-func NewSinglePool(conn *sql.DB) *Pool {
+func NewSinglePool(conn *sqlx.DB) *Pool {
 	return &Pool{Write: conn, Read: conn, path: ""}
 }
 
@@ -143,7 +147,7 @@ func LoadMigrations() ([]Migration, error) {
 	return out, nil
 }
 
-func Migrate(ctx context.Context, conn *sql.DB) error {
+func Migrate(ctx context.Context, conn Querier) error {
 	migs, err := LoadMigrations()
 	if err != nil {
 		return err
@@ -194,7 +198,11 @@ func Migrate(ctx context.Context, conn *sql.DB) error {
 		if applied[m.Version] {
 			continue
 		}
-		tx, err := conn.BeginTx(ctx, nil)
+		tr, ok := conn.(Transactor)
+		if !ok {
+			return fmt.Errorf("migration runner requires *sqlx.DB or *sqlx.Tx")
+		}
+		tx, err := tr.BeginTxx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("begin tx for %s: %w", m.Name, err)
 		}
@@ -216,7 +224,7 @@ func Migrate(ctx context.Context, conn *sql.DB) error {
 	return nil
 }
 
-func AppliedVersions(ctx context.Context, conn *sql.DB) ([]int64, error) {
+func AppliedVersions(ctx context.Context, conn Querier) ([]int64, error) {
 	rows, err := conn.QueryContext(ctx, `SELECT version FROM schema_migrations ORDER BY version`)
 	if err != nil {
 		return nil, err
@@ -239,7 +247,7 @@ type SchemaObject struct {
 	SQL  string `json:"sql"`
 }
 
-func Schema(ctx context.Context, conn *sql.DB) ([]SchemaObject, error) {
+func Schema(ctx context.Context, conn Querier) ([]SchemaObject, error) {
 	rows, err := conn.QueryContext(ctx,
 		`SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name`)
 	if err != nil {

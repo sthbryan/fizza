@@ -31,7 +31,7 @@ var allowedEventKinds = map[string]bool{
 	"task_delete":    true,
 }
 
-func RecordEvent(ctx context.Context, q querier, ev Event) error {
+func RecordEvent(ctx context.Context, q Querier, ev Event) error {
 	if !allowedEventKinds[ev.Kind] {
 		return fmt.Errorf("db: invalid event kind %q", ev.Kind)
 	}
@@ -57,7 +57,7 @@ func nullableInt64(p *int64) any {
 	return *p
 }
 
-func ListEvents(ctx context.Context, q querier, taskID *int64, limit int) ([]*model.Event, error) {
+func ListEvents(ctx context.Context, q Querier, taskID *int64, limit int) ([]*model.Event, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 50
 	}

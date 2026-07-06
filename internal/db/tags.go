@@ -10,7 +10,7 @@ import (
 	"github.com/fizza/fizza/internal/model"
 )
 
-func CreateTag(ctx context.Context, q querier, projectID int64, name string) (*model.Tag, error) {
+func CreateTag(ctx context.Context, q Querier, projectID int64, name string) (*model.Tag, error) {
 	if err := model.ValidateTag(name); err != nil {
 		return nil, err
 	}
@@ -31,13 +31,13 @@ func CreateTag(ctx context.Context, q querier, projectID int64, name string) (*m
 	return GetTag(ctx, q, id)
 }
 
-func GetTag(ctx context.Context, q querier, id int64) (*model.Tag, error) {
+func GetTag(ctx context.Context, q Querier, id int64) (*model.Tag, error) {
 	row := q.QueryRowContext(ctx,
 		`SELECT id, project_id, name, created_at FROM tags WHERE id = ?`, id)
 	return scanTag(row)
 }
 
-func ListTags(ctx context.Context, q querier, projectID int64) ([]*model.Tag, error) {
+func ListTags(ctx context.Context, q Querier, projectID int64) ([]*model.Tag, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT id, project_id, name, created_at FROM tags
 		 WHERE project_id = ? ORDER BY name`, projectID)
@@ -56,7 +56,7 @@ func ListTags(ctx context.Context, q querier, projectID int64) ([]*model.Tag, er
 	return out, rows.Err()
 }
 
-func DeleteTag(ctx context.Context, q querier, tagID int64) error {
+func DeleteTag(ctx context.Context, q Querier, tagID int64) error {
 	res, err := q.ExecContext(ctx, `DELETE FROM tags WHERE id = ?`, tagID)
 	if err != nil {
 		return fmt.Errorf("db: delete tag: %w", err)
@@ -71,7 +71,7 @@ func DeleteTag(ctx context.Context, q querier, tagID int64) error {
 	return nil
 }
 
-func AddTagToTask(ctx context.Context, q querier, taskID, tagID int64) error {
+func AddTagToTask(ctx context.Context, q Querier, taskID, tagID int64) error {
 	_, err := q.ExecContext(ctx,
 		`INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)`,
 		taskID, tagID)
@@ -81,7 +81,7 @@ func AddTagToTask(ctx context.Context, q querier, taskID, tagID int64) error {
 	return nil
 }
 
-func RemoveTagFromTask(ctx context.Context, q querier, taskID, tagID int64) error {
+func RemoveTagFromTask(ctx context.Context, q Querier, taskID, tagID int64) error {
 	res, err := q.ExecContext(ctx,
 		`DELETE FROM task_tags WHERE task_id = ? AND tag_id = ?`,
 		taskID, tagID)
@@ -95,7 +95,7 @@ func RemoveTagFromTask(ctx context.Context, q querier, taskID, tagID int64) erro
 	return nil
 }
 
-func ListTagsForTask(ctx context.Context, q querier, taskID int64) ([]*model.Tag, error) {
+func ListTagsForTask(ctx context.Context, q Querier, taskID int64) ([]*model.Tag, error) {
 	rows, err := q.QueryContext(ctx, `
 		SELECT t.id, t.project_id, t.name, t.created_at
 		FROM tags t
@@ -117,7 +117,7 @@ func ListTagsForTask(ctx context.Context, q querier, taskID int64) ([]*model.Tag
 	return out, rows.Err()
 }
 
-func ListTaskIDsForTag(ctx context.Context, q querier, tagID int64) ([]int64, error) {
+func ListTaskIDsForTag(ctx context.Context, q Querier, tagID int64) ([]int64, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT task_id FROM task_tags WHERE tag_id = ? ORDER BY task_id`, tagID)
 	if err != nil {

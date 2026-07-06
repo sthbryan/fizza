@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -42,7 +41,7 @@ type DoctorCheck struct {
 	Detail string `json:"detail,omitempty"`
 }
 
-func MigrationStatus(ctx context.Context, conn *sql.DB) (pending []MigrationInfo, applied []MigrationInfo, err error) {
+func MigrationStatus(ctx context.Context, conn Querier) (pending []MigrationInfo, applied []MigrationInfo, err error) {
 	migs, err := LoadMigrations()
 	if err != nil {
 		return nil, nil, err
@@ -85,7 +84,7 @@ func MigrationStatus(ctx context.Context, conn *sql.DB) (pending []MigrationInfo
 	return pending, applied, nil
 }
 
-func Doctor(ctx context.Context, conn *sql.DB) (*DoctorReport, error) {
+func Doctor(ctx context.Context, conn Querier) (*DoctorReport, error) {
 	report := &DoctorReport{OK: true}
 
 	var integrity string

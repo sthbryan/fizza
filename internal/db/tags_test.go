@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"database/sql"
+	"github.com/jmoiron/sqlx"
 	"testing"
 
 	"github.com/fizza/fizza/internal/model"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func seedTagFixture(t *testing.T, conn *sql.DB) (projectID, boardID, colID, taskAID, taskBID int64) {
+func seedTagFixture(t *testing.T, conn *sqlx.DB) (projectID, boardID, colID, taskAID, taskBID int64) {
 	t.Helper()
 	ctx := context.Background()
 	p, err := CreateProject(ctx, conn, "alpha", "")

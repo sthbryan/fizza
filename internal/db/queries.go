@@ -10,31 +10,19 @@ import (
 	"github.com/fizza/fizza/internal/model"
 )
 
-type Querier interface {
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-}
-
-type querier = Querier
-
-type transactor interface {
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-}
-
 type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-func CreateProject(ctx context.Context, q querier, name, description string) (*model.Project, error) {
+func CreateProject(ctx context.Context, q Querier, name, description string) (*model.Project, error) {
 	if err := model.ValidateProject(name, description); err != nil {
 		return nil, err
 	}
-	txer, ok := q.(transactor)
+	txer, ok := q.(Transactor)
 	if !ok {
 		return nil, errors.New("db: CreateProject requires *sql.DB or *sql.Tx")
 	}
-	tx, err := txer.BeginTx(ctx, nil)
+	tx, err := txer.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("db: begin tx: %w", err)
 	}
@@ -82,19 +70,19 @@ func CreateProject(ctx context.Context, q querier, name, description string) (*m
 	return GetProject(ctx, q, id)
 }
 
-func GetProject(ctx context.Context, q querier, id int64) (*model.Project, error) {
+func GetProject(ctx context.Context, q Querier, id int64) (*model.Project, error) {
 	row := q.QueryRowContext(ctx,
 		`SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?`, id)
 	return scanProject(row)
 }
 
-func GetProjectByName(ctx context.Context, q querier, name string) (*model.Project, error) {
+func GetProjectByName(ctx context.Context, q Querier, name string) (*model.Project, error) {
 	row := q.QueryRowContext(ctx,
 		`SELECT id, name, description, created_at, updated_at FROM projects WHERE name = ?`, name)
 	return scanProject(row)
 }
 
-func ListProjects(ctx context.Context, q querier) ([]*model.Project, error) {
+func ListProjects(ctx context.Context, q Querier) ([]*model.Project, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT id, name, description, created_at, updated_at FROM projects ORDER BY name`)
 	if err != nil {
@@ -112,7 +100,7 @@ func ListProjects(ctx context.Context, q querier) ([]*model.Project, error) {
 	return out, rows.Err()
 }
 
-func DeleteProject(ctx context.Context, q querier, id int64) error {
+func DeleteProject(ctx context.Context, q Querier, id int64) error {
 	res, err := q.ExecContext(ctx, `DELETE FROM projects WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete project: %w", err)

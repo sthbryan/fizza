@@ -2,13 +2,13 @@ package mcp
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 
 	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
+	"github.com/jmoiron/sqlx"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -63,7 +63,7 @@ type projectDeleteInput struct {
 	Force bool   `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerProjectTools(s *mcp.Server, conn *sql.DB) {
+func registerProjectTools(s *mcp.Server, conn *sqlx.DB) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "project_new",
 		Description: "Create a new project. A default board named 'main' with columns todo/in_progress/done is seeded automatically.",
@@ -139,7 +139,7 @@ type boardDeleteInput struct {
 	Force   bool   `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerBoardTools(s *mcp.Server, conn *sql.DB) {
+func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "board_create",
 		Description: "Create a board in a project. Optionally seed it with custom column names.",
@@ -246,7 +246,7 @@ type taskDeleteInput struct {
 	Force bool   `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerTaskTools(s *mcp.Server, conn *sql.DB) {
+func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "task_add",
 		Description: "Create a task in a board. By default lands in the first column. Use task_move to change column afterward.",
@@ -390,7 +390,7 @@ type tagAttachInput struct {
 	TagID  int64 `json:"tag_id" jsonschema:"tag id"`
 }
 
-func registerTagTools(s *mcp.Server, conn *sql.DB) {
+func registerTagTools(s *mcp.Server, conn *sqlx.DB) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "tag_add",
 		Description: "Create a tag in a project.",

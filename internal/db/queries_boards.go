@@ -12,11 +12,11 @@ import (
 
 var DefaultSeedColumns = []string{"todo", "in_progress", "done"}
 
-func CreateBoard(ctx context.Context, q querier, projectID int64, name string) (*model.Board, error) {
+func CreateBoard(ctx context.Context, q Querier, projectID int64, name string) (*model.Board, error) {
 	return CreateBoardWithColumns(ctx, q, projectID, name, DefaultSeedColumns)
 }
 
-func CreateBoardWithColumns(ctx context.Context, q querier, projectID int64, name string, columns []string) (*model.Board, error) {
+func CreateBoardWithColumns(ctx context.Context, q Querier, projectID int64, name string, columns []string) (*model.Board, error) {
 	if err := model.ValidateBoard(name); err != nil {
 		return nil, err
 	}
@@ -29,11 +29,11 @@ func CreateBoardWithColumns(ctx context.Context, q querier, projectID int64, nam
 		}
 	}
 
-	txer, ok := q.(transactor)
+	txer, ok := q.(Transactor)
 	if !ok {
 		return nil, errors.New("db: CreateBoardWithColumns requires *sql.DB or *sql.Tx")
 	}
-	tx, err := txer.BeginTx(ctx, nil)
+	tx, err := txer.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("db: begin tx: %w", err)
 	}
@@ -79,7 +79,7 @@ func CreateBoardWithColumns(ctx context.Context, q querier, projectID int64, nam
 	return GetBoard(ctx, q, id)
 }
 
-func GetBoard(ctx context.Context, q querier, id int64) (*model.Board, error) {
+func GetBoard(ctx context.Context, q Querier, id int64) (*model.Board, error) {
 	var (
 		b     model.Board
 		def   int
@@ -103,7 +103,7 @@ func GetBoard(ctx context.Context, q querier, id int64) (*model.Board, error) {
 	return &b, nil
 }
 
-func ListBoards(ctx context.Context, q querier, projectID int64) ([]*model.Board, error) {
+func ListBoards(ctx context.Context, q Querier, projectID int64) ([]*model.Board, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT id, project_id, name, is_default, created_at
 		 FROM boards WHERE project_id = ? ORDER BY name`, projectID)
@@ -132,7 +132,7 @@ func ListBoards(ctx context.Context, q querier, projectID int64) ([]*model.Board
 	return out, rows.Err()
 }
 
-func DeleteBoard(ctx context.Context, q querier, id int64) error {
+func DeleteBoard(ctx context.Context, q Querier, id int64) error {
 	res, err := q.ExecContext(ctx, `DELETE FROM boards WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete board: %w (move or delete tasks first)", err)
@@ -144,7 +144,7 @@ func DeleteBoard(ctx context.Context, q querier, id int64) error {
 	return nil
 }
 
-func GetColumnByName(ctx context.Context, q querier, boardID int64, name string) (*model.Column, error) {
+func GetColumnByName(ctx context.Context, q Querier, boardID int64, name string) (*model.Column, error) {
 	var (
 		c    model.Column
 		pos  int
@@ -172,7 +172,7 @@ func GetColumnByName(ctx context.Context, q querier, boardID int64, name string)
 	return &c, nil
 }
 
-func ListColumns(ctx context.Context, q querier, boardID int64) ([]*model.Column, error) {
+func ListColumns(ctx context.Context, q Querier, boardID int64) ([]*model.Column, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT id, board_id, name, position, color, wip_limit FROM columns
 		 WHERE board_id = ? ORDER BY position`, boardID)
@@ -204,7 +204,7 @@ func ListColumns(ctx context.Context, q querier, boardID int64) ([]*model.Column
 	return out, rows.Err()
 }
 
-func UpdateColumnWIPLimit(ctx context.Context, q querier, columnID int64, limit *int) error {
+func UpdateColumnWIPLimit(ctx context.Context, q Querier, columnID int64, limit *int) error {
 	var wipParam any
 	if limit != nil {
 		wipParam = *limit
