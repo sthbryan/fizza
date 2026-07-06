@@ -323,8 +323,8 @@ func buildTaskTree(ctx context.Context, conn db.Querier, root *model.Task, maxDe
 }
 
 type TaskNode struct {
-	Task     *model.Task  `json:"task"`
-	Children []*TaskNode  `json:"children,omitempty"`
+	Task     *model.Task `json:"task"`
+	Children []*TaskNode `json:"children,omitempty"`
 }
 
 func newTaskMoveCmd(rf *rootFlags) *cobra.Command {

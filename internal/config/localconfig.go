@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	LocalConfigName  = ".fizza"
-	maxSearchDepth   = 5
+	LocalConfigName = ".fizza"
+	maxSearchDepth  = 5
 )
 
 func LoadLocalConfig(startDir string) (Config, error) {

@@ -195,7 +195,7 @@ func newProjectExportCmd(rf *rootFlags) *cobra.Command {
 				return report(cmd, rf, err)
 			}
 			out := ExportPayload{
-				Project: p,
+				Project:    p,
 				ExportedAt: time.Now().UTC(),
 			}
 			for _, b := range boards {
@@ -305,9 +305,9 @@ func newProjectImportCmd(rf *rootFlags) *cobra.Command {
 }
 
 type ExportPayload struct {
-	Project    *model.Project   `json:"project"`
-	ExportedAt time.Time        `json:"exported_at"`
-	Boards     []ExportedBoard  `json:"boards"`
+	Project    *model.Project  `json:"project"`
+	ExportedAt time.Time       `json:"exported_at"`
+	Boards     []ExportedBoard `json:"boards"`
 }
 
 type ExportedBoard struct {

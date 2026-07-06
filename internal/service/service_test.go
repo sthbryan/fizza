@@ -64,11 +64,11 @@ func TestService_ProjectCounts(t *testing.T) {
 
 func TestSplitColumns(t *testing.T) {
 	cases := map[string][]string{
-		"":                  nil,
-		"todo":              {"todo"},
-		"todo,in_progress":  {"todo", "in_progress"},
-		" todo , done ":     {"todo", "done"},
-		"a,,b":              {"a", "b"},
+		"":                 nil,
+		"todo":             {"todo"},
+		"todo,in_progress": {"todo", "in_progress"},
+		" todo , done ":    {"todo", "done"},
+		"a,,b":             {"a", "b"},
 	}
 	for in, want := range cases {
 		got := SplitColumns(in)

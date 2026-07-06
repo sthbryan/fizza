@@ -86,7 +86,7 @@ func TestServer_EndToEnd_CreateAndList(t *testing.T) {
 	assert.False(t, res.IsError, "project_new should succeed")
 
 	res, err = session.CallTool(ctx, &mcp.CallToolParams{
-		Name: "project_list",
+		Name:      "project_list",
 		Arguments: map[string]any{},
 	})
 	require.NoError(t, err)

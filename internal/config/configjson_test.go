@@ -58,10 +58,10 @@ func TestConfig_InvalidMode(t *testing.T) {
 
 func TestResolveMode(t *testing.T) {
 	cases := []struct {
-		name        string
-		flagFormat  string
-		cfgMode     string
-		wantFormat  string
+		name       string
+		flagFormat string
+		cfgMode    string
+		wantFormat string
 	}{
 		{"llm default", "json", ModeLLM, "json"},
 		{"human default", "json", ModeHuman, "pretty"},

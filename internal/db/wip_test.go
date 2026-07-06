@@ -52,7 +52,7 @@ func TestWIP_ColumnExposesLimit(t *testing.T) {
 }
 
 func TestWIP_MoveRejectsOverLimit(t *testing.T) {
-	 
+
 	ctx := context.Background()
 	conn, b, todo, inProgress, _ := seedWIPFixture(t)
 
@@ -85,7 +85,7 @@ func TestWIP_MoveRejectsOverLimit(t *testing.T) {
 }
 
 func TestWIP_MoveForceBypasses(t *testing.T) {
-	 
+
 	ctx := context.Background()
 	conn, b, todo, inProgress, _ := seedWIPFixture(t)
 
@@ -116,7 +116,7 @@ func TestWIP_MoveForceBypasses(t *testing.T) {
 }
 
 func TestWIP_NullLimitAllowsAnyCount(t *testing.T) {
-	 
+
 	ctx := context.Background()
 	conn, b, todo, inProgress, _ := seedWIPFixture(t)
 
@@ -134,7 +134,7 @@ func TestWIP_NullLimitAllowsAnyCount(t *testing.T) {
 }
 
 func TestWIP_ClearLimit(t *testing.T) {
-	 
+
 	ctx := context.Background()
 	conn, _, _, inProgress, _ := seedWIPFixture(t)
 

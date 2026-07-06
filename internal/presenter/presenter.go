@@ -23,7 +23,7 @@ func AnsiCyanBold(format string, args ...any) string {
 }
 
 type Renderer struct {
-	w      io.Writer
+	w       io.Writer
 	noColor bool
 }
 

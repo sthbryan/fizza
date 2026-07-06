@@ -79,9 +79,9 @@ func (s *Server) Run(ctx context.Context, opts Options) error {
 }
 
 type envelope struct {
-	OK    bool             `json:"ok"`
-	Data  json.RawMessage  `json:"data,omitempty"`
-	Error *errorPayload    `json:"error,omitempty"`
+	OK    bool            `json:"ok"`
+	Data  json.RawMessage `json:"data,omitempty"`
+	Error *errorPayload   `json:"error,omitempty"`
 }
 
 type errorPayload struct {

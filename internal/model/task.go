@@ -104,23 +104,23 @@ var (
 	ErrColumnNameEmpty  = errors.New("column name cannot be empty")
 	ErrColumnNameLong   = errors.New("column name too long (max 32 chars)")
 	ErrTaskCycle        = errors.New("task parent would create a cycle")
-	ErrValidation        = errors.New("validation")
+	ErrValidation       = errors.New("validation")
 )
 
 type Task struct {
-	ID          int64       `json:"id" db:"id"`
-	BoardID     int64       `json:"board_id" db:"board_id"`
-	ParentID    *int64      `json:"parent_id,omitempty" db:"parent_id"`
-	ColumnID    int64       `json:"column_id" db:"column_id"`
-	ColumnName  string      `json:"status" db:"status"`
-	Title       string      `json:"title" db:"title"`
-	Description string      `json:"description,omitempty" db:"description"`
-	Priority    Priority    `json:"priority" db:"priority"`
-	Position    float64     `json:"position" db:"position"`
+	ID          int64        `json:"id" db:"id"`
+	BoardID     int64        `json:"board_id" db:"board_id"`
+	ParentID    *int64       `json:"parent_id,omitempty" db:"parent_id"`
+	ColumnID    int64        `json:"column_id" db:"column_id"`
+	ColumnName  string       `json:"status" db:"status"`
+	Title       string       `json:"title" db:"title"`
+	Description string       `json:"description,omitempty" db:"description"`
+	Priority    Priority     `json:"priority" db:"priority"`
+	Position    float64      `json:"position" db:"position"`
 	DueDate     *dbutil.Time `json:"due_date,omitempty" db:"due_date"`
-	Tags        []*Tag      `json:"tags,omitempty" db:"-"`
-	CreatedAt   dbutil.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   dbutil.Time `json:"updated_at" db:"updated_at"`
+	Tags        []*Tag       `json:"tags,omitempty" db:"-"`
+	CreatedAt   dbutil.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   dbutil.Time  `json:"updated_at" db:"updated_at"`
 }
 
 type Subtasks struct {

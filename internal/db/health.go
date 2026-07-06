@@ -16,23 +16,23 @@ type unixStat_t = unix.Statfs_t
 var unixStatfs = unix.Statfs
 
 type MigrationInfo struct {
-	Version  int64  `json:"version"`
-	Name     string `json:"name"`
-	Checksum string `json:"checksum"`
-	Applied  bool   `json:"applied"`
+	Version   int64  `json:"version"`
+	Name      string `json:"name"`
+	Checksum  string `json:"checksum"`
+	Applied   bool   `json:"applied"`
 	AppliedAt string `json:"applied_at,omitempty"`
 }
 
 type DoctorReport struct {
-	OK             bool            `json:"ok"`
-	Checks         []DoctorCheck   `json:"checks"`
-	Integrity      string          `json:"integrity"`
-	PendingMigs    int             `json:"pending_migrations"`
-	SchemaVersion  int64           `json:"schema_version"`
-	DBPath         string          `json:"db_path"`
-	DBSize         int64           `json:"db_size"`
-	FreeDiskBytes  uint64          `json:"free_disk_bytes,omitempty"`
-	Warnings       []string        `json:"warnings,omitempty"`
+	OK            bool          `json:"ok"`
+	Checks        []DoctorCheck `json:"checks"`
+	Integrity     string        `json:"integrity"`
+	PendingMigs   int           `json:"pending_migrations"`
+	SchemaVersion int64         `json:"schema_version"`
+	DBPath        string        `json:"db_path"`
+	DBSize        int64         `json:"db_size"`
+	FreeDiskBytes uint64        `json:"free_disk_bytes,omitempty"`
+	Warnings      []string      `json:"warnings,omitempty"`
 }
 
 type DoctorCheck struct {

@@ -12,8 +12,8 @@ import (
 const ConfigFileName = "config.json"
 
 const (
-	ModeLLM    = "llm"
-	ModeHuman  = "human"
+	ModeLLM   = "llm"
+	ModeHuman = "human"
 )
 
 type Config struct {

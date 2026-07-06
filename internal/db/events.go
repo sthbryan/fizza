@@ -71,4 +71,3 @@ func ListEvents(ctx context.Context, q Querier, taskID *int64, limit int) ([]*mo
 	}
 	return out, nil
 }
-

@@ -27,11 +27,11 @@ func TestParseTime(t *testing.T) {
 
 func TestParseDueDate(t *testing.T) {
 	cases := map[string]bool{
-		"2026-07-01":               false,
-		"2026-07-01T12:00:00Z":     false,
+		"2026-07-01":                false,
+		"2026-07-01T12:00:00Z":      false,
 		"2026-07-01T12:00:00-03:00": false,
-		"01/07/2026":               true,
-		"":                         true,
+		"01/07/2026":                true,
+		"":                          true,
 	}
 	for in, wantErr := range cases {
 		_, err := ParseDueDate(in)
