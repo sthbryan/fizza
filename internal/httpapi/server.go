@@ -134,9 +134,7 @@ func mapError(err error) (int, string) {
 		return http.StatusOK, ""
 	case errors.Is(err, service.ErrValidation):
 		msg := err.Error()
-		if strings.HasPrefix(msg, "validation: ") {
-			msg = msg[len("validation: "):]
-		}
+		msg = strings.TrimPrefix(msg, "validation: ")
 		return http.StatusBadRequest, "VALIDATION:" + msg
 	case isValidationErr(err):
 		return http.StatusBadRequest, "VALIDATION:" + err.Error()

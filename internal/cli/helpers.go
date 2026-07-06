@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 )
@@ -39,17 +38,4 @@ func (r *bytesReaderImpl) Read(p []byte) (int, error) {
 	n := copy(p, r.data[r.pos:])
 	r.pos += n
 	return n, nil
-}
-
-func writeJSON(w io.Writer, v any) error {
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	return enc.Encode(v)
-}
-
-func mustBeEmpty(name string, val string) error {
-	if val != "" {
-		return fmt.Errorf("%s must be empty", name)
-	}
-	return nil
 }

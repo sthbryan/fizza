@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newMCPCmd(rf *rootFlags) *cobra.Command {
+func newMCPCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:    "mcp",
+		Use:   "mcp",
 		Short: "Run as an MCP server over stdio",
 		Long: "Starts a Model Context Protocol server speaking JSON-RPC 2.0 over stdin/stdout. " +
 			"Intended to be invoked by an MCP-compatible coding agent (Claude Code, Cursor, etc.).",

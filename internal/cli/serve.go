@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fizza/fizza/internal/config"
@@ -53,16 +51,4 @@ func newServeCmd(rf *rootFlags) *cobra.Command {
 	c.Flags().DurationVar(&readTimeout, "read-timeout", 30*time.Second, "HTTP read timeout")
 	c.Flags().DurationVar(&writeTimeout, "write-timeout", 30*time.Second, "HTTP write timeout")
 	return c
-}
-
-func splitHostPort(addr string) (string, int, error) {
-	idx := strings.LastIndex(addr, ":")
-	if idx < 0 {
-		return addr, 0, nil
-	}
-	port, err := strconv.Atoi(addr[idx+1:])
-	if err != nil {
-		return "", 0, err
-	}
-	return addr[:idx], port, nil
 }
