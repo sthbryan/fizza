@@ -145,22 +145,24 @@ All tools accept and return JSON. The MCP server enforces the same schema; inval
 
 ## Configuration
 
-User config lives at `~/.config/fizza/config.json` (XDG-aware). Two fields:
+User config lives at `~/.config/fizza/config.json` (XDG-aware). Three fields:
 
 | Key | Values | Effect |
 |---|---|---|
 | `mode` | `llm` (default) \| `human` | When `human`, output is rendered as tables without passing `--format` |
 | `project` | project name | Default project for board/task commands. Override per-call by changing it |
+| `board` | board name | Default board within the project. Most commands (`fizza task add/list/move`) skip `--board` when this is set or the project has exactly one board |
 
 ```bash
 fizza config show                   # show current config
 fizza config set mode human         # human-readable output by default
 fizza config set project alpha      # make `alpha` the default project
+fizza config set board main         # make `main` the default board within `alpha`
 fizza config unset project          # clear the default (board/task commands will require it)
 fizza config path                   # print the config file path
 ```
 
-`fizza project set <name>` is a shortcut for `fizza config set project <name>` and validates that the project exists in the DB.
+`fizza project set <name>` and `fizza board set <name>` are shortcuts for `fizza config set project/board <name>` and validate that the project/board exists in the DB.
 
 ### Per-project config (`.fizza`)
 
@@ -187,11 +189,11 @@ fizza board list
 fizza board show <name>
 fizza board delete <name> [--force]
 
-fizza task add <title> --board <name> [--column <name>] [--desc "..."] [--priority low|medium|high|urgent] [--due 2026-07-01] [--parent <id>]
-fizza task list --board <name> [--column <name>] [--priority low,medium] [--due-before YYYY-MM-DD] [--due-after YYYY-MM-DD] [--search "needle"]
+fizza task add <title> [--board <name>] [--column <name>] [--desc "..."] [--priority low|medium|high|urgent] [--due 2026-07-01] [--parent <id>]
+fizza task list [--board <name>] [--column <name>] [--priority low,medium] [--due-before YYYY-MM-DD] [--due-after YYYY-MM-DD] [--search "needle"]
 fizza task show <id>
 fizza task tree <id> [--depth N]
-fizza task move <id> <column> --board <name> [--top | --before <id> | --after <id>]
+fizza task move <id> <column> [--board <name>] [--top | --before <id> | --after <id>]
 fizza task update <id> [--title "..."] [--desc "..."] [--priority ...] [--due ...] [--clear-due] [--parent <id>] [--clear-parent]
 fizza task delete <id> [--force]
 fizza task history <id> [--limit N]
