@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/fizza/fizza/internal/dbutil"
 )
@@ -75,6 +74,23 @@ func (p *Priority) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (p *Priority) Scan(value any) error {
+	if value == nil {
+		p.Value = DefaultPriority
+		return nil
+	}
+	s, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("Priority: cannot scan %T", value)
+	}
+	v, err := NewPriority(s)
+	if err != nil {
+		return err
+	}
+	*p = v
+	return nil
+}
+
 var (
 	ErrInvalidPriority  = errors.New("priority must be one of: low, medium, high, urgent")
 	ErrTitleEmpty       = errors.New("task title cannot be empty")
@@ -101,7 +117,7 @@ type Task struct {
 	Description string      `json:"description,omitempty" db:"description"`
 	Priority    Priority    `json:"priority" db:"priority"`
 	Position    float64     `json:"position" db:"position"`
-	DueDate     *time.Time  `json:"due_date,omitempty" db:"due_date"`
+	DueDate     *dbutil.Time `json:"due_date,omitempty" db:"due_date"`
 	Tags        []*Tag      `json:"tags,omitempty" db:"-"`
 	CreatedAt   dbutil.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   dbutil.Time `json:"updated_at" db:"updated_at"`

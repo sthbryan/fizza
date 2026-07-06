@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
@@ -119,7 +120,7 @@ func TestCRUD_Task_FullLifecycle(t *testing.T) {
 	desc := "new desc"
 	require.NoError(t, UpdateTask(ctx, conn, t1.ID, TaskPatch{
 		Description: &desc,
-		DueDate:     &due,
+		DueDate:     &dbutil.Time{Time: due},
 	}))
 	updated, _ := GetTask(ctx, conn, t1.ID)
 	assert.Equal(t, "new desc", updated.Description)

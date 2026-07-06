@@ -24,7 +24,7 @@ type TaskPatch struct {
 	Title         *string
 	Description   *string
 	Priority      *model.Priority
-	DueDate       *time.Time
+	DueDate       *dbutil.Time
 	ClearDueDate  bool
 	ParentID      *int64
 	ClearParentID bool
@@ -115,7 +115,7 @@ func createTaskInsert(ctx context.Context, q Querier, t *model.Task) error {
 
 	var dueParam any
 	if t.DueDate != nil {
-		dueParam = dbutil.FormatDueDate(*t.DueDate)
+		dueParam = dbutil.FormatDueDate(t.DueDate.Time)
 	}
 
 	res, err := q.ExecContext(ctx, `
@@ -137,8 +137,12 @@ func createTaskInsert(ctx context.Context, q Querier, t *model.Task) error {
 }
 
 func GetTask(ctx context.Context, q Querier, id int64) (*model.Task, error) {
-	row := q.QueryRowContext(ctx, taskSelect+` WHERE t.id = ?`, id)
-	return scanTask(row)
+	var t model.Task
+	err := q.GetContext(ctx, &t, taskSelect+` WHERE t.id = ?`, id)
+	if err != nil {
+		return nil, mapErrNotFound(err, fmt.Sprintf("task %d", id))
+	}
+	return &t, nil
 }
 
 func GetTaskByPrefix(ctx context.Context, q Querier, prefix string) (*model.Task, error) {
@@ -149,25 +153,13 @@ func GetTaskByPrefix(ctx context.Context, q Querier, prefix string) (*model.Task
 	if !dbutil.IsDigits(prefix) {
 		return nil, fmt.Errorf("db: task prefix must be numeric: %q", prefix)
 	}
-	rows, err := q.QueryContext(ctx,
+	var matches []*model.Task
+	err := q.SelectContext(ctx, &matches,
 		taskSelect+` WHERE CAST(t.id AS TEXT) LIKE ? ORDER BY t.id LIMIT 2`,
 		prefix+"%",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("db: prefix lookup: %w", err)
-	}
-	defer rows.Close()
-
-	var matches []*model.Task
-	for rows.Next() {
-		mt, err := scanTask(rows)
-		if err != nil {
-			return nil, err
-		}
-		matches = append(matches, mt)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 	switch len(matches) {
 	case 0:
@@ -236,13 +228,27 @@ func ListTasksInColumn(ctx context.Context, q Querier, columnID int64) ([]*model
 }
 
 func FirstTaskInColumn(ctx context.Context, q Querier, columnID int64) (*model.Task, error) {
-	row := q.QueryRowContext(ctx, taskSelect+" WHERE t.column_id = ? ORDER BY t.position LIMIT 1", columnID)
-	return scanTask(row)
+	var t model.Task
+	err := q.GetContext(ctx, &t, taskSelect+" WHERE t.column_id = ? ORDER BY t.position LIMIT 1", columnID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("db: first task in column: %w", err)
+	}
+	return &t, nil
 }
 
 func NextTaskInColumn(ctx context.Context, q Querier, columnID, afterID int64) (*model.Task, error) {
-	row := q.QueryRowContext(ctx, taskSelect+" WHERE t.column_id = ? AND t.id > ? ORDER BY t.id LIMIT 1", columnID, afterID)
-	return scanTask(row)
+	var t model.Task
+	err := q.GetContext(ctx, &t, taskSelect+" WHERE t.column_id = ? AND t.id > ? ORDER BY t.id LIMIT 1", columnID, afterID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("db: next task in column: %w", err)
+	}
+	return &t, nil
 }
 
 func ListSubtasks(ctx context.Context, q Querier, parentID int64) ([]*model.Task, error) {
@@ -300,7 +306,7 @@ func UpdateTask(ctx context.Context, q Querier, id int64, patch TaskPatch) error
 	}
 	if patch.DueDate != nil {
 		sets = append(sets, "due_date = ?")
-		args = append(args, dbutil.FormatDueDate(*patch.DueDate))
+		args = append(args, dbutil.FormatDueDate(patch.DueDate.Time))
 	} else if patch.ClearDueDate {
 		sets = append(sets, "due_date = ?")
 		args = append(args, nil)
@@ -449,61 +455,9 @@ func DeleteTask(ctx context.Context, q Querier, id int64) error {
 }
 
 func runListTasks(ctx context.Context, q Querier, query string, args []any) ([]*model.Task, error) {
-	rows, err := q.QueryContext(ctx, query, args...)
-	if err != nil {
+	var out []*model.Task
+	if err := q.SelectContext(ctx, &out, query, args...); err != nil {
 		return nil, fmt.Errorf("db: list tasks: %w", err)
 	}
-	defer rows.Close()
-	var out []*model.Task
-	for rows.Next() {
-		t, err := scanTask(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, t)
-	}
-	return out, rows.Err()
-}
-
-func scanTask(s rowScanner) (*model.Task, error) {
-	var (
-		t          model.Task
-		parentID   sql.NullInt64
-		prio       string
-		dueDate    sql.NullString
-		creAt, upd string
-	)
-	if err := s.Scan(
-		&t.ID, &t.BoardID, &t.ColumnID, &t.ColumnName,
-		&parentID, &t.Title, &t.Description, &prio, &t.Position,
-		&dueDate, &creAt, &upd,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: task", ErrNotFound)
-		}
-		return nil, fmt.Errorf("db: scan task: %w", err)
-	}
-	parsedPrio, err := model.NewPriority(prio)
-	if err != nil {
-		return nil, fmt.Errorf("db: parse priority %q: %w", prio, err)
-	}
-	t.Priority = parsedPrio
-	if parentID.Valid {
-		v := parentID.Int64
-		t.ParentID = &v
-	}
-	if dueDate.Valid && dueDate.String != "" {
-		parsed, err := dbutil.ParseDueDate(dueDate.String)
-		if err != nil {
-			return nil, fmt.Errorf("db: parse due_date: %w", err)
-		}
-		t.DueDate = &parsed
-	}
-	if t.CreatedAt, err = parseTimeAsDBUtil(creAt); err != nil {
-		return nil, err
-	}
-	if t.UpdatedAt, err = parseTimeAsDBUtil(upd); err != nil {
-		return nil, err
-	}
-	return &t, nil
+	return out, nil
 }

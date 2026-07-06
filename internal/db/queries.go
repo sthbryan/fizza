@@ -9,10 +9,6 @@ import (
 	"github.com/fizza/fizza/internal/model"
 )
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
 func CreateProject(ctx context.Context, q Querier, name, description string) (*model.Project, error) {
 	if err := model.ValidateProject(name, description); err != nil {
 		return nil, err

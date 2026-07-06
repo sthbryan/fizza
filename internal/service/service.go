@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/dbutil"
@@ -14,11 +13,11 @@ import (
 )
 
 type Service struct {
-	pool       *db.Pool
-	project    string
-	board      string
-	column     string
-	resolved   *Resolved
+	pool     *db.Pool
+	project  string
+	board    string
+	column   string
+	resolved *Resolved
 }
 
 type Resolved struct {
@@ -178,7 +177,7 @@ type TaskCreateInput struct {
 	Title       string
 	Description string
 	Priority    model.Priority
-	DueDate     *time.Time
+	DueDate     *dbutil.Time
 	ParentID    *int64
 	ColumnID    int64
 }
@@ -252,7 +251,7 @@ func (s *Service) GetTaskByPrefix(ctx context.Context, prefix string) (*model.Ta
 	return db.GetTaskByPrefix(ctx, s.pool.Write, prefix)
 }
 
-func ParseDue(s string) (*time.Time, error) {
+func ParseDue(s string) (*dbutil.Time, error) {
 	if s == "" {
 		return nil, nil
 	}
@@ -260,7 +259,7 @@ func ParseDue(s string) (*time.Time, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &t, nil
+	return &dbutil.Time{Time: t}, nil
 }
 
 func ParseInt64Flexible(s string) (int64, error) {

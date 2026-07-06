@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fizza/fizza/internal/db"
+	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
 	"github.com/fizza/fizza/internal/service"
 	"github.com/spf13/cobra"
@@ -72,7 +73,7 @@ func serviceTaskInput(title, desc string, pri model.Priority, due, parent string
 	if due != "" {
 		parsed, err := parseCLIDueDate(due)
 		if err == nil {
-			in.DueDate = &parsed
+			in.DueDate = &dbutil.Time{Time: parsed}
 		}
 	}
 	if parent != "" {
@@ -88,7 +89,7 @@ type taskInput = struct {
 	Title       string
 	Description string
 	Priority    model.Priority
-	DueDate     *time.Time
+	DueDate     *dbutil.Time
 	ParentID    *int64
 	ColumnID    int64
 }
@@ -145,7 +146,7 @@ func newTaskBulkCmd(rf *rootFlags) *cobra.Command {
 					if err != nil {
 						return report(cmd, rf, fmt.Errorf("%w: item %d due: %v", ErrValidation, i, err))
 					}
-					in.DueDate = &d
+					in.DueDate = &dbutil.Time{Time: d}
 				}
 				if item.Column != "" {
 					c, err := db.GetColumnByName(ctx, svc.DB(), r.Board.ID, item.Column)
@@ -459,7 +460,7 @@ func newTaskUpdateCmd(rf *rootFlags) *cobra.Command {
 				if err != nil {
 					return report(cmd, rf, err)
 				}
-				patch.DueDate = &parsed
+				patch.DueDate = &dbutil.Time{Time: parsed}
 			}
 			if clearParent {
 				patch.ClearParentID = true

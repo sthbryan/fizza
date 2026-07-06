@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/dbutil"
@@ -89,7 +88,7 @@ func parseInt64Flexible(s string) (int64, error) {
 	return n, nil
 }
 
-func parseDue(s string) (*time.Time, error) {
+func parseDue(s string) (*dbutil.Time, error) {
 	if s == "" {
 		return nil, nil
 	}
@@ -97,7 +96,7 @@ func parseDue(s string) (*time.Time, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &t, nil
+	return &dbutil.Time{Time: t}, nil
 }
 
 func buildTaskFromInput(board *model.Board, target *model.Column, title string, priority model.Priority, desc, due, parent string) (*model.Task, error) {
@@ -147,7 +146,7 @@ func buildTaskPatch(in taskUpdateInput) (db.TaskPatch, error) {
 		if err != nil {
 			return patch, fmt.Errorf("due: %w", err)
 		}
-		patch.DueDate = &parsed
+		patch.DueDate = &dbutil.Time{Time: parsed}
 	}
 	if in.ClearParent {
 		patch.ClearParentID = true

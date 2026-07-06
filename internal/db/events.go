@@ -59,17 +59,13 @@ func ListEvents(ctx context.Context, q Querier, taskID *int64, limit int) ([]*mo
 	if limit <= 0 || limit > 500 {
 		limit = 50
 	}
-	args := []any{}
-	where := ""
-	if taskID != nil {
-		where = "WHERE task_id = ?"
-		args = append(args, *taskID)
-	}
-	args = append(args, limit)
 	var out []*model.Event
-	err := q.SelectContext(ctx, &out,
-		`SELECT id, project_id, board_id, task_id, kind, payload, created_at
-		 FROM events `+where+` ORDER BY created_at DESC, id DESC LIMIT ?`, args...)
+	err := q.SelectContext(ctx, &out, `
+		SELECT id, project_id, board_id, task_id, kind, payload, created_at
+		FROM events
+		WHERE (? IS NULL OR task_id = ?)
+		ORDER BY created_at DESC, id DESC
+		LIMIT ?`, taskID, taskID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("db: list events: %w", err)
 	}

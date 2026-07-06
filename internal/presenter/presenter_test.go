@@ -48,7 +48,7 @@ func TestTask(t *testing.T) {
 	require.NoError(t, r.Task(&model.Task{
 		ID: 5, BoardID: 1, ColumnID: 2, ColumnName: "todo",
 		Title: "ship it", Priority: model.Priority{Value: model.PriorityHigh},
-		ParentID: &parent, DueDate: &due,
+		ParentID: &parent, DueDate: &dbutil.Time{Time: due},
 	}))
 	out := buf.String()
 	assert.Contains(t, out, "todo")
