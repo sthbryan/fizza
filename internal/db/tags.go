@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/fizza/fizza/internal/model"
@@ -118,4 +120,113 @@ func ListTaskIDsForTag(ctx context.Context, q Querier, tagID int64) ([]int64, er
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+type TaskTagChanges struct {
+	Add    []string
+	Remove []string
+}
+
+func ApplyTaskTagChanges(ctx context.Context, q Querier, taskID, projectID int64, changes TaskTagChanges) error {
+	if len(changes.Add) == 0 && len(changes.Remove) == 0 {
+		return nil
+	}
+	names := append([]string{}, changes.Add...)
+	names = append(names, changes.Remove...)
+	tags, err := resolveTagsByName(ctx, q, projectID, names)
+	if err != nil {
+		return err
+	}
+	if txer, ok := q.(Transactor); ok {
+		tx, err := txer.BeginTxx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("db: begin tx: %w", err)
+		}
+		committed := false
+		defer func() {
+			if !committed {
+				_ = tx.Rollback()
+			}
+		}()
+		for _, name := range changes.Add {
+			tag := tags[name]
+			if tag == nil {
+				created, err := CreateTag(ctx, tx, projectID, name)
+				if err != nil {
+					return err
+				}
+				tag = created
+			}
+			if err := AddTagToTask(ctx, tx, taskID, tag.ID); err != nil {
+				return err
+			}
+		}
+		for _, name := range changes.Remove {
+			tag := tags[name]
+			if tag == nil {
+				continue
+			}
+			if err := removeTagFromTaskIgnoreMissing(ctx, tx, taskID, tag.ID); err != nil {
+				return err
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("db: commit: %w", err)
+		}
+		committed = true
+		return nil
+	}
+	for _, name := range changes.Add {
+		tag := tags[name]
+		if tag == nil {
+			created, err := CreateTag(ctx, q, projectID, name)
+			if err != nil {
+				return err
+			}
+			tag = created
+		}
+		if err := AddTagToTask(ctx, q, taskID, tag.ID); err != nil {
+			return err
+		}
+	}
+	for _, name := range changes.Remove {
+		tag := tags[name]
+		if tag == nil {
+			continue
+		}
+		if err := removeTagFromTaskIgnoreMissing(ctx, q, taskID, tag.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resolveTagsByName(ctx context.Context, q Querier, projectID int64, names []string) (map[string]*model.Tag, error) {
+	out := make(map[string]*model.Tag, len(names))
+	for _, n := range names {
+		if n == "" {
+			continue
+		}
+		var t model.Tag
+		err := q.GetContext(ctx, &t,
+			`SELECT id, project_id, name, created_at FROM tags WHERE project_id = ? AND name = ?`,
+			projectID, n)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("db: resolve tag %q: %w", n, err)
+		}
+		if err == nil {
+			out[n] = &t
+		}
+	}
+	return out, nil
+}
+
+func removeTagFromTaskIgnoreMissing(ctx context.Context, q Querier, taskID, tagID int64) error {
+	_, err := q.ExecContext(ctx,
+		`DELETE FROM task_tags WHERE task_id = ? AND tag_id = ?`,
+		taskID, tagID)
+	if err != nil {
+		return fmt.Errorf("db: remove tag from task: %w", err)
+	}
+	return nil
 }

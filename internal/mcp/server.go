@@ -224,14 +224,16 @@ type taskMoveInput struct {
 }
 
 type taskUpdateInput struct {
-	ID          string `json:"id" jsonschema:"task ID or numeric prefix"`
-	Title       string `json:"title,omitempty" jsonschema:"new title"`
-	Desc        string `json:"desc,omitempty" jsonschema:"new description"`
-	Priority    string `json:"priority,omitempty" jsonschema:"new priority"`
-	Due         string `json:"due,omitempty" jsonschema:"new due date"`
-	ClearDue    bool   `json:"clear_due,omitempty" jsonschema:"remove the due date"`
-	Parent      string `json:"parent,omitempty" jsonschema:"new parent task ID"`
-	ClearParent bool   `json:"clear_parent,omitempty" jsonschema:"remove the parent"`
+	ID          string   `json:"id" jsonschema:"task ID or numeric prefix"`
+	Title       string   `json:"title,omitempty" jsonschema:"new title"`
+	Desc        string   `json:"desc,omitempty" jsonschema:"new description"`
+	Priority    string   `json:"priority,omitempty" jsonschema:"new priority"`
+	Due         string   `json:"due,omitempty" jsonschema:"new due date"`
+	ClearDue    bool     `json:"clear_due,omitempty" jsonschema:"remove the due date"`
+	Parent      string   `json:"parent,omitempty" jsonschema:"new parent task ID"`
+	ClearParent bool     `json:"clear_parent,omitempty" jsonschema:"remove the parent"`
+	AddTags     []string `json:"add_tags,omitempty" jsonschema:"tag names to attach; missing tags are auto-created"`
+	RemoveTags  []string `json:"remove_tags,omitempty" jsonschema:"tag names to detach"`
 }
 
 type taskDeleteInput struct {
@@ -333,7 +335,7 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "task_update",
-		Description: "Update one or more fields of a task. Only the fields you pass are changed.",
+		Description: "Update one or more fields of a task. add_tags/remove_tags attach/detach tags in the same call.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskUpdateInput) (*mcp.CallToolResult, any, error) {
 		t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
 		if err != nil {
@@ -345,6 +347,18 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 		}
 		if err := db.UpdateTask(ctx, conn, t.ID, patch); err != nil {
 			return nil, nil, err
+		}
+		if len(in.AddTags) > 0 || len(in.RemoveTags) > 0 {
+			board, err := db.GetBoard(ctx, conn, t.BoardID)
+			if err != nil {
+				return nil, nil, err
+			}
+			if err := db.ApplyTaskTagChanges(ctx, conn, t.ID, board.ProjectID, db.TaskTagChanges{
+				Add:    in.AddTags,
+				Remove: in.RemoveTags,
+			}); err != nil {
+				return nil, nil, err
+			}
 		}
 		updated, err := db.GetTask(ctx, conn, t.ID)
 		if err != nil {
