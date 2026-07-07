@@ -127,6 +127,7 @@ type boardInProjectInput struct {
 
 type boardListInput struct {
 	Project string `json:"project" jsonschema:"project name"`
+	Name    string `json:"name,omitempty" jsonschema:"board name; if set, returns single-element array"`
 }
 
 type boardDeleteInput struct {
@@ -153,11 +154,18 @@ func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "board_list",
-		Description: "List all boards in a project.",
+		Description: "List boards in a project, or fetch one by name. Omit name to list all.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardListInput) (*mcp.CallToolResult, any, error) {
 		p, err := db.GetProjectByName(ctx, conn, in.Project)
 		if err != nil {
 			return nil, nil, err
+		}
+		if in.Name != "" {
+			board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Name)
+			if err != nil {
+				return nil, nil, err
+			}
+			return nil, []*model.Board{board}, nil
 		}
 		boards, err := db.ListBoards(ctx, conn, p.ID)
 		if err != nil {
@@ -167,17 +175,6 @@ func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
 			return nil, []*model.Board{}, nil
 		}
 		return nil, boards, nil
-	})
-
-	mcp.AddTool(s, &mcp.Tool{
-		Name:        "board_show",
-		Description: "Show a board by name, including its columns.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardInProjectInput) (*mcp.CallToolResult, any, error) {
-		board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Name)
-		if err != nil {
-			return nil, nil, err
-		}
-		return nil, board, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
