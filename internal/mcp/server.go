@@ -207,13 +207,13 @@ type taskAddInput struct {
 }
 
 type taskListInput struct {
-	Project string `json:"project" jsonschema:"project name"`
-	Board   string `json:"board" jsonschema:"board name"`
-	Column  string `json:"column,omitempty" jsonschema:"filter by column name"`
-}
-
-type taskIDInput struct {
-	ID string `json:"id" jsonschema:"task ID or numeric prefix"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board   string `json:"board,omitempty" jsonschema:"board name (defaults to configured board)"`
+	ID      string `json:"id,omitempty" jsonschema:"task ID or numeric prefix; if set, returns single-element array"`
+	Column  string `json:"column,omitempty" jsonschema:"filter by column name (acts as status filter)"`
+	Priority string `json:"priority,omitempty" jsonschema:"filter by priority: low|medium|high|urgent"`
+	Tag     string `json:"tag,omitempty" jsonschema:"filter by tag name"`
+	Search  string `json:"search,omitempty" jsonschema:"substring match against title/description"`
 }
 
 type taskMoveInput struct {
@@ -268,13 +268,31 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "task_list",
-		Description: "List tasks in a board, optionally filtered by column. Ordered by column position then task position.",
+		Description: "List tasks in a board with optional filters (column, priority, tag, search), or fetch one by id.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskListInput) (*mcp.CallToolResult, any, error) {
+		if in.ID != "" {
+			t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
+			if err != nil {
+				return nil, nil, err
+			}
+			return nil, []*model.Task{t}, nil
+		}
 		board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Board)
 		if err != nil {
 			return nil, nil, err
 		}
-		tasks, err := db.ListTasksInBoard(ctx, conn, board.ID, db.TaskFilter{ColumnName: in.Column})
+		filter := db.TaskFilter{ColumnName: in.Column, Search: in.Search}
+		if in.Priority != "" {
+			pri, err := model.NewPriority(in.Priority)
+			if err != nil {
+				return nil, nil, fmt.Errorf("priority: %w", err)
+			}
+			filter.Priorities = []model.Priority{pri}
+		}
+		if in.Tag != "" {
+			filter.Tags = []string{in.Tag}
+		}
+		tasks, err := db.ListTasksInBoard(ctx, conn, board.ID, filter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -282,17 +300,6 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 			return nil, []*model.Task{}, nil
 		}
 		return nil, tasks, nil
-	})
-
-	mcp.AddTool(s, &mcp.Tool{
-		Name:        "task_show",
-		Description: "Show a task by ID or numeric prefix. Returns the full task including status, priority, due_date, and timestamps.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskIDInput) (*mcp.CallToolResult, any, error) {
-		t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
-		if err != nil {
-			return nil, nil, err
-		}
-		return nil, t, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
