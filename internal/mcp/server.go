@@ -54,8 +54,8 @@ type projectInput struct {
 	Description string `json:"description,omitempty" jsonschema:"optional project description"`
 }
 
-type projectNameInput struct {
-	Name string `json:"name" jsonschema:"project name"`
+type projectListInput struct {
+	Name string `json:"name,omitempty" jsonschema:"project name; if set, returns single project instead of list"`
 }
 
 type projectDeleteInput struct {
@@ -77,8 +77,15 @@ func registerProjectTools(s *mcp.Server, conn *sqlx.DB) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "project_list",
-		Description: "List all projects ordered by name.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		Description: "List projects, or fetch one by name. Omit name to list all.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in projectListInput) (*mcp.CallToolResult, any, error) {
+		if in.Name != "" {
+			p, err := db.GetProjectByName(ctx, conn, in.Name)
+			if err != nil {
+				return nil, nil, err
+			}
+			return nil, p, nil
+		}
 		out, err := db.ListProjects(ctx, conn)
 		if err != nil {
 			return nil, nil, err
@@ -87,17 +94,6 @@ func registerProjectTools(s *mcp.Server, conn *sqlx.DB) {
 			return nil, []*model.Project{}, nil
 		}
 		return nil, out, nil
-	})
-
-	mcp.AddTool(s, &mcp.Tool{
-		Name:        "project_show",
-		Description: "Fetch a project by name.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in projectNameInput) (*mcp.CallToolResult, any, error) {
-		p, err := db.GetProjectByName(ctx, conn, in.Name)
-		if err != nil {
-			return nil, nil, err
-		}
-		return nil, p, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
