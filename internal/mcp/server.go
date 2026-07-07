@@ -207,13 +207,13 @@ type taskAddInput struct {
 }
 
 type taskListInput struct {
-	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
-	Board   string `json:"board,omitempty" jsonschema:"board name (defaults to configured board)"`
-	ID      string `json:"id,omitempty" jsonschema:"task ID or numeric prefix; if set, returns single-element array"`
-	Column  string `json:"column,omitempty" jsonschema:"filter by column name (acts as status filter)"`
+	Project  string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board    string `json:"board,omitempty" jsonschema:"board name (defaults to configured board)"`
+	ID       string `json:"id,omitempty" jsonschema:"task ID or numeric prefix; if set, returns single-element array"`
+	Column   string `json:"column,omitempty" jsonschema:"filter by column name (acts as status filter)"`
 	Priority string `json:"priority,omitempty" jsonschema:"filter by priority: low|medium|high|urgent"`
-	Tag     string `json:"tag,omitempty" jsonschema:"filter by tag name"`
-	Search  string `json:"search,omitempty" jsonschema:"substring match against title/description"`
+	Tag      string `json:"tag,omitempty" jsonschema:"filter by tag name"`
+	Search   string `json:"search,omitempty" jsonschema:"substring match against title/description"`
 }
 
 type taskMoveInput struct {
@@ -399,11 +399,6 @@ type tagDeleteInput struct {
 	Force bool  `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-type tagAttachInput struct {
-	TaskID int64 `json:"task_id" jsonschema:"task id"`
-	TagID  int64 `json:"tag_id" jsonschema:"tag id"`
-}
-
 func registerTagTools(s *mcp.Server, conn *sqlx.DB) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "tag_add",
@@ -466,25 +461,6 @@ func registerTagTools(s *mcp.Server, conn *sqlx.DB) {
 		return nil, map[string]any{"deleted": in.ID}, nil
 	})
 
-	mcp.AddTool(s, &mcp.Tool{
-		Name:        "tag_attach",
-		Description: "Attach a tag to a task.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagAttachInput) (*mcp.CallToolResult, any, error) {
-		if err := db.AddTagToTask(ctx, conn, in.TaskID, in.TagID); err != nil {
-			return nil, nil, err
-		}
-		return nil, map[string]any{"task_id": in.TaskID, "tag_id": in.TagID}, nil
-	})
-
-	mcp.AddTool(s, &mcp.Tool{
-		Name:        "tag_detach",
-		Description: "Detach a tag from a task.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagAttachInput) (*mcp.CallToolResult, any, error) {
-		if err := db.RemoveTagFromTask(ctx, conn, in.TaskID, in.TagID); err != nil {
-			return nil, nil, err
-		}
-		return nil, map[string]any{"task_id": in.TaskID, "tag_id": in.TagID}, nil
-	})
 }
 
 func defaultProject() (string, error) {
