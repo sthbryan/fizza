@@ -52,13 +52,13 @@ func main() {
 		return nil
 	})
 
-	step("tools/list has 19", func() error {
+	step("tools/list has 14", func() error {
 		tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
 		if err != nil {
 			return err
 		}
-		if len(tools.Tools) != 19 {
-			return fmt.Errorf("got %d tools, want 19", len(tools.Tools))
+		if len(tools.Tools) != 14 {
+			return fmt.Errorf("got %d tools, want 14", len(tools.Tools))
 		}
 		return nil
 	})
@@ -111,6 +111,62 @@ func main() {
 			},
 		})
 		return err
+	})
+
+	step("project_list fused view", func() error {
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name:      "project_list",
+			Arguments: map[string]any{"name": "smoke"},
+		})
+		if err != nil {
+			return err
+		}
+		if res.IsError {
+			return fmt.Errorf("expected single project, got error: %+v", res.Content)
+		}
+		return nil
+	})
+
+	step("task_list fused view by id", func() error {
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name:      "task_list",
+			Arguments: map[string]any{"id": "1"},
+		})
+		if err != nil {
+			return err
+		}
+		if res.IsError {
+			return fmt.Errorf("expected task by id, got error: %+v", res.Content)
+		}
+		return nil
+	})
+
+	step("task_list filter by tag", func() error {
+		_, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: "task_update",
+			Arguments: map[string]any{
+				"id":       "1",
+				"add_tags": []string{"urgent"},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: "task_list",
+			Arguments: map[string]any{
+				"project": "smoke",
+				"board":   "main",
+				"tag":     "urgent",
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if res.IsError {
+			return fmt.Errorf("tag filter failed: %+v", res.Content)
+		}
+		return nil
 	})
 
 	fmt.Println("\nall smoke checks passed")
