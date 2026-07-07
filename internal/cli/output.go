@@ -15,6 +15,7 @@ import (
 	"github.com/fizza/fizza/internal/model"
 	"github.com/fizza/fizza/internal/presenter"
 	"github.com/fizza/fizza/internal/service"
+	"github.com/fizza/fizza/internal/toon"
 )
 
 const (
@@ -24,6 +25,12 @@ const (
 	ExitValidation = 3
 	ExitDuplicate  = 4
 	ExitConflict   = 5
+)
+
+const (
+	FormatJSON   = "json"
+	FormatPretty = "pretty"
+	FormatTOON   = "toon"
 )
 
 type ErrorCode string
@@ -137,23 +144,32 @@ func notFoundMessage(ee *ExitError) string {
 }
 
 type Output struct {
-	w       io.Writer
-	format  string
-	noColor bool
+	w        io.Writer
+	format   string
+	noColor  bool
+	withMeta bool
 }
 
 func NewOutput(w io.Writer, format string, noColor bool) *Output {
 	return &Output{w: w, format: format, noColor: noColor}
 }
 
+func (o *Output) WithMeta(enabled bool) *Output {
+	o.withMeta = enabled
+	return o
+}
+
 func (o *Output) Write(env Envelope) error {
 	if !env.OK {
 		return o.writeJSON(env)
 	}
-	if o.format == "pretty" {
+	switch o.format {
+	case FormatPretty:
 		if err := o.writePretty(env.Data); err == nil {
 			return nil
 		}
+	case FormatTOON:
+		return o.writeTOON(env)
 	}
 	return o.writeJSON(env)
 }
@@ -164,6 +180,21 @@ func (o *Output) writeJSON(env Envelope) error {
 		return err
 	}
 	_, err = fmt.Fprintln(o.w, string(b))
+	return err
+}
+
+func (o *Output) writeTOON(env Envelope) error {
+	var out string
+	var err error
+	if o.withMeta {
+		out, err = toon.Encode(env)
+	} else {
+		out, err = toon.EncodeLLM(env)
+	}
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(o.w, out)
 	return err
 }
 

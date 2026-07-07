@@ -33,15 +33,16 @@ func ExecuteWithCode() (int, error) {
 }
 
 type rootFlags struct {
-	format  string
-	noColor bool
-	conf    config.Config
+	format   string
+	noColor  bool
+	withMeta bool
+	conf     config.Config
 }
 
 func (rf *rootFlags) output(w io.Writer) *Output {
 	format := config.ResolveMode(rf.format, rf.conf.Mode)
 	noColor := rf.noColor || !StdoutIsTTY()
-	return NewOutput(w, format, noColor)
+	return NewOutput(w, format, noColor).WithMeta(rf.withMeta)
 }
 
 func (rf *rootFlags) openDB(ctx context.Context) (*service.Service, error) {
@@ -105,8 +106,9 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&rf.format, "format", "json", "Output format: json (default) or pretty (human tables)")
+	cmd.PersistentFlags().StringVar(&rf.format, "format", "", "Output format: json, toon (compact for LLMs), or pretty (human tables). Default derives from config mode.")
 	cmd.PersistentFlags().BoolVar(&rf.noColor, "no-color", false, "Disable ANSI colors")
+	cmd.PersistentFlags().BoolVar(&rf.withMeta, "with-meta", false, "Include created_at/updated_at in TOON output (LLM-optimized format omits these by default)")
 
 	cmd.AddCommand(newProjectCmd(rf))
 	cmd.AddCommand(newBoardCmd(rf))

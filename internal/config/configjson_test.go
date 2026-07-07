@@ -63,11 +63,12 @@ func TestResolveMode(t *testing.T) {
 		cfgMode    string
 		wantFormat string
 	}{
-		{"llm default", "json", ModeLLM, "json"},
-		{"human default", "json", ModeHuman, "pretty"},
+		{"llm default", "", ModeLLM, "toon"},
+		{"human default", "", ModeHuman, "pretty"},
 		{"flag format wins", "pretty", ModeLLM, "pretty"},
 		{"flag toon wins", "toon", ModeHuman, "toon"},
-		{"empty config mode", "json", "", "json"},
+		{"explicit json", "json", ModeLLM, "json"},
+		{"empty config mode", "", "", "json"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

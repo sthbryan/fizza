@@ -116,11 +116,17 @@ func SaveConfig(cfg Config) error {
 }
 
 func ResolveMode(flagFormat string, cfgMode string) string {
-	if flagFormat != "" && flagFormat != "json" {
+	if flagFormat == "json" {
+		return "json"
+	}
+	if flagFormat != "" {
 		return flagFormat
 	}
 	if cfgMode == ModeHuman {
 		return "pretty"
+	}
+	if cfgMode == ModeLLM {
+		return "toon"
 	}
 	return "json"
 }
