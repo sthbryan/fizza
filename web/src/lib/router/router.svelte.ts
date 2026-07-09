@@ -8,6 +8,7 @@ export type Route =
   | { name: "projects" }
   | { name: "stats" }
   | { name: "board"; project: string; board: string }
+  | { name: "archived"; project: string; board: string }
   | { name: "notfound" };
 
 const STORAGE_PROJECT = "fizza.project";
@@ -28,6 +29,15 @@ export function parseRoute(pathname: string = path): Route {
   if (pathname === "/projects") return { name: "projects" };
   if (pathname === "/stats") return { name: "stats" };
 
+  const archived = pathname.match(/^\/p\/([^/]+)\/b\/([^/]+)\/archived\/?$/);
+  if (archived) {
+    return {
+      name: "archived",
+      project: decodeURIComponent(archived[1]),
+      board: decodeURIComponent(archived[2]),
+    };
+  }
+
   const m = pathname.match(/^\/p\/([^/]+)\/b\/([^/]+)\/?$/);
   if (m) {
     return {
@@ -45,6 +55,10 @@ export function getRoute(): Route {
 
 export function boardPath(project: string, board: string): string {
   return `/p/${encodeURIComponent(project)}/b/${encodeURIComponent(board)}`;
+}
+
+export function archivedPath(project: string, board: string): string {
+  return `${boardPath(project, board)}/archived`;
 }
 
 export function navigate(to: string, replace = false) {

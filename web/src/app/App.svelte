@@ -8,6 +8,7 @@
   import ProjectsPage from "@/features/projects/ProjectsPage.svelte";
   import StatsPage from "@/features/stats/StatsPage.svelte";
   import BoardPage from "@/features/board/BoardPage.svelte";
+  import ArchivedPage from "@/features/board/ArchivedPage.svelte";
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -34,6 +35,10 @@
   {:else if route.name === "board"}
     {#key `${route.project}/${route.board}`}
       <BoardPage project={route.project} board={route.board} />
+    {/key}
+  {:else if route.name === "archived"}
+    {#key `${route.project}/${route.board}/archived`}
+      <ArchivedPage project={route.project} board={route.board} />
     {/key}
   {:else}
     <NotFoundPage />
