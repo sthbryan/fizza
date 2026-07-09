@@ -26,7 +26,7 @@
     }
   });
 
-  const mutation = createMutation({
+  const mutation = createMutation(() => ({
     mutationFn: () => projectsApi.create(name.trim(), description.trim()),
     onSuccess: async (project) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects });
@@ -38,14 +38,14 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
   async function submit() {
     if (!name.trim()) {
       showToast("Name is required", "error");
       return;
     }
-    await $mutation.mutateAsync();
+    await mutation.mutateAsync();
   }
 </script>
 
@@ -53,7 +53,7 @@
   {open}
   title="New project"
   submitLabel="Create"
-  busy={$mutation.isPending}
+  busy={mutation.isPending}
   onclose={onclose}
   onsubmit={submit}
 >

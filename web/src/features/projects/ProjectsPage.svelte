@@ -22,12 +22,12 @@
   const hint = lastBoardHint();
   const queryClient = useQueryClient();
 
-  const projectsQuery = createQuery({
+  const projectsQuery = createQuery(() => ({
     queryKey: queryKeys.projects,
     queryFn: () => projectsApi.list(),
-  });
+  }));
 
-  const deleteMutation = createMutation({
+  const deleteMutation = createMutation(() => ({
     mutationFn: (name: string) => projectsApi.delete(name),
     onSuccess: async (_data, name) => {
       const stored = lastBoardHint();
@@ -38,7 +38,7 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
   async function openProject(name: string) {
     try {
@@ -67,7 +67,7 @@
     ) {
       return;
     }
-    void $deleteMutation.mutateAsync(name);
+    void deleteMutation.mutateAsync(name);
   }
 
   function boardLabel(count: number | undefined) {
@@ -89,9 +89,9 @@
           <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">
             Projects
           </h1>
-          {#if $projectsQuery.data}
+          {#if projectsQuery.data}
             <span class="text-base text-[var(--color-text-muted)]">
-              {$projectsQuery.data.length} total
+              {projectsQuery.data.length} total
             </span>
           {/if}
         </div>
@@ -103,13 +103,13 @@
   </header>
 
   <main class="min-h-0 flex-1 overflow-hidden">
-    {#if $projectsQuery.isPending}
+    {#if projectsQuery.isPending}
       <div class="p-8 text-base text-[var(--color-text-muted)]">Loading…</div>
-    {:else if $projectsQuery.isError}
+    {:else if projectsQuery.isError}
       <div class="p-8 text-base text-[var(--color-danger)]">
-        {$projectsQuery.error.message}
+        {projectsQuery.error.message}
       </div>
-    {:else if !$projectsQuery.data?.length}
+    {:else if !projectsQuery.data?.length}
       <EmptyState
         title="No projects yet"
         description="Create a project to start managing boards and tasks."
@@ -119,7 +119,7 @@
     {:else}
       <div class="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {#each $projectsQuery.data as p (p.id)}
+          {#each projectsQuery.data as p (p.id)}
             {@const active = hint?.project === p.name}
             <div
               class={

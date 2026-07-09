@@ -9,19 +9,19 @@
     navigate,
   } from "@/lib/router/router.svelte";
 
-  const projectsQuery = createQuery({
+  const projectsQuery = createQuery(() => ({
     queryKey: queryKeys.projects,
     queryFn: () => projectsApi.list(),
-  });
+  }));
 
   $effect(() => {
-    if ($projectsQuery.isPending) return;
-    if ($projectsQuery.isError) {
+    if (projectsQuery.isPending) return;
+    if (projectsQuery.isError) {
       navigate("/projects", true);
       return;
     }
 
-    const list = $projectsQuery.data || [];
+    const list = projectsQuery.data || [];
     if (!list.length) {
       navigate("/projects", true);
       return;

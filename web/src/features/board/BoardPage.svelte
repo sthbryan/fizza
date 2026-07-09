@@ -45,38 +45,38 @@
     rememberBoard(project, board);
   });
 
-  const projectsQuery = createQuery({
+  const projectsQuery = createQuery(() => ({
     queryKey: queryKeys.projects,
     queryFn: () => projectsApi.list(),
-  });
+  }));
 
-  const boardsQuery = createQuery({
+  const boardsQuery = createQuery(() => ({
     queryKey: queryKeys.boards(project),
     queryFn: () => boardApi.list(project),
     enabled: !!project,
-  });
+  }));
 
-  const snapshotQuery = createQuery({
+  const snapshotQuery = createQuery(() => ({
     queryKey: queryKeys.snapshot(project, board),
     queryFn: () => boardApi.snapshot(project, board),
     enabled: !!project && !!board,
-  });
+  }));
 
   const columnOptions = $derived(
-    ($snapshotQuery.data?.columns || []).map((c) => ({
+    (snapshotQuery.data?.columns || []).map((c) => ({
       value: c.name,
       label: c.name.replaceAll("_", " ").toUpperCase(),
     }))
   );
 
   const taskCount = $derived(
-    ($snapshotQuery.data?.columns || []).reduce(
+    (snapshotQuery.data?.columns || []).reduce(
       (n, c) => n + (c.tasks?.length || 0),
       0
     )
   );
 
-  const moveMutation = createMutation({
+  const moveMutation = createMutation(() => ({
     mutationFn: (input: {
       taskId: number;
       column: string;
@@ -103,9 +103,9 @@
       draggingId = null;
       dragOverColumn = null;
     },
-  });
+  }));
 
-  const deleteMutation = createMutation({
+  const deleteMutation = createMutation(() => ({
     mutationFn: (task: Task) => tasksApi.delete(task.id),
     onSuccess: async (_data, task) => {
       await queryClient.invalidateQueries({
@@ -116,9 +116,9 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
-  const deleteColumnMutation = createMutation({
+  const deleteColumnMutation = createMutation(() => ({
     mutationFn: (input: { name: string; force: boolean }) =>
       boardApi.deleteColumn(project, board, input.name, input.force),
     onSuccess: async (_data, input) => {
@@ -130,9 +130,9 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
-  const deleteBoardMutation = createMutation({
+  const deleteBoardMutation = createMutation(() => ({
     mutationFn: (name: string) => boardApi.delete(project, name),
     onSuccess: async (_data, name) => {
       showToast(`Board “${name}” deleted`);
@@ -153,9 +153,9 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
-  const deleteProjectMutation = createMutation({
+  const deleteProjectMutation = createMutation(() => ({
     mutationFn: () => projectsApi.delete(project),
     onSuccess: async () => {
       rememberBoard("", "");
@@ -166,16 +166,16 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
   function openTask(col?: string) {
-    taskDefaultColumn = col || $snapshotQuery.data?.columns?.[0]?.name || "";
+    taskDefaultColumn = col || snapshotQuery.data?.columns?.[0]?.name || "";
     taskDialog = true;
   }
 
   function handleDelete(task: Task) {
     if (!confirm(`Delete task #${task.id}: “${task.title}”?`)) return;
-    void $deleteMutation.mutateAsync(task);
+    void deleteMutation.mutateAsync(task);
   }
 
   function handleDeleteColumn(col: ColumnSnapshot) {
@@ -189,11 +189,11 @@
       ) {
         return;
       }
-      void $deleteColumnMutation.mutateAsync({ name: col.name, force: true });
+      void deleteColumnMutation.mutateAsync({ name: col.name, force: true });
       return;
     }
     if (!confirm(`Delete empty column “${label}”?`)) return;
-    void $deleteColumnMutation.mutateAsync({ name: col.name, force: false });
+    void deleteColumnMutation.mutateAsync({ name: col.name, force: false });
   }
 
   function handleDeleteBoard(name: string) {
@@ -204,7 +204,7 @@
     ) {
       return;
     }
-    void $deleteBoardMutation.mutateAsync(name);
+    void deleteBoardMutation.mutateAsync(name);
   }
 
   function handleDeleteProject() {
@@ -215,12 +215,12 @@
     ) {
       return;
     }
-    void $deleteProjectMutation.mutateAsync();
+    void deleteProjectMutation.mutateAsync();
   }
 
   function handleDrop(column: string, beforeId?: string) {
     if (draggingId == null) return;
-    void $moveMutation.mutateAsync({
+    void moveMutation.mutateAsync({
       taskId: draggingId,
       column,
       beforeId,
@@ -306,7 +306,7 @@
       role="tablist"
       aria-label="Boards"
     >
-      {#each $boardsQuery.data || [] as b (b.id)}
+      {#each boardsQuery.data || [] as b (b.id)}
         {@const active = b.name === board}
         <div
           class={cn(
@@ -363,16 +363,16 @@
   </header>
 
   <main class="min-h-0 flex-1 overflow-hidden">
-    {#if $snapshotQuery.isPending && !$snapshotQuery.data}
+    {#if snapshotQuery.isPending && !snapshotQuery.data}
       <div class="p-8 text-base text-[var(--color-text-muted)]">Loading board…</div>
-    {:else if $snapshotQuery.isError}
+    {:else if snapshotQuery.isError}
       <div class="p-8 text-base text-[var(--color-danger)]">
-        {$snapshotQuery.error.message}
+        {snapshotQuery.error.message}
       </div>
     {:else}
       <Board
-        snapshot={$snapshotQuery.data ?? null}
-        hasProjects={($projectsQuery.data?.length || 0) > 0}
+        snapshot={snapshotQuery.data ?? null}
+        hasProjects={(projectsQuery.data?.length || 0) > 0}
         {dragOverColumn}
         {draggingId}
         ondragstart={(t) => (draggingId = t.id)}

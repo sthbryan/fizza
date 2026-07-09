@@ -22,7 +22,7 @@
     if (open) name = "";
   });
 
-  const mutation = createMutation({
+  const mutation = createMutation(() => ({
     mutationFn: () => boardApi.createColumn(project, board, name.trim()),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -34,14 +34,14 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
   async function submit() {
     if (!name.trim()) {
       showToast("Column name is required", "error");
       return;
     }
-    await $mutation.mutateAsync();
+    await mutation.mutateAsync();
   }
 </script>
 
@@ -49,7 +49,7 @@
   {open}
   title="New column"
   submitLabel="Create"
-  busy={$mutation.isPending}
+  busy={mutation.isPending}
   onclose={onclose}
   onsubmit={submit}
 >

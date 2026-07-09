@@ -50,7 +50,7 @@
     }
   });
 
-  const mutation = createMutation({
+  const mutation = createMutation(() => ({
     mutationFn: () =>
       tasksApi.create(project, board, {
         title: title.trim(),
@@ -69,14 +69,14 @@
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
     },
-  });
+  }));
 
   async function submit() {
     if (!title.trim()) {
       showToast("Title is required", "error");
       return;
     }
-    await $mutation.mutateAsync();
+    await mutation.mutateAsync();
   }
 </script>
 
@@ -84,7 +84,7 @@
   {open}
   title="New task"
   submitLabel="Create"
-  busy={$mutation.isPending}
+  busy={mutation.isPending}
   onclose={onclose}
   onsubmit={submit}
 >
