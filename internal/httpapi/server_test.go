@@ -530,3 +530,152 @@ func TestParseBool(t *testing.T) {
 		assert.False(t, parseBool(v), v)
 	}
 }
+
+func TestWebIndex(t *testing.T) {
+	ts, _ := newTestServer(t, "")
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, resp.Header.Get("Content-Type"), "text/html")
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), "fizza")
+	assert.Contains(t, string(body), "id=\"app\"")
+}
+
+func TestWebSPADeepLinks(t *testing.T) {
+	ts, _ := newTestServer(t, "")
+	for _, path := range []string{"/projects", "/p/demo/b/main"} {
+		resp, err := http.Get(ts.URL + path)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode, path)
+		assert.Contains(t, resp.Header.Get("Content-Type"), "text/html", path)
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.NoError(t, err)
+		assert.Contains(t, string(body), "id=\"app\"", path)
+	}
+}
+
+func TestWebBuiltAssetsLinked(t *testing.T) {
+	ts, _ := newTestServer(t, "")
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	html := string(body)
+
+	assert.True(t,
+		strings.Contains(html, "/assets/") || strings.Contains(html, "src="),
+		"index should reference frontend assets")
+}
+
+func TestWebStaticAssets(t *testing.T) {
+	ts, _ := newTestServer(t, "")
+
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	html, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	require.NoError(t, err)
+
+	s := string(html)
+	idx := strings.Index(s, "/assets/")
+	require.GreaterOrEqual(t, idx, 0, "built index should reference /assets/")
+	rest := s[idx:]
+	end := strings.IndexAny(rest, "\"'")
+	require.Greater(t, end, 0)
+	assetPath := rest[:end]
+
+	resp, err = http.Get(ts.URL + assetPath)
+	require.NoError(t, err)
+	body, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.NotEmpty(t, body)
+}
+
+func TestBoardSnapshot(t *testing.T) {
+	ts, _ := newTestServer(t, "alpha")
+	resp, body := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/main/tasks", map[string]any{
+		"title": "from web", "priority": "high",
+	})
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	_ = body
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/projects/alpha/boards/main/snapshot", nil)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env := decode(t, bytes.NewReader(body))
+	assert.True(t, env.OK)
+	var snap map[string]any
+	require.NoError(t, json.Unmarshal(env.Data, &snap))
+	assert.Equal(t, "alpha", snap["project"])
+	cols, ok := snap["columns"].([]any)
+	require.True(t, ok)
+	assert.NotEmpty(t, cols)
+}
+
+func TestCreateColumn(t *testing.T) {
+	ts, _ := newTestServer(t, "alpha")
+	resp, body := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/main/columns", map[string]any{
+		"name": "blocked",
+	})
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	env := decode(t, bytes.NewReader(body))
+	assert.True(t, env.OK)
+	var col map[string]any
+	require.NoError(t, json.Unmarshal(env.Data, &col))
+	assert.Equal(t, "blocked", col["name"])
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/projects/alpha/boards/main/snapshot", nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	var snap map[string]any
+	require.NoError(t, json.Unmarshal(env.Data, &snap))
+	cols := snap["columns"].([]any)
+	assert.GreaterOrEqual(t, len(cols), 5)
+}
+
+func TestDeleteColumn(t *testing.T) {
+	ts, _ := newTestServer(t, "alpha")
+
+	resp, _ := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/main/columns", map[string]any{
+		"name": "blocked",
+	})
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	resp, body := doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha/boards/main/columns/blocked", nil)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env := decode(t, bytes.NewReader(body))
+	assert.True(t, env.OK)
+
+	resp, _ = doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/main/tasks", map[string]any{
+		"title": "stay", "column": "todo",
+	})
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	resp, body = doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha/boards/main/columns/todo", nil)
+	assert.Equal(t, http.StatusConflict, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	assert.False(t, env.OK)
+
+	resp, body = doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha/boards/main/columns/todo?force=true", nil)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	assert.True(t, env.OK)
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/projects/alpha/boards/main/snapshot", nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	var snap map[string]any
+	require.NoError(t, json.Unmarshal(env.Data, &snap))
+	cols := snap["columns"].([]any)
+	for _, c := range cols {
+		m := c.(map[string]any)
+		assert.NotEqual(t, "todo", m["name"])
+		assert.NotEqual(t, "blocked", m["name"])
+	}
+}

@@ -142,7 +142,9 @@ func mapError(err error) (int, string) {
 		return http.StatusNotFound, "NOT_FOUND:" + err.Error()
 	case db.IsDuplicate(err):
 		return http.StatusConflict, "DUPLICATE:" + err.Error()
-	case errors.Is(err, db.ErrWIPLimitReached):
+	case errors.Is(err, db.ErrWIPLimitReached),
+		errors.Is(err, db.ErrColumnNotEmpty),
+		errors.Is(err, db.ErrLastColumn):
 		return http.StatusConflict, "CONFLICT:" + err.Error()
 	case errors.Is(err, model.ErrTaskCycle):
 		return http.StatusBadRequest, "VALIDATION:" + err.Error()
@@ -211,6 +213,8 @@ func isValidationErr(err error) bool {
 }
 
 func (s *Server) routes() {
+	s.mountWeb()
+
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 
 	s.mux.HandleFunc("GET /v1/projects", s.handleListProjects)
@@ -221,6 +225,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/projects/{name}/boards", s.handleListBoards)
 	s.mux.HandleFunc("POST /v1/projects/{name}/boards", s.handleCreateBoard)
 	s.mux.HandleFunc("GET /v1/projects/{name}/boards/{board}", s.handleGetBoard)
+	s.mux.HandleFunc("GET /v1/projects/{name}/boards/{board}/snapshot", s.handleBoardSnapshot)
+	s.mux.HandleFunc("POST /v1/projects/{name}/boards/{board}/columns", s.handleCreateColumn)
+	s.mux.HandleFunc("DELETE /v1/projects/{name}/boards/{board}/columns/{column}", s.handleDeleteColumn)
 	s.mux.HandleFunc("DELETE /v1/projects/{name}/boards/{board}", s.handleDeleteBoard)
 
 	s.mux.HandleFunc("GET /v1/projects/{name}/boards/{board}/tasks", s.handleListTasks)
@@ -230,6 +237,63 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PATCH /v1/tasks/{id}", s.handleUpdateTask)
 	s.mux.HandleFunc("POST /v1/tasks/{id}/move", s.handleMoveTask)
 	s.mux.HandleFunc("DELETE /v1/tasks/{id}", s.handleDeleteTask)
+}
+
+func (s *Server) handleBoardSnapshot(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	projectName := r.PathValue("name")
+	boardName := r.PathValue("board")
+	svc := service.New(s.svc.DB(), projectName, boardName, "")
+	snap, err := svc.BoardSnapshot(ctx)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusOK, snap)
+}
+
+type createColumnReq struct {
+	Name string `json:"name"`
+}
+
+func (s *Server) handleCreateColumn(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	projectName := r.PathValue("name")
+	boardName := r.PathValue("board")
+	var in createColumnReq
+	if err := decodeJSONBody(r, &in); err != nil {
+		respondError(w, err)
+		return
+	}
+	board, _, err := findBoard(ctx, s.svc.DB(), projectName, boardName)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	col, err := db.CreateColumn(ctx, s.svc.DB(), board.ID, in.Name)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusCreated, col)
+}
+
+func (s *Server) handleDeleteColumn(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	projectName := r.PathValue("name")
+	boardName := r.PathValue("board")
+	columnName := r.PathValue("column")
+	force := parseBool(r.URL.Query().Get("force"))
+	board, _, err := findBoard(ctx, s.svc.DB(), projectName, boardName)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	if err := db.DeleteColumn(ctx, s.svc.DB(), board.ID, columnName, force); err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusOK, map[string]any{"deleted": columnName})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -530,11 +594,12 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 }
 
 type moveTaskReq struct {
-	Board  string `json:"board"`
-	Column string `json:"column"`
-	Before string `json:"before,omitempty"`
-	After  string `json:"after,omitempty"`
-	Top    bool   `json:"top,omitempty"`
+	Project string `json:"project,omitempty"`
+	Board   string `json:"board"`
+	Column  string `json:"column"`
+	Before  string `json:"before,omitempty"`
+	After   string `json:"after,omitempty"`
+	Top     bool   `json:"top,omitempty"`
 }
 
 func (s *Server) handleMoveTask(w http.ResponseWriter, r *http.Request) {
@@ -550,10 +615,21 @@ func (s *Server) handleMoveTask(w http.ResponseWriter, r *http.Request) {
 		respondError(w, err)
 		return
 	}
-	board, _, err := findBoardByName(ctx, s.svc.DB(), in.Board)
-	if err != nil {
-		respondError(w, err)
-		return
+	var board *model.Board
+	if in.Project != "" {
+		b, _, err := findBoard(ctx, s.svc.DB(), in.Project, in.Board)
+		if err != nil {
+			respondError(w, err)
+			return
+		}
+		board = b
+	} else {
+		b, _, err := findBoardByName(ctx, s.svc.DB(), in.Board)
+		if err != nil {
+			respondError(w, err)
+			return
+		}
+		board = b
 	}
 	if t.BoardID != board.ID {
 		writeErr(w, http.StatusBadRequest, "VALIDATION", "task belongs to a different board")
