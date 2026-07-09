@@ -51,7 +51,10 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			in := serviceTaskInput(args[0], desc, pri, due, parent)
+			in, err := serviceTaskInput(args[0], desc, pri, due, parent)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
 			t, err := svc.CreateTask(ctx, in)
 			if err != nil {
 				return report(cmd, rf, err)
@@ -68,30 +71,23 @@ func newTaskAddCmd(rf *rootFlags) *cobra.Command {
 	return c
 }
 
-func serviceTaskInput(title, desc string, pri model.Priority, due, parent string) taskInput {
-	in := taskInput{Title: title, Description: desc, Priority: pri}
+func serviceTaskInput(title, desc string, pri model.Priority, due, parent string) (service.TaskCreateInput, error) {
+	in := service.TaskCreateInput{Title: title, Description: desc, Priority: pri}
 	if due != "" {
 		parsed, err := parseCLIDueDate(due)
-		if err == nil {
-			in.DueDate = &dbutil.Time{Time: parsed}
+		if err != nil {
+			return in, fmt.Errorf("%w: --due: %v", ErrValidation, err)
 		}
+		in.DueDate = &dbutil.Time{Time: parsed}
 	}
 	if parent != "" {
 		pid, err := parseInt64(parent)
-		if err == nil {
-			in.ParentID = &pid
+		if err != nil {
+			return in, fmt.Errorf("%w: --parent: %v", ErrValidation, err)
 		}
+		in.ParentID = &pid
 	}
-	return in
-}
-
-type taskInput = struct {
-	Title       string
-	Description string
-	Priority    model.Priority
-	DueDate     *dbutil.Time
-	ParentID    *int64
-	ColumnID    int64
+	return in, nil
 }
 
 func parseCLIDueDate(s string) (time.Time, error) {
@@ -136,7 +132,7 @@ func newTaskBulkCmd(rf *rootFlags) *cobra.Command {
 				if err != nil {
 					return report(cmd, rf, fmt.Errorf("%w: item %d priority: %v", ErrValidation, i, err))
 				}
-				in := taskInput{
+				in := service.TaskCreateInput{
 					Title:       strings.TrimSpace(item.Title),
 					Description: item.Description,
 					Priority:    pri,
