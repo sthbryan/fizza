@@ -47,8 +47,9 @@ func TestServer_ToolsList(t *testing.T) {
 
 	expected := []string{
 		"project_new", "project_list", "project_delete",
-		"board_create", "board_list", "board_delete",
+		"board_create", "board_list", "board_snapshot", "board_delete",
 		"task_add", "task_list", "task_move", "task_update", "task_delete",
+		"tag_add", "tag_list", "tag_delete",
 	}
 	for _, name := range expected {
 		assert.True(t, names[name], "expected tool %q in registry", name)

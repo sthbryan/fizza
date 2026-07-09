@@ -1,6 +1,3 @@
-// scripts/mcp-smoke/main.go
-// Smoke-test the fizza MCP server. Spawns the binary, runs an end-to-end
-// flow using the official MCP Go SDK, and prints PASS/FAIL.
 package main
 
 import (
@@ -52,13 +49,13 @@ func main() {
 		return nil
 	})
 
-	step("tools/list has 14", func() error {
+	step("tools/list has 15", func() error {
 		tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
 		if err != nil {
 			return err
 		}
-		if len(tools.Tools) != 14 {
-			return fmt.Errorf("got %d tools, want 14", len(tools.Tools))
+		if len(tools.Tools) != 15 {
+			return fmt.Errorf("got %d tools, want 15", len(tools.Tools))
 		}
 		return nil
 	})
@@ -165,6 +162,23 @@ func main() {
 		}
 		if res.IsError {
 			return fmt.Errorf("tag filter failed: %+v", res.Content)
+		}
+		return nil
+	})
+
+	step("board_snapshot", func() error {
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: "board_snapshot",
+			Arguments: map[string]any{
+				"project": "smoke",
+				"board":   "main",
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if res.IsError {
+			return fmt.Errorf("board_snapshot failed: %+v", res.Content)
 		}
 		return nil
 	})

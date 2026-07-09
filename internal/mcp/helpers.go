@@ -3,27 +3,18 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"strings"
+	"os"
 
+	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/dbutil"
 	"github.com/fizza/fizza/internal/model"
+	"github.com/fizza/fizza/internal/service"
 	"github.com/jmoiron/sqlx"
 )
 
 func splitCSV(s string) []string {
-	if s == "" {
-		return nil
-	}
-	parts := strings.Split(s, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
+	return service.SplitColumns(s)
 }
 
 func parsePriority(s string) (model.Priority, error) {
@@ -33,7 +24,66 @@ func parsePriority(s string) (model.Priority, error) {
 	return model.NewPriority(s)
 }
 
+func parseInt64Flexible(s string) (int64, error) {
+	return service.ParseInt64Flexible(s)
+}
+
+func parseDue(s string) (*dbutil.Time, error) {
+	return service.ParseDue(s)
+}
+
+func loadDefaults() (project, board string) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = ""
+	}
+	cfg, err := config.LoadEffectiveConfig(cwd)
+	if err != nil {
+		return "", ""
+	}
+	return cfg.Project, cfg.Board
+}
+
+func resolveScope(project, board string) (string, string, error) {
+	defProj, defBoard := loadDefaults()
+	if project == "" {
+		project = defProj
+	}
+	if board == "" {
+		board = defBoard
+	}
+	if project == "" {
+		return "", "", fmt.Errorf("%w: project required (pass project or run `fizza config set project <name>`)", model.ErrValidation)
+	}
+	return project, board, nil
+}
+
+func newService(pool *db.Pool, project, board, column string) *service.Service {
+	return service.NewWithPool(pool, project, board, column)
+}
+
 func findBoardAndColumns(ctx context.Context, conn *sqlx.DB, project, board string) (*model.Board, []*model.Column, error) {
+	project, board, err := resolveScope(project, board)
+	if err != nil {
+		return nil, nil, err
+	}
+	if board == "" {
+		p, err := db.GetProjectByName(ctx, conn, project)
+		if err != nil {
+			return nil, nil, err
+		}
+		boards, err := db.ListBoards(ctx, conn, p.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(boards) == 0 {
+			return nil, nil, fmt.Errorf("%w: project %q has no boards", db.ErrNotFound, project)
+		}
+		if len(boards) > 1 {
+			return nil, nil, fmt.Errorf("%w: project %q has %d boards; pass board or set a default", model.ErrValidation, project, len(boards))
+		}
+		board = boards[0].Name
+	}
 	p, err := db.GetProjectByName(ctx, conn, project)
 	if err != nil {
 		return nil, nil, err
@@ -74,54 +124,6 @@ func pickColumn(cols []*model.Column, name string) (*model.Column, error) {
 	return nil, fmt.Errorf("%w: column %q", db.ErrNotFound, name)
 }
 
-func parseInt64Flexible(s string) (int64, error) {
-	if s == "" {
-		return 0, fmt.Errorf("empty")
-	}
-	var n int64
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return 0, fmt.Errorf("not numeric: %q", s)
-		}
-		n = n*10 + int64(r-'0')
-	}
-	return n, nil
-}
-
-func parseDue(s string) (*dbutil.Time, error) {
-	if s == "" {
-		return nil, nil
-	}
-	t, err := dbutil.ParseDueDate(s)
-	if err != nil {
-		return nil, err
-	}
-	return &dbutil.Time{Time: t}, nil
-}
-
-func buildTaskFromInput(board *model.Board, target *model.Column, title string, priority model.Priority, desc, due, parent string) (*model.Task, error) {
-	t := &model.Task{
-		BoardID:     board.ID,
-		ColumnID:    target.ID,
-		Title:       title,
-		Description: desc,
-		Priority:    priority,
-	}
-	parsed, err := parseDue(due)
-	if err != nil {
-		return nil, fmt.Errorf("due: %w", err)
-	}
-	t.DueDate = parsed
-	if parent != "" {
-		pid, err := parseInt64Flexible(parent)
-		if err != nil {
-			return nil, fmt.Errorf("parent: %w", err)
-		}
-		t.ParentID = &pid
-	}
-	return t, nil
-}
-
 func buildTaskPatch(in taskUpdateInput) (db.TaskPatch, error) {
 	patch := db.TaskPatch{}
 	if in.Title != "" {
@@ -158,4 +160,15 @@ func buildTaskPatch(in taskUpdateInput) (db.TaskPatch, error) {
 		patch.ParentID = &pid
 	}
 	return patch, nil
+}
+
+func resolveProjectName(project string) (string, error) {
+	if project != "" {
+		return project, nil
+	}
+	p, _ := loadDefaults()
+	if p == "" {
+		return "", fmt.Errorf("%w: project required (pass project or run `fizza config set project <name>`)", model.ErrValidation)
+	}
+	return p, nil
 }

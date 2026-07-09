@@ -8,11 +8,19 @@ import (
 	"github.com/fizza/fizza/internal/config"
 	"github.com/fizza/fizza/internal/db"
 	"github.com/fizza/fizza/internal/model"
-	"github.com/jmoiron/sqlx"
+	"github.com/fizza/fizza/internal/service"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const serverName = "fizza"
+
+const serverInstructions = `Fizza manages local kanban boards (SQLite).
+
+Typical flow: project_new → board_snapshot → task_add → task_move / task_update.
+Default board "main" has columns todo, in_progress, done.
+Omit project/board when user config defaults are set, or the project has one board.
+Task ids are numeric (short prefixes OK if unique). Deletes require force=true.
+Attach labels via task_update add_tags/remove_tags. Use board_snapshot for a full board view.`
 
 func Run(ctx context.Context, version string) error {
 	path, err := config.DBPath()
@@ -24,7 +32,6 @@ func Run(ctx context.Context, version string) error {
 		return fmt.Errorf("open db: %w", err)
 	}
 	defer pool.Close()
-	conn := pool.Write
 
 	if version == "" {
 		version = "dev"
@@ -34,13 +41,13 @@ func Run(ctx context.Context, version string) error {
 		Name:    serverName,
 		Version: version,
 	}, &mcp.ServerOptions{
-		Instructions: "Fizza is a kanban board manager backed by SQLite. Use these tools to manage projects, boards, and tasks.",
+		Instructions: serverInstructions,
 	})
 
-	registerProjectTools(server, conn)
-	registerBoardTools(server, conn)
-	registerTaskTools(server, conn)
-	registerTagTools(server, conn)
+	registerProjectTools(server, pool)
+	registerBoardTools(server, pool)
+	registerTaskTools(server, pool)
+	registerTagTools(server, pool)
 
 	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		fmt.Fprintln(os.Stderr, "mcp server:", err)
@@ -63,7 +70,9 @@ type projectDeleteInput struct {
 	Force bool   `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerProjectTools(s *mcp.Server, conn *sqlx.DB) {
+func registerProjectTools(s *mcp.Server, pool *db.Pool) {
+	conn := pool.Write
+
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "project_new",
 		Description: "Create a new project. A default board named 'main' with columns todo/in_progress/done is seeded automatically.",
@@ -115,33 +124,39 @@ func registerProjectTools(s *mcp.Server, conn *sqlx.DB) {
 }
 
 type boardCreateInput struct {
-	Project string `json:"project" jsonschema:"project name (required)"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
 	Name    string `json:"name" jsonschema:"board name (required)"`
 	Columns string `json:"columns,omitempty" jsonschema:"comma-separated column names; defaults to todo,in_progress,done"`
 }
 
-type boardInProjectInput struct {
-	Project string `json:"project" jsonschema:"project name"`
-	Name    string `json:"name" jsonschema:"board name"`
-}
-
 type boardListInput struct {
-	Project string `json:"project" jsonschema:"project name"`
-	Name    string `json:"name,omitempty" jsonschema:"board name; if set, returns single-element array"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Name    string `json:"name,omitempty" jsonschema:"board name; if set, returns board with columns"`
 }
 
 type boardDeleteInput struct {
-	Project string `json:"project" jsonschema:"project name"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
 	Name    string `json:"name" jsonschema:"board name"`
 	Force   bool   `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
+type boardSnapshotInput struct {
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board   string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
+}
+
+func registerBoardTools(s *mcp.Server, pool *db.Pool) {
+	conn := pool.Write
+
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "board_create",
 		Description: "Create a board in a project. Optionally seed it with custom column names.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardCreateInput) (*mcp.CallToolResult, any, error) {
-		p, err := db.GetProjectByName(ctx, conn, in.Project)
+		project, err := resolveProjectName(in.Project)
+		if err != nil {
+			return nil, nil, err
+		}
+		p, err := db.GetProjectByName(ctx, conn, project)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -154,18 +169,22 @@ func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "board_list",
-		Description: "List boards in a project, or fetch one by name. Omit name to list all.",
+		Description: "List boards in a project, or fetch one by name (with columns when name is set). Omit name to list all.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardListInput) (*mcp.CallToolResult, any, error) {
-		p, err := db.GetProjectByName(ctx, conn, in.Project)
+		project, err := resolveProjectName(in.Project)
+		if err != nil {
+			return nil, nil, err
+		}
+		p, err := db.GetProjectByName(ctx, conn, project)
 		if err != nil {
 			return nil, nil, err
 		}
 		if in.Name != "" {
-			board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Name)
+			board, cols, err := findBoardAndColumns(ctx, conn, project, in.Name)
 			if err != nil {
 				return nil, nil, err
 			}
-			return nil, []*model.Board{board}, nil
+			return nil, map[string]any{"board": board, "columns": cols}, nil
 		}
 		boards, err := db.ListBoards(ctx, conn, p.ID)
 		if err != nil {
@@ -178,10 +197,30 @@ func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
+		Name:        "board_snapshot",
+		Description: "Return every column on a board with its tasks in position order.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardSnapshotInput) (*mcp.CallToolResult, any, error) {
+		project, board, err := resolveScope(in.Project, in.Board)
+		if err != nil {
+			return nil, nil, err
+		}
+		svc := newService(pool, project, board, "")
+		snap, err := svc.BoardSnapshot(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, snap, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
 		Name:        "board_delete",
 		Description: "Delete a board. Blocked by RESTRICT FK if it contains tasks; pass force=true to confirm intent (the FK still blocks).",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardDeleteInput) (*mcp.CallToolResult, any, error) {
-		board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Name)
+		project, err := resolveProjectName(in.Project)
+		if err != nil {
+			return nil, nil, err
+		}
+		board, _, err := findBoardAndColumns(ctx, conn, project, in.Name)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -196,8 +235,8 @@ func registerBoardTools(s *mcp.Server, conn *sqlx.DB) {
 }
 
 type taskAddInput struct {
-	Project  string `json:"project" jsonschema:"project name (required)"`
-	Board    string `json:"board" jsonschema:"board name (required)"`
+	Project  string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board    string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
 	Title    string `json:"title" jsonschema:"task title (required)"`
 	Column   string `json:"column,omitempty" jsonschema:"column name; defaults to first column"`
 	Desc     string `json:"desc,omitempty" jsonschema:"task description"`
@@ -208,7 +247,7 @@ type taskAddInput struct {
 
 type taskListInput struct {
 	Project  string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
-	Board    string `json:"board,omitempty" jsonschema:"board name (defaults to configured board)"`
+	Board    string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
 	ID       string `json:"id,omitempty" jsonschema:"task ID or numeric prefix; if set, returns single-element array"`
 	Column   string `json:"column,omitempty" jsonschema:"filter by column name (acts as status filter)"`
 	Priority string `json:"priority,omitempty" jsonschema:"filter by priority: low|medium|high|urgent"`
@@ -218,9 +257,10 @@ type taskListInput struct {
 
 type taskMoveInput struct {
 	ID      string `json:"id" jsonschema:"task ID or numeric prefix"`
-	Project string `json:"project" jsonschema:"project name (required)"`
-	Board   string `json:"board" jsonschema:"board name (required)"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board   string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
 	Column  string `json:"column" jsonschema:"target column name (required)"`
+	Before  string `json:"before,omitempty" jsonschema:"optional task ID to insert before (reorder within column)"`
 }
 
 type taskUpdateInput struct {
@@ -241,16 +281,14 @@ type taskDeleteInput struct {
 	Force bool   `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
+func registerTaskTools(s *mcp.Server, pool *db.Pool) {
+	conn := pool.Write
+
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "task_add",
-		Description: "Create a task in a board. By default lands in the first column. Use task_move to change column afterward.",
+		Description: "Create a task in a board. By default lands in the first column. Respects column WIP limits.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskAddInput) (*mcp.CallToolResult, any, error) {
-		board, cols, err := findBoardAndColumns(ctx, conn, in.Project, in.Board)
-		if err != nil {
-			return nil, nil, err
-		}
-		target, err := pickColumn(cols, in.Column)
+		project, board, err := resolveScope(in.Project, in.Board)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -258,11 +296,40 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 		if err != nil {
 			return nil, nil, err
 		}
-		t, err := buildTaskFromInput(board, target, in.Title, pri, in.Desc, in.Due, in.Parent)
+		due, err := parseDue(in.Due)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("due: %w", err)
 		}
-		if err := db.CreateTask(ctx, conn, t); err != nil {
+		var parentID *int64
+		if in.Parent != "" {
+			pid, err := parseInt64Flexible(in.Parent)
+			if err != nil {
+				return nil, nil, fmt.Errorf("parent: %w", err)
+			}
+			parentID = &pid
+		}
+		svc := newService(pool, project, board, in.Column)
+		var columnID int64
+		if in.Column != "" {
+			r, err := svc.ResolveBoard(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			col, err := db.GetColumnByName(ctx, conn, r.Board.ID, in.Column)
+			if err != nil {
+				return nil, nil, err
+			}
+			columnID = col.ID
+		}
+		t, err := svc.CreateTask(ctx, service.TaskCreateInput{
+			Title:       in.Title,
+			Description: in.Desc,
+			Priority:    pri,
+			DueDate:     due,
+			ParentID:    parentID,
+			ColumnID:    columnID,
+		})
+		if err != nil {
 			return nil, nil, err
 		}
 		return nil, t, nil
@@ -279,10 +346,11 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 			}
 			return nil, []*model.Task{t}, nil
 		}
-		board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Board)
+		project, board, err := resolveScope(in.Project, in.Board)
 		if err != nil {
 			return nil, nil, err
 		}
+		svc := newService(pool, project, board, "")
 		filter := db.TaskFilter{ColumnName: in.Column, Search: in.Search}
 		if in.Priority != "" {
 			pri, err := model.NewPriority(in.Priority)
@@ -294,7 +362,7 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 		if in.Tag != "" {
 			filter.Tags = []string{in.Tag}
 		}
-		tasks, err := db.ListTasksInBoard(ctx, conn, board.ID, filter)
+		tasks, err := svc.ListTasks(ctx, filter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -306,24 +374,37 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "task_move",
-		Description: "Move a task to a different column within its board. Goes to the bottom of the target column.",
+		Description: "Move a task to a different column (or reorder with before). Goes to the bottom of the target column when before is omitted.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskMoveInput) (*mcp.CallToolResult, any, error) {
 		t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
 		if err != nil {
 			return nil, nil, err
 		}
-		board, _, err := findBoardAndColumns(ctx, conn, in.Project, in.Board)
+		project, board, err := resolveScope(in.Project, in.Board)
 		if err != nil {
 			return nil, nil, err
 		}
-		if t.BoardID != board.ID {
+		svc := newService(pool, project, board, "")
+		r, err := svc.ResolveBoard(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		if t.BoardID != r.Board.ID {
 			return nil, nil, fmt.Errorf("task %d belongs to a different board", t.ID)
 		}
-		target, err := db.GetColumnByName(ctx, conn, board.ID, in.Column)
+		target, err := db.GetColumnByName(ctx, conn, r.Board.ID, in.Column)
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := db.MoveTask(ctx, conn, t.ID, target.ID); err != nil {
+		var beforeID *int64
+		if in.Before != "" {
+			before, err := db.GetTaskByPrefix(ctx, conn, in.Before)
+			if err != nil {
+				return nil, nil, fmt.Errorf("before: %w", err)
+			}
+			beforeID = &before.ID
+		}
+		if err := svc.MoveTask(ctx, t.ID, target.ID, beforeID); err != nil {
 			return nil, nil, err
 		}
 		updated, err := db.GetTask(ctx, conn, t.ID)
@@ -345,20 +426,22 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := db.UpdateTask(ctx, conn, t.ID, patch); err != nil {
-			return nil, nil, err
-		}
-		if len(in.AddTags) > 0 || len(in.RemoveTags) > 0 {
-			board, err := db.GetBoard(ctx, conn, t.BoardID)
-			if err != nil {
+		svc := newService(pool, "", "", "")
+		if !patch.Empty() {
+			if _, err := svc.UpdateTask(ctx, t.ID, patch); err != nil {
 				return nil, nil, err
 			}
-			if err := db.ApplyTaskTagChanges(ctx, conn, t.ID, board.ProjectID, db.TaskTagChanges{
+		}
+		if len(in.AddTags) > 0 || len(in.RemoveTags) > 0 {
+			if err := svc.ApplyTaskTags(ctx, t.ID, db.TaskTagChanges{
 				Add:    in.AddTags,
 				Remove: in.RemoveTags,
 			}); err != nil {
 				return nil, nil, err
 			}
+		}
+		if patch.Empty() && len(in.AddTags) == 0 && len(in.RemoveTags) == 0 {
+			return nil, nil, fmt.Errorf("%w: no fields to update", model.ErrValidation)
 		}
 		updated, err := db.GetTask(ctx, conn, t.ID)
 		if err != nil {
@@ -378,7 +461,8 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 		if !in.Force {
 			return nil, nil, fmt.Errorf("refusing to delete task %d: pass force=true", t.ID)
 		}
-		if err := db.DeleteTask(ctx, conn, t.ID); err != nil {
+		svc := newService(pool, "", "", "")
+		if err := svc.DeleteTask(ctx, t.ID); err != nil {
 			return nil, nil, err
 		}
 		return nil, map[string]any{"deleted": t.ID, "title": t.Title}, nil
@@ -386,12 +470,12 @@ func registerTaskTools(s *mcp.Server, conn *sqlx.DB) {
 }
 
 type tagInput struct {
-	Project string `json:"project,omitempty" jsonschema:"project name (defaults to current)"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
 	Name    string `json:"name" jsonschema:"tag name"`
 }
 
 type tagListInput struct {
-	Project string `json:"project,omitempty" jsonschema:"project name"`
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
 }
 
 type tagDeleteInput struct {
@@ -399,18 +483,16 @@ type tagDeleteInput struct {
 	Force bool  `json:"force,omitempty" jsonschema:"skip confirmation"`
 }
 
-func registerTagTools(s *mcp.Server, conn *sqlx.DB) {
+func registerTagTools(s *mcp.Server, pool *db.Pool) {
+	conn := pool.Write
+
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "tag_add",
 		Description: "Create a tag in a project.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagInput) (*mcp.CallToolResult, any, error) {
-		project := in.Project
-		if project == "" {
-			p, err := defaultProject()
-			if err != nil {
-				return nil, nil, err
-			}
-			project = p
+		project, err := resolveProjectName(in.Project)
+		if err != nil {
+			return nil, nil, err
 		}
 		p, err := db.GetProjectByName(ctx, conn, project)
 		if err != nil {
@@ -427,12 +509,9 @@ func registerTagTools(s *mcp.Server, conn *sqlx.DB) {
 		Name:        "tag_list",
 		Description: "List tags in a project.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in tagListInput) (*mcp.CallToolResult, any, error) {
-		project := in.Project
-		if project == "" {
-			project, _ = defaultProject()
-		}
-		if project == "" {
-			return nil, nil, fmt.Errorf("project required")
+		project, err := resolveProjectName(in.Project)
+		if err != nil {
+			return nil, nil, err
 		}
 		p, err := db.GetProjectByName(ctx, conn, project)
 		if err != nil {
@@ -460,16 +539,4 @@ func registerTagTools(s *mcp.Server, conn *sqlx.DB) {
 		}
 		return nil, map[string]any{"deleted": in.ID}, nil
 	})
-
-}
-
-func defaultProject() (string, error) {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		return "", err
-	}
-	if cfg.Project == "" {
-		return "", fmt.Errorf("no default project set")
-	}
-	return cfg.Project, nil
 }
