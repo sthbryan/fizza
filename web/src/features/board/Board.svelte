@@ -79,7 +79,7 @@
     <button
       type="button"
       onclick={onaddcolumn}
-      class="flex h-28 w-[min(100%,200px)] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-[1.75rem] border border-dashed border-[var(--color-border)] bg-transparent text-sm text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)]/40 hover:text-[var(--color-text-secondary)] sm:w-[200px]"
+      class="flex h-28 w-[min(100%,240px)] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-[1.75rem] border border-dashed border-[var(--color-border)] bg-transparent text-sm text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)]/40 hover:text-[var(--color-text-secondary)] sm:w-[240px]"
     >
       <span class="text-lg">+</span>
       Add column

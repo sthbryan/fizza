@@ -92,7 +92,7 @@
 
 <section
   class={cn(
-    "flex w-[min(100%,320px)] shrink-0 flex-col rounded-[1.75rem] p-3 sm:w-[300px] sm:p-3.5",
+    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-[1.75rem] p-3 sm:w-[360px] sm:p-3.5",
     "max-h-[calc(100dvh-8.5rem)] sm:max-h-[calc(100vh-8rem)]",
     theme.shell,
     dragOver && "ring-2 ring-[var(--color-accent)]/50"
