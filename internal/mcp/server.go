@@ -17,7 +17,7 @@ const serverName = "fizza"
 const serverInstructions = `Fizza manages local kanban boards (SQLite).
 
 Typical flow: project_new → board_snapshot → task_add → task_move / task_update.
-Default board "main" has columns todo, in_progress, done.
+Default board "main" has columns todo, in_progress, in_review, done.
 Omit project/board when user config defaults are set, or the project has one board.
 Task ids are numeric (short prefixes OK if unique). Deletes require force=true.
 Attach labels via task_update add_tags/remove_tags. Use board_snapshot for a full board view.`
@@ -75,7 +75,7 @@ func registerProjectTools(s *mcp.Server, pool *db.Pool) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "project_new",
-		Description: "Create a new project. A default board named 'main' with columns todo/in_progress/done is seeded automatically.",
+		Description: "Create a new project. A default board named 'main' with columns todo/in_progress/in_review/done is seeded automatically.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in projectInput) (*mcp.CallToolResult, any, error) {
 		p, err := db.CreateProject(ctx, conn, in.Name, in.Description)
 		if err != nil {
@@ -126,7 +126,7 @@ func registerProjectTools(s *mcp.Server, pool *db.Pool) {
 type boardCreateInput struct {
 	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
 	Name    string `json:"name" jsonschema:"board name (required)"`
-	Columns string `json:"columns,omitempty" jsonschema:"comma-separated column names; defaults to todo,in_progress,done"`
+	Columns string `json:"columns,omitempty" jsonschema:"comma-separated column names; defaults to todo,in_progress,in_review,done"`
 }
 
 type boardListInput struct {

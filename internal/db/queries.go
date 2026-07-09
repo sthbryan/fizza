@@ -107,9 +107,28 @@ func ListProjects(ctx context.Context, q Querier) ([]*model.Project, error) {
 
 func DeleteProject(ctx context.Context, q Querier, id int64) error {
 	var name string
-	_ = q.QueryRowContext(ctx, `SELECT name FROM projects WHERE id = ?`, id).Scan(&name)
+	if err := q.QueryRowContext(ctx, `SELECT name FROM projects WHERE id = ?`, id).Scan(&name); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: project %d", ErrNotFound, id)
+		}
+		return fmt.Errorf("db: get project: %w", err)
+	}
 
-	res, err := q.ExecContext(ctx, `DELETE FROM projects WHERE id = ?`, id)
+	txer, ok := q.(Transactor)
+	if !ok {
+		return errors.New("db: DeleteProject requires a Transactor")
+	}
+	tx, err := txer.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("db: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM tasks WHERE board_id IN (SELECT id FROM boards WHERE project_id = ?)`, id); err != nil {
+		return fmt.Errorf("db: delete project tasks: %w", err)
+	}
+	res, err := tx.ExecContext(ctx, `DELETE FROM projects WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete project: %w", err)
 	}
@@ -120,6 +139,10 @@ func DeleteProject(ctx context.Context, q Querier, id int64) error {
 	if n == 0 {
 		return fmt.Errorf("%w: project %d", ErrNotFound, id)
 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("db: commit delete project: %w", err)
+	}
+
 	_ = RecordEvent(ctx, q, Event{
 		Kind:    "project_delete",
 		Payload: fmt.Sprintf("%d:%s", id, name),

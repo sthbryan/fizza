@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
-	"github.com/jmoiron/sqlx"
 	"testing"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/fizza/fizza/internal/model"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,9 @@ func seedWIPFixture(t *testing.T) (conn *sqlx.DB, board *model.Board, todo, inPr
 	require.NoError(t, err)
 	cols, err := ListColumns(ctx, conn, boards[0].ID)
 	require.NoError(t, err)
-	return conn, boards[0], cols[0], cols[1], cols[2]
+	require.GreaterOrEqual(t, len(cols), 4)
+
+	return conn, boards[0], cols[0], cols[1], cols[len(cols)-1]
 }
 
 func TestWIP_ColumnExposesLimit(t *testing.T) {

@@ -57,10 +57,16 @@ func TestCRUD_Board_WithSeedColumns(t *testing.T) {
 
 	cols, err := ListColumns(ctx, conn, b.ID)
 	require.NoError(t, err)
-	require.Len(t, cols, 3)
+	require.Len(t, cols, 4)
 	assert.Equal(t, "todo", cols[0].Name)
 	assert.Equal(t, "in_progress", cols[1].Name)
-	assert.Equal(t, "done", cols[2].Name)
+	assert.Equal(t, "in_review", cols[2].Name)
+	assert.Equal(t, "done", cols[3].Name)
+
+	extra, err := CreateColumn(ctx, conn, b.ID, "blocked")
+	require.NoError(t, err)
+	assert.Equal(t, "blocked", extra.Name)
+	assert.Equal(t, 5, extra.Position)
 
 	b2, err := CreateBoard(ctx, conn, p.ID, "secondary")
 	require.NoError(t, err)
@@ -82,7 +88,7 @@ func TestCRUD_Task_FullLifecycle(t *testing.T) {
 	b := boards[0]
 	cols, _ := ListColumns(ctx, conn, b.ID)
 	todo := cols[0]
-	done := cols[2]
+	done := cols[len(cols)-1]
 
 	t1 := &model.Task{
 		BoardID:     b.ID,
@@ -200,7 +206,7 @@ func TestTask_PrefixLookup(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestDeleteBoard_BlockedByTasks(t *testing.T) {
+func TestDeleteBoard_CascadesTasks(t *testing.T) {
 	conn := newTestDB(t)
 	ctx := context.Background()
 
@@ -212,9 +218,9 @@ func TestDeleteBoard_BlockedByTasks(t *testing.T) {
 		BoardID: b.ID, ColumnID: cols[0].ID, Title: "blocker",
 	}))
 
-	err := DeleteBoard(ctx, conn, b.ID)
-	require.Error(t, err, "FK RESTRICT must prevent delete when tasks exist")
-	assert.False(t, IsNotFound(err))
+	require.NoError(t, DeleteBoard(ctx, conn, b.ID))
+	_, err := GetBoard(ctx, conn, b.ID)
+	require.True(t, IsNotFound(err))
 }
 
 func TestTask_CyclePrevention(t *testing.T) {

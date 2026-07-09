@@ -23,6 +23,7 @@ var allowedEventKinds = map[string]bool{
 	"project_delete": true,
 	"board_create":   true,
 	"board_delete":   true,
+	"column_delete":  true,
 	"task_create":    true,
 	"task_update":    true,
 	"task_move":      true,

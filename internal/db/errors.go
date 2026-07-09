@@ -8,8 +8,10 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("db: not found")
-	ErrDuplicate = errors.New("db: duplicate")
+	ErrNotFound       = errors.New("db: not found")
+	ErrDuplicate      = errors.New("db: duplicate")
+	ErrColumnNotEmpty = errors.New("db: column has tasks")
+	ErrLastColumn     = errors.New("db: cannot delete the last column on a board")
 )
 
 func isUniqueViolation(err error) bool {

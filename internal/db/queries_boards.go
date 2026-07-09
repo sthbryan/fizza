@@ -10,7 +10,7 @@ import (
 	"github.com/fizza/fizza/internal/model"
 )
 
-var DefaultSeedColumns = []string{"todo", "in_progress", "done"}
+var DefaultSeedColumns = []string{"todo", "in_progress", "in_review", "done"}
 
 func CreateBoard(ctx context.Context, q Querier, projectID int64, name string) (*model.Board, error) {
 	return CreateBoardWithColumns(ctx, q, projectID, name, DefaultSeedColumns)
@@ -115,18 +115,40 @@ func ListBoards(ctx context.Context, q Querier, projectID int64) ([]*model.Board
 func DeleteBoard(ctx context.Context, q Querier, id int64) error {
 	var name string
 	var projectID int64
-	_ = q.QueryRowContext(ctx,
+	if err := q.QueryRowContext(ctx,
 		`SELECT name, project_id FROM boards WHERE id = ?`, id,
-	).Scan(&name, &projectID)
+	).Scan(&name, &projectID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: board %d", ErrNotFound, id)
+		}
+		return fmt.Errorf("db: get board: %w", err)
+	}
 
-	res, err := q.ExecContext(ctx, `DELETE FROM boards WHERE id = ?`, id)
+	txer, ok := q.(Transactor)
+	if !ok {
+		return errors.New("db: DeleteBoard requires a Transactor")
+	}
+	tx, err := txer.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("db: delete board: %w (move or delete tasks first)", err)
+		return fmt.Errorf("db: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM tasks WHERE board_id = ?`, id); err != nil {
+		return fmt.Errorf("db: delete board tasks: %w", err)
+	}
+	res, err := tx.ExecContext(ctx, `DELETE FROM boards WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("db: delete board: %w", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
 		return fmt.Errorf("%w: board %d", ErrNotFound, id)
 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("db: commit delete board: %w", err)
+	}
+
 	_ = RecordEvent(ctx, q, Event{
 		Kind:    "board_delete",
 		Payload: fmt.Sprintf("%d:%s", id, name),
@@ -172,5 +194,120 @@ func UpdateColumnWIPLimit(ctx context.Context, q Querier, columnID int64, limit 
 	if _, err := q.ExecContext(ctx, `UPDATE columns SET wip_limit = ? WHERE id = ?`, wipParam, columnID); err != nil {
 		return fmt.Errorf("db: update wip limit: %w", err)
 	}
+	return nil
+}
+
+func CreateColumn(ctx context.Context, q Querier, boardID int64, name string) (*model.Column, error) {
+	if err := model.ValidateColumn(name); err != nil {
+		return nil, err
+	}
+	var boardExists int64
+	if err := q.QueryRowContext(ctx, `SELECT id FROM boards WHERE id = ?`, boardID).Scan(&boardExists); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w: board %d", ErrNotFound, boardID)
+		}
+		return nil, fmt.Errorf("db: check board: %w", err)
+	}
+
+	var maxPos sql.NullInt64
+	if err := q.QueryRowContext(ctx,
+		`SELECT MAX(position) FROM columns WHERE board_id = ?`, boardID,
+	).Scan(&maxPos); err != nil {
+		return nil, fmt.Errorf("db: max column position: %w", err)
+	}
+	pos := 1
+	if maxPos.Valid {
+		pos = int(maxPos.Int64) + 1
+	}
+
+	res, err := q.ExecContext(ctx,
+		`INSERT INTO columns (board_id, name, position) VALUES (?, ?, ?)`,
+		boardID, name, pos,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, fmt.Errorf("%w: column %q already exists on board %d", ErrDuplicate, name, boardID)
+		}
+		return nil, fmt.Errorf("db: insert column: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("db: last id: %w", err)
+	}
+	return GetColumn(ctx, q, id)
+}
+
+func GetColumn(ctx context.Context, q Querier, id int64) (*model.Column, error) {
+	var c model.Column
+	err := q.GetContext(ctx, &c,
+		`SELECT id, board_id, name, position, COALESCE(color, '') AS color, wip_limit FROM columns WHERE id = ?`, id)
+	if err != nil {
+		return nil, mapErrNotFound(err, fmt.Sprintf("column %d", id))
+	}
+	return &c, nil
+}
+
+func DeleteColumn(ctx context.Context, q Querier, boardID int64, name string, force bool) error {
+	col, err := GetColumnByName(ctx, q, boardID, name)
+	if err != nil {
+		return err
+	}
+
+	var colCount int
+	if err := q.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM columns WHERE board_id = ?`, boardID,
+	).Scan(&colCount); err != nil {
+		return fmt.Errorf("db: count columns: %w", err)
+	}
+	if colCount <= 1 {
+		return fmt.Errorf("%w: board %d", ErrLastColumn, boardID)
+	}
+
+	var taskCount int
+	if err := q.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, col.ID,
+	).Scan(&taskCount); err != nil {
+		return fmt.Errorf("db: count column tasks: %w", err)
+	}
+	if taskCount > 0 && !force {
+		return fmt.Errorf("%w: column %q has %d task(s); move them or pass force=true",
+			ErrColumnNotEmpty, name, taskCount)
+	}
+
+	txer, ok := q.(Transactor)
+	if !ok {
+		return errors.New("db: DeleteColumn requires a Transactor")
+	}
+	tx, err := txer.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("db: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if taskCount > 0 {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM tasks WHERE column_id = ?`, col.ID); err != nil {
+			return fmt.Errorf("db: delete column tasks: %w", err)
+		}
+	}
+	res, err := tx.ExecContext(ctx, `DELETE FROM columns WHERE id = ?`, col.ID)
+	if err != nil {
+		return fmt.Errorf("db: delete column: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("%w: column %q", ErrNotFound, name)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("db: commit delete column: %w", err)
+	}
+
+	projectID := boardProjectID(ctx, q, boardID)
+	boardIDCopy := boardID
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: projectID,
+		BoardID:   &boardIDCopy,
+		Kind:      "column_delete",
+		Payload:   fmt.Sprintf("%d:%s", col.ID, name),
+	})
 	return nil
 }

@@ -154,7 +154,7 @@ func newBoardCreateCmd(rf *rootFlags) *cobra.Command {
 			return writeOK(cmd, rf, b)
 		},
 	}
-	c.Flags().StringVar(&columns, "columns", "", "Comma-separated column names (default: todo,in_progress,done)")
+	c.Flags().StringVar(&columns, "columns", "", "Comma-separated column names (default: todo,in_progress,in_review,done)")
 	return c
 }
 
