@@ -34,14 +34,14 @@
     {/key}
   {:else}
     <AppShell>
-      <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8">
-        <h1 class="text-lg font-semibold">Not found</h1>
-        <p class="text-sm text-[var(--color-text-muted)]">
+      <div class="flex flex-1 flex-col items-center justify-center gap-3.5 p-8">
+        <h1 class="text-xl font-semibold">Not found</h1>
+        <p class="text-base text-[var(--color-text-muted)]">
           No page at this URL.
         </p>
         <a
           href="/projects"
-          class="text-sm text-[var(--color-accent)] hover:underline"
+          class="text-base text-[var(--color-accent)] hover:underline"
         >
           Go to projects
         </a>

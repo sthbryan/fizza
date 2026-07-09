@@ -11,18 +11,18 @@
   let { title, description, actionLabel, onaction }: Props = $props();
 </script>
 
-<div class="mx-auto flex max-w-sm flex-col items-center px-6 py-24 text-center">
+<div class="mx-auto flex max-w-md flex-col items-center px-6 py-28 text-center">
   <div
-    class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-accent)]"
+    class="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xl text-[var(--color-accent)]"
   >
     ◈
   </div>
-  <h2 class="text-lg font-semibold tracking-tight">{title}</h2>
-  <p class="mt-2 text-sm leading-relaxed text-[var(--color-text-muted)]">
+  <h2 class="text-xl font-semibold tracking-tight">{title}</h2>
+  <p class="mt-2.5 text-base leading-relaxed text-[var(--color-text-muted)]">
     {description}
   </p>
   {#if actionLabel && onaction}
-    <Button class="mt-6" variant="primary" onclick={onaction}>
+    <Button class="mt-7" variant="primary" size="lg" onclick={onaction}>
       {actionLabel}
     </Button>
   {/if}

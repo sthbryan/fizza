@@ -62,6 +62,6 @@
   });
 </script>
 
-<div class="flex h-dvh items-center justify-center text-sm text-[var(--color-text-muted)]">
+<div class="flex h-dvh items-center justify-center text-base text-[var(--color-text-muted)]">
   Loading…
 </div>

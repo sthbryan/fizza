@@ -33,9 +33,9 @@
   };
 
   const sizes: Record<Size, string> = {
-    sm: "h-8 px-3 text-xs rounded-xl gap-1.5",
-    md: "h-9 px-3.5 text-sm rounded-xl gap-2",
-    lg: "h-10 px-4 text-sm rounded-2xl gap-2",
+    sm: "h-9 px-3.5 text-sm rounded-xl gap-1.5",
+    md: "h-10 px-4 text-sm rounded-xl gap-2",
+    lg: "h-11 px-5 text-base rounded-2xl gap-2",
   };
 </script>
 
@@ -46,7 +46,7 @@
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40",
     variants[variant],
     sizes[size],
-    variant === "icon" && "h-9 w-9 px-0",
+    variant === "icon" && "h-10 w-10 px-0",
     className
   )}
   {disabled}

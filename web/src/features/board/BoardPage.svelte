@@ -239,11 +239,11 @@
     class="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)]"
   >
     <div
-      class="flex flex-col gap-3 px-3 pt-3 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:pt-4"
+      class="flex flex-col gap-3.5 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
     >
       <div class="min-w-0">
         <nav
-          class="mb-1 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]"
+          class="mb-1.5 flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]"
           aria-label="Breadcrumb"
         >
           <a
@@ -262,21 +262,20 @@
           >
         </nav>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="truncate text-xl font-semibold tracking-tight sm:text-2xl">
+          <h1 class="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
             {project}
           </h1>
           {#if taskCount > 0}
-            <span class="text-sm text-[var(--color-text-muted)]">
+            <span class="text-base text-[var(--color-text-muted)]">
               {taskCount} tasks
             </span>
           {/if}
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2.5">
         <Button
           variant="ghost"
-          size="sm"
           onclick={handleDeleteProject}
           disabled={!project}
           class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
@@ -285,7 +284,6 @@
         </Button>
         <Button
           variant="ghost"
-          size="sm"
           onclick={() => (columnDialog = true)}
           disabled={!project || !board}
         >
@@ -293,7 +291,6 @@
         </Button>
         <Button
           variant="primary"
-          size="sm"
           onclick={() => openTask()}
           disabled={!project || !board}
           class="flex-1 sm:flex-none"
@@ -305,7 +302,7 @@
 
     <!-- Board switcher: tabs, not selects -->
     <div
-      class="mt-3 flex items-center gap-1 overflow-x-auto px-3 pb-0 sm:px-5"
+      class="mt-3.5 flex items-center gap-1 overflow-x-auto px-4 pb-0 sm:px-6"
       role="tablist"
       aria-label="Boards"
     >
@@ -324,7 +321,7 @@
             role="tab"
             aria-selected={active}
             class={cn(
-              "px-3 py-2.5 text-sm font-medium transition",
+              "px-3.5 py-3 text-base font-medium transition",
               active
                 ? "text-[var(--color-text)]"
                 : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
@@ -340,7 +337,7 @@
             type="button"
             title={`Delete board ${b.name}`}
             class={cn(
-              "mr-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded text-xs transition",
+              "mr-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded text-sm transition",
               "text-[var(--color-text-muted)] hover:bg-[var(--color-danger)]/15 hover:text-[var(--color-danger)]",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
@@ -357,7 +354,7 @@
       <button
         type="button"
         title="New board"
-        class="mb-0.5 ml-1 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+        class="mb-0.5 ml-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
         onclick={() => (boardDialog = true)}
       >
         +
@@ -367,9 +364,9 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if $snapshotQuery.isPending && !$snapshotQuery.data}
-      <div class="p-8 text-sm text-[var(--color-text-muted)]">Loading board…</div>
+      <div class="p-8 text-base text-[var(--color-text-muted)]">Loading board…</div>
     {:else if $snapshotQuery.isError}
-      <div class="p-8 text-sm text-[var(--color-danger)]">
+      <div class="p-8 text-base text-[var(--color-danger)]">
         {$snapshotQuery.error.message}
       </div>
     {:else}

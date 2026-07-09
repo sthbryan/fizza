@@ -132,7 +132,7 @@
 <div class={cn("block min-w-0", className)}>
   {#if label}
     <span
-      class="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
+      class="mb-2 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
     >
       {label}
     </span>
@@ -152,7 +152,7 @@
       "hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]",
       "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
       "disabled:cursor-not-allowed disabled:opacity-40",
-      size === "sm" ? "h-9 px-3 text-sm" : "h-10 px-3.5 text-sm"
+      size === "sm" ? "h-9 px-3 text-sm" : "h-11 px-4 text-base"
     )}
   >
     <span class={cn("truncate", !selected && "text-[var(--color-text-muted)]")}>
@@ -183,13 +183,13 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-[80] max-h-64 overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+      class="fixed z-[80] max-h-72 overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
     >
       {#if options.length === 0}
-        <div class="px-3 py-2 text-sm text-[var(--color-text-muted)]">
+        <div class="px-3.5 py-2.5 text-sm text-[var(--color-text-muted)]">
           No options
         </div>
       {:else}
@@ -203,7 +203,7 @@
             aria-selected={isSelected}
             disabled={opt.disabled}
             class={cn(
-              "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition",
+              "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-left text-base transition",
               "disabled:cursor-not-allowed disabled:opacity-40",
               isActive || isSelected
                 ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"

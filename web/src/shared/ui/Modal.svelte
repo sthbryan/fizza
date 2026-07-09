@@ -33,7 +33,7 @@
 </script>
 
 {#if open}
-  <div class="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+  <div class="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center sm:p-6">
     <button
       type="button"
       aria-label="Close dialog"
@@ -43,21 +43,21 @@
     <div
       role="dialog"
       aria-modal="true"
-      class="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
+      class="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
     >
       <div
-        class="flex items-center justify-between border-b border-[var(--color-border-subtle)] px-5 py-4"
+        class="flex items-center justify-between border-b border-[var(--color-border-subtle)] px-6 py-5"
       >
-        <h2 class="text-base font-semibold tracking-tight">{title}</h2>
+        <h2 class="text-lg font-semibold tracking-tight">{title}</h2>
         <Button variant="icon" size="sm" onclick={onclose} aria-label="Close"
           >×</Button
         >
       </div>
-      <div class="space-y-3.5 px-5 py-5">
+      <div class="space-y-4 px-6 py-6">
         {@render children()}
       </div>
       <div
-        class="flex justify-end gap-2 border-t border-[var(--color-border-subtle)] px-5 py-4"
+        class="flex justify-end gap-2.5 border-t border-[var(--color-border-subtle)] px-6 py-5"
       >
         <Button variant="ghost" onclick={onclose} disabled={busy}>Cancel</Button>
         {#if onsubmit}
