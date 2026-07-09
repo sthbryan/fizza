@@ -1,35 +1,62 @@
 # fizza
 
-Local kanban for humans and coding agents. One static binary, SQLite storage, structured CLI output, and a built-in [MCP](https://modelcontextprotocol.io/) server.
+**Local kanban that works the same for you and your coding agents.**
 
-## Features
+One static binary. One SQLite database. A CLI, a web board, and an [MCP](https://modelcontextprotocol.io/) server that all share the same data—so work you track in the browser is the same work an agent can list, move, and complete without a cloud SaaS in the middle.
 
-- **Single binary** — CGO-free, statically linked; no runtime dependencies
-- **SQLite backend** — per-user database at `~/.config/fizza/default.db` (XDG)
-- **Agent-ready I/O** — JSON (default) and compact TOON output; stable exit codes
-- **MCP server** — 15 tools over stdio for Claude Code, Cursor, Continue, and others
-- **Web UI** — `fizza serve` opens a local kanban board in the browser
-- **Concurrent writes** — WAL mode, busy timeout, fractional task positions
-- **Projects → boards → columns → tasks** — tags, WIP limits, subtasks, audit events
+---
 
-## Install
+## Why fizza
 
-### Homebrew
+Most task tools are either built for humans (pretty UI, awkward for scripts) or for agents (JSON dumps that grow forever and blow the context window). fizza is both:
 
-```bash
-brew install fizza/tap/fizza
+| Surface | Role |
+|---------|------|
+| **Web UI** | Drag-and-drop boards, projects, progress stats |
+| **CLI** | Scriptable, structured output (JSON by default) |
+| **MCP** | Same model over stdio for Claude Code, Cursor, and similar tools |
+
+Data stays on your machine under the XDG config path (`~/.config/fizza/` on Linux/macOS). No accounts, no remote API, no runtime deps—the binary is CGO-free and statically linked.
+
+---
+
+## Model
+
+```
+Project
+  └── Board (e.g. main)
+        └── Columns (todo → in_progress → in_review → done)
+              └── Tasks (priority, due date, tags, subtasks)
 ```
 
-### Prebuilt binaries
+**Task lifecycle**
 
-Download for your platform from [GitHub Releases](https://github.com/fizza/fizza/releases)  
-(Linux, macOS, Windows — amd64 and arm64).
+1. **Open** — work in non-terminal columns  
+2. **Done** — moved to `done` / `completed` / `closed` (`completed_at` is set)  
+3. **Archived** — soft-hidden from the active board (`archived_at`); recoverable later  
 
-### Go
+By default, listings and board snapshots keep **done bodies lean** (counts instead of full card dumps) and **omit archived tasks**, so agents and UIs stay focused on active work. Completed work can be shown on demand; archived work has its own view in the UI and dedicated CLI commands.
+
+---
+
+## Build
+
+Requires **Go 1.26+**. For the embedded web UI, also **Bun**.
 
 ```bash
-go install github.com/fizza/fizza/cmd/fizza@latest
+git clone <your-repo-url>
+cd fizza
+make build-full   # builds web assets + bin/fizza
+# or, Go only (fallback page if web was never built):
+make build
 ```
+
+```bash
+make test
+make install      # into $(go env GOPATH)/bin
+```
+
+---
 
 ## Quick start
 
@@ -38,164 +65,135 @@ fizza project new myapp
 fizza config set project myapp
 fizza config set board main
 
-fizza task add "Ship MCP integration"
+fizza task add "Ship the first cut"
 fizza task add "Write docs" --priority high
 fizza task list
 fizza task move 1 done
 ```
 
-Human-readable tables:
+Open the board in the browser:
+
+```bash
+fizza serve
+# http://127.0.0.1:6500
+```
+
+Prefer tables over JSON:
 
 ```bash
 fizza config set mode human
-# or per command:
+# or one-shot:
 fizza task list --format pretty
 ```
 
-## MCP (coding agents)
+---
+
+## Web UI
+
+`fizza serve` starts a local HTTP server (default `127.0.0.1:6500`) and opens the browser unless you pass `--no-open`.
+
+**What you get**
+
+- Project list and boards  
+- Kanban with drag-and-drop  
+- Show / hide completed columns  
+- Archive completed work; dedicated archived view  
+- Progress stats (by project, board, column, priority, activity)  
+
+Same database as the CLI and MCP. Navigation is URL-based (`/projects`, `/p/:project/b/:board`, `/stats`). Bindings can be changed with `--host`, `--port`, or `--addr`. There is no authentication—keep it on localhost.
+
+**Frontend source** lives in `web/` (Svelte 5, Vite, TanStack Query, Tailwind). Production assets embed into the binary:
 
 ```bash
-fizza mcp   # stdio MCP server
+make web          # bun install + vite build
+make build-full   # web + Go binary
+
+# optional hot reload while serve is running:
+cd web && bun run dev
 ```
 
-### Claude Code
+---
+
+## CLI overview
+
+| Command | Purpose |
+|---------|---------|
+| `project` | Create, list, update, delete projects |
+| `board` | Create boards, columns, WIP limits |
+| `task` | Add, list, move, update, archive, delete |
+| `tag` | Labels attachable to tasks |
+| `config` | Defaults: project, board, output mode |
+| `serve` | Web UI |
+| `mcp` | MCP server (stdio) |
+| `doctor` | Installation self-checks |
+| `schema` | Migrations and integrity |
+
+Common task flows:
 
 ```bash
-claude mcp add fizza -- fizza mcp
-claude mcp list
+fizza task list                      # active work (done omitted by default)
+fizza task list --include-done
+fizza task list --archived
+fizza task move 12 done
+fizza task archive 12
+fizza task archive-done              # archive all done on the current board
+fizza task unarchive 12
 ```
 
-### Cursor
+Output formats: `json` (default for LLM mode), `toon` (compact), `pretty` (tables). Use `--format` or `fizza config set mode human|llm`.
 
-`~/.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "fizza": {
-      "command": "fizza",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-### Continue
-
-`~/.continue/config.json`:
-
-```json
-{
-  "experimental": {
-    "modelContextProtocolServers": [
-      {
-        "name": "fizza",
-        "transport": {
-          "type": "stdio",
-          "command": "fizza",
-          "args": ["mcp"]
-        }
-      }
-    ]
-  }
-}
-```
-
-Agents without MCP can shell out to `fizza` and parse JSON from stdout.
-
-### Tools
-
-| Tool | Description |
-|------|-------------|
-| `project_new` | Create project (seeds board `main`: todo / in_progress / in_review / done) |
-| `project_list` | List projects, or one project if `name` is set |
-| `project_delete` | Delete project and children (`force=true`) |
-| `board_create` | Create board; optional custom columns |
-| `board_list` | List boards; with `name`, returns board and columns |
-| `board_snapshot` | Full board: columns with tasks in order |
-| `board_delete` | Delete board if empty (`force=true`) |
-| `task_add` | Create task (first column by default; honors WIP) |
-| `task_list` | List or filter tasks; `id` returns a single task |
-| `task_move` | Move to column; optional `before` for reorder |
-| `task_update` | Patch fields; `add_tags` / `remove_tags` for labels |
-| `task_delete` | Delete task and subtasks (`force=true`) |
-| `tag_add` | Create tag in a project |
-| `tag_list` | List tags |
-| `tag_delete` | Delete tag (`force=true`) |
-
-`project` and `board` arguments default from user config (or a local `.fizza` file) when omitted. Destructive tools require `force=true`.
+---
 
 ## Configuration
 
-Global config: `~/.config/fizza/config.json`
+**Global:** `~/.config/fizza/config.json`
 
-| Key | Values | Description |
-|-----|--------|-------------|
-| `mode` | `llm` (default), `human` | Default output style |
-| `project` | name | Default project for board/task commands |
-| `board` | name | Default board when a project has several |
+| Key | Meaning |
+|-----|---------|
+| `mode` | `llm` (JSON-oriented, default) or `human` |
+| `project` | Default project for board/task commands |
+| `board` | Default board when a project has more than one |
 
 ```bash
 fizza config show
-fizza config set mode human
-fizza config set project alpha
+fizza config set project myapp
 fizza config set board main
-fizza config unset project
 fizza config path
 ```
 
-### Project-local config (`.fizza`)
-
-Place a `.fizza` file in a repository root. Closest match wins (walks up at most 5 levels; stops at `.git`, `$HOME`, or filesystem root). Unset keys fall back to the global config.
+**Local overrides:** a `.fizza` file in a repo (walks up a few directories; stops at `.git` / home). Closest file wins; missing keys fall back to global config.
 
 ```
 PROJECT=myapp
 MODE=human
 ```
 
-Commit shared defaults; gitignore personal overrides.
+Database path defaults under the same XDG config directory (`default.db`).
 
-## Web UI
+---
 
-```bash
-fizza serve
-# → http://127.0.0.1:6500
-```
-
-Local kanban board in the browser (Svelte 5 + Tailwind, embedded in the binary). Same SQLite database as the CLI and MCP server: create projects and boards, add tasks, drag cards between columns, edit and delete.
-
-URL-based navigation (`/projects`, `/p/:project/b/:board`). Binds to `127.0.0.1:6500` by default (no auth). Override with `--host`, `--port`, or `--addr`.
-
-### Frontend development
-
-Source lives in `web/` (Svelte 5, Vite, TanStack Query, **Tailwind CSS**, Bun). Production assets build to `internal/httpapi/static/app/` (gitignored) and are embedded into the binary. Without a prior `make web`, the binary serves a small fallback page.
+## Agents (MCP)
 
 ```bash
-make web          # bun install + vite build → static/
-make build-full   # web + go binary
-# hot reload (proxies API to fizza serve on :6500):
-./bin/fizza serve &
-cd web && bun install && bun run dev
+fizza mcp
 ```
 
-## Development
+Point your client at that stdio command (Claude Code, Cursor, Continue, etc.). Agents use the same projects, boards, and lifecycle rules as the CLI: lean snapshots by default, archive for long-term cleanup.
 
-Requires Go 1.26+.
+You can also shell out to `fizza` and parse JSON from stdout if MCP is not available.
 
-```bash
-git clone https://github.com/fizza/fizza
-cd fizza
-make build      # bin/fizza (gitignored)
-make test
-make test-race
-make mcp-test
-make install    # $(go env GOPATH)/bin
-make fmt
-make vet
-```
+---
 
-Cross-compile: `make build-all` → `bin/fizza-<os>-<arch>`.
+## Design notes
+
+- **SQLite + WAL** — concurrent readers, sensible write behavior for a desktop tool  
+- **Fractional positions** — stable ordering when inserting cards between others  
+- **Events stream** — local change log; the web UI can live-update via SSE  
+- **WIP limits** — optional per-column caps  
+- **No cloud** — intentional: your board data never leaves the machine unless you move the DB file yourself  
+
+---
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) · © 2026 Bryan Villafuerte
