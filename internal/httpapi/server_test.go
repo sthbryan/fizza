@@ -96,8 +96,24 @@ func TestProjectsLifecycle(t *testing.T) {
 	require.NoError(t, json.Unmarshal(env.Data, &list))
 	assert.Len(t, list, 1)
 	assert.Equal(t, "alpha", list[0].Name)
+	assert.Equal(t, int64(1), list[0].BoardCount)
 
-	resp, body = doJSON(t, "POST", ts.URL+"/v1/projects", map[string]any{"name": "alpha"})
+	resp, body = doJSON(t, "PATCH", ts.URL+"/v1/projects/alpha", map[string]any{
+		"name": "alpha-v2", "description": "renamed",
+	})
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	assert.True(t, env.OK)
+	var updated model.Project
+	require.NoError(t, json.Unmarshal(env.Data, &updated))
+	assert.Equal(t, "alpha-v2", updated.Name)
+	assert.Equal(t, "renamed", updated.Description)
+	assert.Equal(t, int64(1), updated.BoardCount)
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/projects/alpha", nil)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	resp, body = doJSON(t, "POST", ts.URL+"/v1/projects", map[string]any{"name": "alpha-v2"})
 	assert.Equal(t, http.StatusConflict, resp.StatusCode)
 	env = decode(t, bytes.NewReader(body))
 	assert.False(t, env.OK)
@@ -111,13 +127,13 @@ func TestProjectsLifecycle(t *testing.T) {
 	require.NotNil(t, env.Error)
 	assert.Equal(t, "NOT_FOUND", env.Error.Code)
 
-	resp, body = doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha", nil)
+	resp, body = doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha-v2", nil)
 	assert.Equal(t, http.StatusConflict, resp.StatusCode)
 	env = decode(t, bytes.NewReader(body))
 	assert.False(t, env.OK)
 	assert.Equal(t, "CONFLICT", env.Error.Code)
 
-	resp, body = doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha?force=true", nil)
+	resp, body = doJSON(t, "DELETE", ts.URL+"/v1/projects/alpha-v2?force=true", nil)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	env = decode(t, bytes.NewReader(body))
 	assert.True(t, env.OK)

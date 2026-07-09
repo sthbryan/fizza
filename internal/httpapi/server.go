@@ -221,6 +221,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/projects", s.handleListProjects)
 	s.mux.HandleFunc("POST /v1/projects", s.handleCreateProject)
 	s.mux.HandleFunc("GET /v1/projects/{name}", s.handleGetProject)
+	s.mux.HandleFunc("PATCH /v1/projects/{name}", s.handleUpdateProject)
 	s.mux.HandleFunc("DELETE /v1/projects/{name}", s.handleDeleteProject)
 
 	s.mux.HandleFunc("GET /v1/projects/{name}/boards", s.handleListBoards)
@@ -343,6 +344,44 @@ func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeOK(w, http.StatusOK, p)
+}
+
+type updateProjectReq struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	name := r.PathValue("name")
+	var in updateProjectReq
+	if err := decodeJSONBody(r, &in); err != nil {
+		respondError(w, err)
+		return
+	}
+	if in.Name == nil && in.Description == nil {
+		writeErr(w, http.StatusBadRequest, "VALIDATION", "provide name and/or description")
+		return
+	}
+	p, err := db.GetProjectByName(ctx, s.svc.DB(), name)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	newName := p.Name
+	newDesc := p.Description
+	if in.Name != nil {
+		newName = *in.Name
+	}
+	if in.Description != nil {
+		newDesc = *in.Description
+	}
+	updated, err := db.UpdateProject(ctx, s.svc.DB(), p.ID, newName, newDesc)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleDeleteProject(w http.ResponseWriter, r *http.Request) {
