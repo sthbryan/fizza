@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg: #0b0b0d;
+  --color-bg-elevated: #121214;
+  --color-bg-soft: #16161a;
+  --color-bg-card: #1a1a1f;
+  --color-bg-hover: #222228;
+  --color-border: #2a2a32;
+  --color-border-subtle: #1f1f26;
+  --color-text: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-accent: #8b7cf7;
+  --color-accent-soft: #6d5efc;
+  --color-danger: #f07178;
+  --color-ok: #7fd99a;
+
+  --color-col-pink: #3a2430;
+  --color-col-peach: #3a2e22;
+  --color-col-sky: #1e2e3a;
+  --color-col-lilac: #2c2540;
+  --color-col-mint: #1e322c;
+  --color-col-slate: #25252c;
+
+  --color-col-todo: #f9a8d4;
+  --color-col-progress: #fdba74;
+  --color-col-done: #86efac;
+  --color-col-review: #93c5fd;
+  --color-col-default: #a1a1aa;
+
+  --color-pri-low: #7dd3fc;
+  --color-pri-medium: #fbbf24;
+  --color-pri-high: #f472b6;
+  --color-pri-urgent: #f87171;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+    background: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+  }
+
+  button,
+  input,
+  textarea,
+  [role="button"] {
+    font: inherit;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2a2a32 transparent;
+  }
+}
