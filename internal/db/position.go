@@ -182,17 +182,19 @@ func selectRebalanceIDs(ctx context.Context, q Querier, columnID, aroundID int64
 		half := RebalanceWindow / 2
 		rows, err := q.QueryContext(ctx, `
 			SELECT id FROM (
-				SELECT id, position FROM tasks
-				WHERE column_id = ? AND position >= (SELECT position FROM tasks WHERE id = ?)
-				ORDER BY position LIMIT ?
-			)
-			UNION
-			SELECT id FROM (
-				SELECT id, position FROM tasks
-				WHERE column_id = ? AND position < (SELECT position FROM tasks WHERE id = ?)
-				ORDER BY position DESC LIMIT ?
-			)
-			ORDER BY id`,
+				SELECT id, position FROM (
+					SELECT id, position FROM tasks
+					WHERE column_id = ? AND position >= (SELECT position FROM tasks WHERE id = ?)
+					ORDER BY position, id LIMIT ?
+				)
+				UNION
+				SELECT id, position FROM (
+					SELECT id, position FROM tasks
+					WHERE column_id = ? AND position < (SELECT position FROM tasks WHERE id = ?)
+					ORDER BY position DESC, id DESC LIMIT ?
+				)
+				ORDER BY position, id
+			)`,
 			columnID, aroundID, half,
 			columnID, aroundID, half,
 		)
