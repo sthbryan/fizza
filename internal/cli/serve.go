@@ -20,7 +20,11 @@ func newServeCmd(rf *rootFlags) *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "serve",
-		Short: "Run fizza as an HTTP server (REST API over the service layer)",
+		Short: "Open the kanban web UI (local HTTP server)",
+		Long: `Start a local web UI for browsing and editing boards.
+
+Opens on http://127.0.0.1:6500 by default. The same SQLite database as the
+CLI and MCP server is used. JSON endpoints under /v1 power the UI.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			dbPath, err := config.DBPath()
@@ -37,7 +41,7 @@ func newServeCmd(rf *rootFlags) *cobra.Command {
 			if listen == "" {
 				listen = fmt.Sprintf("%s:%d", host, port)
 			}
-			fmt.Fprintf(cmd.ErrOrStderr(), "fizza serve listening on %s\n", listen)
+			fmt.Fprintf(cmd.ErrOrStderr(), "fizza web UI on http://%s\n", listen)
 			return srv.Run(ctx, httpapi.Options{
 				Addr:         listen,
 				ReadTimeout:  readTimeout,
@@ -46,7 +50,7 @@ func newServeCmd(rf *rootFlags) *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&host, "host", "127.0.0.1", "Bind host (ignored if --addr is set)")
-	c.Flags().IntVar(&port, "port", 8080, "Bind port (ignored if --addr is set)")
+	c.Flags().IntVar(&port, "port", 6500, "Bind port (ignored if --addr is set)")
 	c.Flags().StringVar(&addr, "addr", "", "Full listen address, e.g. 0.0.0.0:9090")
 	c.Flags().DurationVar(&readTimeout, "read-timeout", 30*time.Second, "HTTP read timeout")
 	c.Flags().DurationVar(&writeTimeout, "write-timeout", 30*time.Second, "HTTP write timeout")

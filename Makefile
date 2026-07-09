@@ -13,11 +13,20 @@ PKG=./cmd/fizza
 # Default target
 .DEFAULT_GOAL:=build
 
+# Frontend (Svelte + Vite) → internal/httpapi/static
+.PHONY: web
+web:
+	@echo "Building web UI..."
+	cd web && bun install && bun run build
+
 # Build for current platform
 .PHONY: build
 build:
 	@echo "Building $(BINARY_NAME) for current platform... ($(VERSION))"
 	CGO_ENABLED=$(CGO_ENABLED) go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(PKG)
+
+.PHONY: build-full
+build-full: web build
 
 # Build for all platforms
 .PHONY: build-all
@@ -105,6 +114,8 @@ uninstall:
 help:
 	@echo "Fizza Makefile targets:"
 	@echo "  build          - Build for current platform"
+	@echo "  web            - Build Svelte UI into internal/httpapi/static"
+	@echo "  build-full     - Build web UI then the Go binary"
 	@echo "  build-all      - Build for all platforms (darwin/amd64, darwin/arm64, linux/amd64, linux/arm64, windows/amd64)"
 	@echo "  test           - Run go tests"
 	@echo "  test-race      - Run tests with -race detector"
