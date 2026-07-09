@@ -562,7 +562,7 @@ func TestWebIndex(t *testing.T) {
 
 func TestWebSPADeepLinks(t *testing.T) {
 	ts, _ := newTestServer(t, "")
-	for _, path := range []string{"/projects", "/p/demo/b/main"} {
+	for _, path := range []string{"/projects", "/stats", "/p/demo/b/main", "/no-such-page"} {
 		resp, err := http.Get(ts.URL + path)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode, path)
@@ -572,6 +572,12 @@ func TestWebSPADeepLinks(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, string(body), "id=\"app\"", path)
 	}
+
+	resp, body := doJSON(t, "GET", ts.URL+"/v1/does-not-exist", nil)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	env := decode(t, bytes.NewReader(body))
+	assert.False(t, env.OK)
+	assert.Equal(t, "NOT_FOUND", env.Error.Code)
 }
 
 func TestWebBuiltAssetsLinked(t *testing.T) {
