@@ -118,9 +118,20 @@ type Task struct {
 	Priority    Priority     `json:"priority" db:"priority"`
 	Position    float64      `json:"position" db:"position"`
 	DueDate     *dbutil.Time `json:"due_date,omitempty" db:"due_date"`
+	CompletedAt *dbutil.Time `json:"completed_at,omitempty" db:"completed_at"`
+	ArchivedAt  *dbutil.Time `json:"archived_at,omitempty" db:"archived_at"`
 	Tags        []*Tag       `json:"tags,omitempty" db:"-"`
 	CreatedAt   dbutil.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   dbutil.Time  `json:"updated_at" db:"updated_at"`
+}
+
+func IsTerminalColumn(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "done", "completed", "closed":
+		return true
+	default:
+		return false
+	}
 }
 
 type Subtasks struct {
