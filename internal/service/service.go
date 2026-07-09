@@ -252,20 +252,31 @@ func (s *Service) GetTaskByPrefix(ctx context.Context, prefix string) (*model.Ta
 }
 
 type ColumnSnapshot struct {
-	ID       int64         `json:"id"`
-	Name     string        `json:"name"`
-	Position int           `json:"position"`
-	WIPLimit *int          `json:"wip_limit,omitempty"`
-	Tasks    []*model.Task `json:"tasks"`
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	Position  int           `json:"position"`
+	WIPLimit  *int          `json:"wip_limit,omitempty"`
+	Tasks     []*model.Task `json:"tasks"`
+	TaskCount int64         `json:"task_count"`
+	Truncated bool          `json:"truncated,omitempty"`
 }
 
 type BoardSnapshot struct {
-	Project string           `json:"project"`
-	Board   *model.Board     `json:"board"`
-	Columns []ColumnSnapshot `json:"columns"`
+	Project       string           `json:"project"`
+	Board         *model.Board     `json:"board"`
+	Columns       []ColumnSnapshot `json:"columns"`
+	ArchivedCount int64            `json:"archived_count"`
+}
+
+type SnapshotOpts struct {
+	IncludeDone bool
 }
 
 func (s *Service) BoardSnapshot(ctx context.Context) (*BoardSnapshot, error) {
+	return s.BoardSnapshotOpts(ctx, SnapshotOpts{})
+}
+
+func (s *Service) BoardSnapshotOpts(ctx context.Context, opts SnapshotOpts) (*BoardSnapshot, error) {
 	r, err := s.ResolveBoard(ctx)
 	if err != nil {
 		return nil, err
@@ -274,12 +285,35 @@ func (s *Service) BoardSnapshot(ctx context.Context) (*BoardSnapshot, error) {
 	if err != nil {
 		return nil, err
 	}
+	archivedCount, err := db.CountArchivedInBoard(ctx, s.pool.Write, r.Board.ID)
+	if err != nil {
+		return nil, err
+	}
 	out := &BoardSnapshot{
-		Project: r.Project.Name,
-		Board:   r.Board,
-		Columns: make([]ColumnSnapshot, 0, len(cols)),
+		Project:       r.Project.Name,
+		Board:         r.Board,
+		Columns:       make([]ColumnSnapshot, 0, len(cols)),
+		ArchivedCount: archivedCount,
 	}
 	for _, c := range cols {
+		count, err := db.CountTasksInColumn(ctx, s.pool.Write, c.ID)
+		if err != nil {
+			return nil, err
+		}
+		col := ColumnSnapshot{
+			ID:        c.ID,
+			Name:      c.Name,
+			Position:  c.Position,
+			WIPLimit:  c.WIPLimit,
+			TaskCount: count,
+			Tasks:     []*model.Task{},
+		}
+		terminal := model.IsTerminalColumn(c.Name)
+		if terminal && !opts.IncludeDone {
+			col.Truncated = count > 0
+			out.Columns = append(out.Columns, col)
+			continue
+		}
 		tasks, err := db.ListTasksInColumn(ctx, s.pool.Write, c.ID)
 		if err != nil {
 			return nil, err
@@ -287,15 +321,34 @@ func (s *Service) BoardSnapshot(ctx context.Context) (*BoardSnapshot, error) {
 		if tasks == nil {
 			tasks = []*model.Task{}
 		}
-		out.Columns = append(out.Columns, ColumnSnapshot{
-			ID:       c.ID,
-			Name:     c.Name,
-			Position: c.Position,
-			WIPLimit: c.WIPLimit,
-			Tasks:    tasks,
-		})
+		col.Tasks = tasks
+		out.Columns = append(out.Columns, col)
 	}
 	return out, nil
+}
+
+func (s *Service) ArchiveTask(ctx context.Context, id int64) error {
+	return db.ArchiveTask(ctx, s.pool.Write, id)
+}
+
+func (s *Service) UnarchiveTask(ctx context.Context, id int64) error {
+	return db.UnarchiveTask(ctx, s.pool.Write, id)
+}
+
+func (s *Service) ArchiveDone(ctx context.Context) (int64, error) {
+	r, err := s.ResolveBoard(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return db.ArchiveDoneInBoard(ctx, s.pool.Write, r.Board.ID)
+}
+
+func (s *Service) ListArchived(ctx context.Context) ([]*model.Task, error) {
+	r, err := s.ResolveBoard(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return db.ListTasksInBoard(ctx, s.pool.Write, r.Board.ID, db.TaskFilter{OnlyArchived: true})
 }
 
 func (s *Service) ApplyTaskTags(ctx context.Context, taskID int64, changes db.TaskTagChanges) error {
