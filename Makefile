@@ -10,6 +10,12 @@ CGO_ENABLED=0
 BUILD_DIR=bin
 PKG=./cmd/fizza
 
+# Install location (override with `make install PREFIX=/path/to/root`)
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+DESTDIR ?=
+INSTALL_PATH=$(DESTDIR)$(BINDIR)/$(BINARY_NAME)
+
 # Default target
 .DEFAULT_GOAL:=build
 
@@ -97,11 +103,13 @@ clean:
 	rm -rf $(BUILD_DIR)
 	@go clean -cache -testcache 2>/dev/null || true
 
-# Install binary
+# Install binary (builds web UI + binary, then copies it to $(BINDIR)).
 .PHONY: install
-install:
-	@echo "Installing $(BINARY_NAME)..."
-	CGO_ENABLED=$(CGO_ENABLED) go install $(LDFLAGS) $(PKG)
+install: web build
+	@echo "Installing $(BINARY_NAME) to $(INSTALL_PATH)..."
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 0755 $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_PATH)
+	@echo "Installed: $(INSTALL_PATH)"
 
 # Uninstall binary
 .PHONY: uninstall
@@ -123,6 +131,6 @@ help:
 	@echo "  fmt            - Run gofmt -w and verify CI formatting check passes"
 	@echo "  mcp-test       - Smoke-test the MCP server end-to-end"
 	@echo "  clean          - Remove build artifacts"
-	@echo "  install        - Install binary using go install"
+	@echo "  install        - Build web + binary, copy to \$$BINDIR (PREFIX=... override)"
 	@echo "  uninstall      - Remove installed binary"
 	@echo "  help           - Show this help message"
