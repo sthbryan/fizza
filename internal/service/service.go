@@ -95,7 +95,7 @@ func (s *Service) ResolveProject(ctx context.Context) (*model.Project, error) {
 		return nil, err
 	}
 	if r.Project == nil {
-		return nil, fmt.Errorf("%w: no default project set (run `fizza project set <name>` first)", ErrValidation)
+		return nil, fmt.Errorf("%w: no default project set (run `fizza config set project <name>` first)", ErrValidation)
 	}
 	return r.Project, nil
 }
@@ -106,13 +106,13 @@ func (s *Service) ResolveBoard(ctx context.Context) (*Resolved, error) {
 		return nil, err
 	}
 	if r.Project == nil {
-		return nil, fmt.Errorf("%w: no default project set (run `fizza project set <name>`)", ErrValidation)
+		return nil, fmt.Errorf("%w: no default project set (run `fizza config set project <name>`)", ErrValidation)
 	}
 	if r.Board == nil {
 		if s.board != "" {
 			return nil, fmt.Errorf("%w: board %q in project %q", db.ErrNotFound, s.board, s.project)
 		}
-		return nil, fmt.Errorf("%w: no default board in project %q (set with `fizza board set <name>`)", ErrValidation, r.Project.Name)
+		return nil, fmt.Errorf("%w: no default board in project %q (run `fizza config set board <name>`)", ErrValidation, r.Project.Name)
 	}
 	return r, nil
 }
@@ -249,6 +249,65 @@ func (s *Service) GetTask(ctx context.Context, id int64) (*model.Task, error) {
 
 func (s *Service) GetTaskByPrefix(ctx context.Context, prefix string) (*model.Task, error) {
 	return db.GetTaskByPrefix(ctx, s.pool.Write, prefix)
+}
+
+type ColumnSnapshot struct {
+	ID       int64         `json:"id"`
+	Name     string        `json:"name"`
+	Position int           `json:"position"`
+	WIPLimit *int          `json:"wip_limit,omitempty"`
+	Tasks    []*model.Task `json:"tasks"`
+}
+
+type BoardSnapshot struct {
+	Project string           `json:"project"`
+	Board   *model.Board     `json:"board"`
+	Columns []ColumnSnapshot `json:"columns"`
+}
+
+func (s *Service) BoardSnapshot(ctx context.Context) (*BoardSnapshot, error) {
+	r, err := s.ResolveBoard(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cols, err := db.ListColumns(ctx, s.pool.Write, r.Board.ID)
+	if err != nil {
+		return nil, err
+	}
+	out := &BoardSnapshot{
+		Project: r.Project.Name,
+		Board:   r.Board,
+		Columns: make([]ColumnSnapshot, 0, len(cols)),
+	}
+	for _, c := range cols {
+		tasks, err := db.ListTasksInColumn(ctx, s.pool.Write, c.ID)
+		if err != nil {
+			return nil, err
+		}
+		if tasks == nil {
+			tasks = []*model.Task{}
+		}
+		out.Columns = append(out.Columns, ColumnSnapshot{
+			ID:       c.ID,
+			Name:     c.Name,
+			Position: c.Position,
+			WIPLimit: c.WIPLimit,
+			Tasks:    tasks,
+		})
+	}
+	return out, nil
+}
+
+func (s *Service) ApplyTaskTags(ctx context.Context, taskID int64, changes db.TaskTagChanges) error {
+	t, err := db.GetTask(ctx, s.pool.Write, taskID)
+	if err != nil {
+		return err
+	}
+	board, err := db.GetBoard(ctx, s.pool.Write, t.BoardID)
+	if err != nil {
+		return err
+	}
+	return db.ApplyTaskTagChanges(ctx, s.pool.Write, taskID, board.ProjectID, changes)
 }
 
 func ParseDue(s string) (*dbutil.Time, error) {
