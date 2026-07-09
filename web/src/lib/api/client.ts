@@ -3,6 +3,7 @@ import type {
   BoardSnapshot,
   Column,
   Project,
+  Stats,
   Task,
 } from "./types";
 
@@ -140,4 +141,12 @@ export const fizzaApi = {
 
   deleteTask: (id: number) =>
     api<{ deleted: number }>("DELETE", `/v1/tasks/${id}?force=true`),
+
+  stats: (project?: string, board?: string) => {
+    const q = new URLSearchParams();
+    if (project) q.set("project", project);
+    if (board) q.set("board", board);
+    const qs = q.toString();
+    return api<Stats>("GET", `/v1/stats${qs ? `?${qs}` : ""}`);
+  },
 };

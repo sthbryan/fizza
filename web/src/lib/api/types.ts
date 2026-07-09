@@ -45,3 +45,49 @@ export interface Column {
   name: string;
   position: number;
 }
+
+export interface NamedCount {
+  name: string;
+  count: number;
+}
+
+export interface DayCount {
+  date: string;
+  count: number;
+}
+
+export interface ProjectStatsRow {
+  name: string;
+  boards: number;
+  tasks: number;
+  done: number;
+  open: number;
+  overdue: number;
+}
+
+export interface BoardStatsRow {
+  project: string;
+  name: string;
+  tasks: number;
+  done: number;
+  open: number;
+  overdue: number;
+}
+
+export interface Stats {
+  scope: { project?: string; board?: string };
+  totals: {
+    projects: number;
+    boards: number;
+    tasks: number;
+    done: number;
+    open: number;
+    overdue: number;
+  };
+  by_priority: NamedCount[];
+  by_column: NamedCount[];
+  by_project?: ProjectStatsRow[];
+  by_board?: BoardStatsRow[];
+  created_by_day: DayCount[];
+  activity_by_day: DayCount[];
+}
