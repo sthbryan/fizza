@@ -216,6 +216,7 @@ func (s *Server) routes() {
 	s.mountWeb()
 
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
+	s.mux.HandleFunc("GET /v1/events", s.handleEventsSSE)
 
 	s.mux.HandleFunc("GET /v1/projects", s.handleListProjects)
 	s.mux.HandleFunc("POST /v1/projects", s.handleCreateProject)

@@ -679,3 +679,52 @@ func TestDeleteColumn(t *testing.T) {
 		assert.NotEqual(t, "blocked", m["name"])
 	}
 }
+
+func TestEventsSSE_StreamsTaskChange(t *testing.T) {
+	ts, _ := newTestServer(t, "alpha")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", ts.URL+"/v1/events", nil)
+	require.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Contains(t, resp.Header.Get("Content-Type"), "text/event-stream")
+
+	done := make(chan string, 1)
+	go func() {
+		buf := make([]byte, 0, 4096)
+		tmp := make([]byte, 512)
+		for {
+			n, err := resp.Body.Read(tmp)
+			if n > 0 {
+				buf = append(buf, tmp[:n]...)
+				if strings.Contains(string(buf), "event: change") {
+					done <- string(buf)
+					return
+				}
+			}
+			if err != nil {
+				done <- string(buf) + "\nERR:" + err.Error()
+				return
+			}
+		}
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	createResp, _ := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/main/tasks", map[string]any{
+		"title": "from sse test",
+	})
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+
+	select {
+	case body := <-done:
+		assert.Contains(t, body, "event: change")
+		assert.Contains(t, body, "task_create")
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for SSE change event")
+	}
+}

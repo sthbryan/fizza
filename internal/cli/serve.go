@@ -53,6 +53,7 @@ CLI and MCP server is used. JSON endpoints under /v1 power the UI.`,
 	c.Flags().IntVar(&port, "port", 6500, "Bind port (ignored if --addr is set)")
 	c.Flags().StringVar(&addr, "addr", "", "Full listen address, e.g. 0.0.0.0:9090")
 	c.Flags().DurationVar(&readTimeout, "read-timeout", 30*time.Second, "HTTP read timeout")
-	c.Flags().DurationVar(&writeTimeout, "write-timeout", 30*time.Second, "HTTP write timeout")
+
+	c.Flags().DurationVar(&writeTimeout, "write-timeout", 0, "HTTP write timeout (0 = none; needed for SSE)")
 	return c
 }
