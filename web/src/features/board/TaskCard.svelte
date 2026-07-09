@@ -6,19 +6,25 @@
   interface Props {
     task: Task;
     dragging?: boolean;
+    terminal?: boolean;
     ondragstart: (task: Task) => void;
     ondragend: () => void;
     onedit: (task: Task) => void;
     ondelete: (task: Task) => void;
+    onarchive?: (task: Task) => void;
+    onrestore?: (task: Task) => void;
   }
 
   let {
     task,
     dragging = false,
+    terminal = false,
     ondragstart,
     ondragend,
     onedit,
     ondelete,
+    onarchive,
+    onrestore,
   }: Props = $props();
 
   const due = $derived(task.due_date ? String(task.due_date).slice(0, 10) : null);
@@ -44,6 +50,24 @@
     <div
       class="flex shrink-0 gap-0.5 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100"
     >
+      {#if terminal && onrestore}
+        <button
+          type="button"
+          class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-ok)]"
+          onclick={() => onrestore(task)}
+        >
+          Restore
+        </button>
+      {/if}
+      {#if onarchive}
+        <button
+          type="button"
+          class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]"
+          onclick={() => onarchive(task)}
+        >
+          Archive
+        </button>
+      {/if}
       <button
         type="button"
         class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]"

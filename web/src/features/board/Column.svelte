@@ -53,6 +53,7 @@
     dragOver: boolean;
     draggingId: number | null;
     canDelete: boolean;
+    terminal?: boolean;
     ondragstart: (task: Task) => void;
     ondragend: () => void;
     ondragover: (columnName: string) => void;
@@ -60,6 +61,8 @@
     ondrop: (columnName: string, beforeId?: string) => void;
     onedit: (task: Task) => void;
     ondelete: (task: Task) => void;
+    onarchive: (task: Task) => void;
+    onrestore: (task: Task) => void;
     onadd: (columnName: string) => void;
     ondeletecolumn: (column: ColumnSnapshot) => void;
   }
@@ -70,6 +73,7 @@
     dragOver,
     draggingId,
     canDelete,
+    terminal = false,
     ondragstart,
     ondragend,
     ondragover,
@@ -77,16 +81,17 @@
     ondrop,
     onedit,
     ondelete,
+    onarchive,
+    onrestore,
     onadd,
     ondeletecolumn,
   }: Props = $props();
 
   const tasks = $derived(column.tasks || []);
   const theme = $derived(themeFor(column.name, index));
+  const count = $derived(column.task_count ?? tasks.length);
   const countLabel = $derived(
-    column.wip_limit != null
-      ? `${tasks.length}/${column.wip_limit}`
-      : String(tasks.length)
+    column.wip_limit != null ? `${count}/${column.wip_limit}` : String(count)
   );
 </script>
 
@@ -165,7 +170,13 @@
       ondrop(column.name, beforeId);
     }}
   >
-    {#if tasks.length === 0}
+    {#if column.truncated && tasks.length === 0}
+      <div
+        class="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/10 px-3 text-center text-xs text-white/50"
+      >
+        {count} completed · hidden for a lean board
+      </div>
+    {:else if tasks.length === 0}
       <button
         type="button"
         onclick={() => onadd(column.name)}
@@ -179,10 +190,13 @@
           <TaskCard
             {task}
             dragging={draggingId === task.id}
+            {terminal}
             {ondragstart}
             {ondragend}
             {onedit}
             {ondelete}
+            {onarchive}
+            {onrestore}
           />
         </div>
       {/each}

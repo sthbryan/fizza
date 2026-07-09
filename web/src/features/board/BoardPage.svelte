@@ -4,6 +4,7 @@
   import { queryKeys } from "@/lib/api";
   import { showToast } from "@/lib/toast/toast.svelte";
   import {
+    archivedPath,
     boardPath,
     navigate,
     rememberBoard,
@@ -13,6 +14,7 @@
   import Button from "@/shared/ui/Button.svelte";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
+  import { isTerminalColumn } from "./terminal";
   import CreateBoardDialog from "./CreateBoardDialog.svelte";
   import CreateColumnDialog from "./CreateColumnDialog.svelte";
   import CreateProjectDialog from "@/features/projects/CreateProjectDialog.svelte";
@@ -30,6 +32,7 @@
   let { project, board }: Props = $props();
 
   const queryClient = useQueryClient();
+  const SHOW_DONE_KEY = "fizza.showCompleted";
 
   let projectDialog = $state(false);
   let boardDialog = $state(false);
@@ -37,12 +40,20 @@
   let taskDialog = $state(false);
   let taskDefaultColumn = $state("");
   let editing = $state<Task | null>(null);
+  let showCompleted = $state(
+    typeof localStorage !== "undefined" &&
+      localStorage.getItem(SHOW_DONE_KEY) === "1"
+  );
 
   let draggingId = $state<number | null>(null);
   let dragOverColumn = $state<string | null>(null);
 
   $effect(() => {
     rememberBoard(project, board);
+  });
+
+  $effect(() => {
+    localStorage.setItem(SHOW_DONE_KEY, showCompleted ? "1" : "0");
   });
 
   const projectsQuery = createQuery(() => ({
@@ -57,8 +68,8 @@
   }));
 
   const snapshotQuery = createQuery(() => ({
-    queryKey: queryKeys.snapshot(project, board),
-    queryFn: () => boardApi.snapshot(project, board),
+    queryKey: queryKeys.snapshot(project, board, showCompleted),
+    queryFn: () => boardApi.snapshot(project, board, showCompleted),
     enabled: !!project && !!board,
   }));
 
@@ -69,12 +80,34 @@
     }))
   );
 
+  const openColumn = $derived(
+    (snapshotQuery.data?.columns || []).find((c) => !isTerminalColumn(c.name))
+      ?.name || "todo"
+  );
+
   const taskCount = $derived(
     (snapshotQuery.data?.columns || []).reduce(
-      (n, c) => n + (c.tasks?.length || 0),
+      (n, c) => n + (c.task_count ?? c.tasks?.length ?? 0),
       0
     )
   );
+
+  const doneCount = $derived(
+    (snapshotQuery.data?.columns || [])
+      .filter((c) => isTerminalColumn(c.name))
+      .reduce((n, c) => n + (c.task_count ?? c.tasks?.length ?? 0), 0)
+  );
+
+  const archivedCount = $derived(snapshotQuery.data?.archived_count ?? 0);
+
+  async function invalidateBoard() {
+    await queryClient.invalidateQueries({
+      queryKey: ["snapshot", project, board],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.archived(project, board),
+    });
+  }
 
   const moveMutation = createMutation(() => ({
     mutationFn: (input: {
@@ -89,15 +122,11 @@
         ...(input.beforeId ? { before: input.beforeId } : {}),
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.snapshot(project, board),
-      });
+      await invalidateBoard();
     },
     onError: async (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.snapshot(project, board),
-      });
+      await invalidateBoard();
     },
     onSettled: () => {
       draggingId = null;
@@ -108,10 +137,46 @@
   const deleteMutation = createMutation(() => ({
     mutationFn: (task: Task) => tasksApi.delete(task.id),
     onSuccess: async (_data, task) => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.snapshot(project, board),
-      });
+      await invalidateBoard();
       showToast(`Task #${task.id} deleted`);
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : String(err), "error");
+    },
+  }));
+
+  const archiveMutation = createMutation(() => ({
+    mutationFn: (task: Task) => tasksApi.archive(task.id),
+    onSuccess: async (_data, task) => {
+      await invalidateBoard();
+      showToast(`Task #${task.id} archived`);
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : String(err), "error");
+    },
+  }));
+
+  const restoreMutation = createMutation(() => ({
+    mutationFn: (task: Task) =>
+      tasksApi.move(task.id, { project, board, column: openColumn }),
+    onSuccess: async (_data, task) => {
+      await invalidateBoard();
+      showToast(`Task #${task.id} restored to ${openColumn}`);
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : String(err), "error");
+    },
+  }));
+
+  const archiveDoneMutation = createMutation(() => ({
+    mutationFn: () => boardApi.archiveDone(project, board),
+    onSuccess: async (data) => {
+      await invalidateBoard();
+      showToast(
+        data.archived
+          ? `Archived ${data.archived} completed task${data.archived === 1 ? "" : "s"}`
+          : "No completed tasks to archive"
+      );
     },
     onError: (err) => {
       showToast(err instanceof Error ? err.message : String(err), "error");
@@ -122,9 +187,7 @@
     mutationFn: (input: { name: string; force: boolean }) =>
       boardApi.deleteColumn(project, board, input.name, input.force),
     onSuccess: async (_data, input) => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.snapshot(project, board),
-      });
+      await invalidateBoard();
       showToast(`Column “${input.name}” deleted`);
     },
     onError: (err) => {
@@ -178,8 +241,28 @@
     void deleteMutation.mutateAsync(task);
   }
 
+  function handleArchive(task: Task) {
+    void archiveMutation.mutateAsync(task);
+  }
+
+  function handleRestore(task: Task) {
+    void restoreMutation.mutateAsync(task);
+  }
+
+  function handleArchiveDone() {
+    if (doneCount <= 0) return;
+    if (
+      !confirm(
+        `Archive all ${doneCount} completed task${doneCount === 1 ? "" : "s"} on this board?`
+      )
+    ) {
+      return;
+    }
+    void archiveDoneMutation.mutateAsync();
+  }
+
   function handleDeleteColumn(col: ColumnSnapshot) {
-    const n = col.tasks?.length || 0;
+    const n = col.task_count ?? col.tasks?.length ?? 0;
     const label = col.name.replaceAll("_", " ");
     if (n > 0) {
       if (
@@ -274,6 +357,36 @@
       </div>
 
       <div class="flex flex-wrap gap-2.5">
+        <Button
+          variant="ghost"
+          onclick={() => (showCompleted = !showCompleted)}
+          disabled={!project || !board}
+          class={showCompleted ? "text-[var(--color-accent)]" : ""}
+        >
+          {showCompleted ? "Hide completed" : "Show completed"}
+          {#if doneCount > 0}
+            <span class="opacity-70">({doneCount})</span>
+          {/if}
+        </Button>
+        <Button
+          variant="ghost"
+          onclick={() => navigate(archivedPath(project, board))}
+          disabled={!project || !board}
+        >
+          Archived
+          {#if archivedCount > 0}
+            <span class="opacity-70">({archivedCount})</span>
+          {/if}
+        </Button>
+        {#if showCompleted && doneCount > 0}
+          <Button
+            variant="ghost"
+            onclick={handleArchiveDone}
+            disabled={archiveDoneMutation.isPending}
+          >
+            Archive all done
+          </Button>
+        {/if}
         <Button
           variant="ghost"
           onclick={handleDeleteProject}
@@ -373,6 +486,7 @@
       <Board
         snapshot={snapshotQuery.data ?? null}
         hasProjects={(projectsQuery.data?.length || 0) > 0}
+        {showCompleted}
         {dragOverColumn}
         {draggingId}
         ondragstart={(t) => (draggingId = t.id)}
@@ -385,6 +499,9 @@
         ondrop={handleDrop}
         onedit={(t) => (editing = t)}
         ondelete={handleDelete}
+        onarchive={handleArchive}
+        onrestore={handleRestore}
+        onshowcompleted={() => (showCompleted = true)}
         onnewproject={() => (projectDialog = true)}
         onaddincolumn={(col) => openTask(col)}
         onaddcolumn={() => (columnDialog = true)}
