@@ -744,3 +744,34 @@ func TestEventsSSE_StreamsTaskChange(t *testing.T) {
 		t.Fatal("timed out waiting for SSE change event")
 	}
 }
+
+func TestStats(t *testing.T) {
+	ts, _ := newTestServer(t, "alpha")
+
+	resp, body := doJSON(t, "POST", ts.URL+"/v1/projects/alpha/boards/main/tasks", map[string]any{
+		"title": "work", "priority": "high",
+	})
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/stats", nil)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env := decode(t, bytes.NewReader(body))
+	assert.True(t, env.OK)
+	var stats model.Stats
+	require.NoError(t, json.Unmarshal(env.Data, &stats))
+	assert.Equal(t, int64(1), stats.Totals.Projects)
+	assert.Equal(t, int64(1), stats.Totals.Tasks)
+	assert.Equal(t, int64(1), stats.Totals.Open)
+	assert.Len(t, stats.ByPriority, 4)
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/stats?project=alpha&board=main", nil)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	require.NoError(t, json.Unmarshal(env.Data, &stats))
+	assert.Equal(t, "alpha", stats.Scope.Project)
+	assert.Equal(t, "main", stats.Scope.Board)
+	assert.Equal(t, int64(1), stats.Totals.Tasks)
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/stats?project=missing", nil)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
