@@ -65,7 +65,7 @@
   const columnOptions = $derived(
     ($snapshotQuery.data?.columns || []).map((c) => ({
       value: c.name,
-      label: c.name.replaceAll("_", " "),
+      label: c.name.replaceAll("_", " ").toUpperCase(),
     }))
   );
 

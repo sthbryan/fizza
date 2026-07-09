@@ -10,10 +10,10 @@
   import { tasksApi } from "./api";
 
   const PRIORITY_OPTIONS = [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "urgent", label: "Urgent" },
+    { value: "low", label: "LOW" },
+    { value: "medium", label: "MEDIUM" },
+    { value: "high", label: "HIGH" },
+    { value: "urgent", label: "URGENT" },
   ];
 
   interface Props {
