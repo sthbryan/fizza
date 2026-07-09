@@ -8,11 +8,14 @@ import (
 	"github.com/fizza/fizza/internal/model"
 )
 
-const doneColumnSQL = `lower(c.name) IN ('done', 'completed', 'closed')`
+const doneColumnSQL = terminalColumnSQL
 
 const overdueSQL = `t.due_date IS NOT NULL
 	AND t.due_date < strftime('%Y-%m-%dT%H:%M:%fZ','now')
+	AND t.archived_at IS NULL
 	AND NOT (` + doneColumnSQL + `)`
+
+const activeTaskSQL = `t.archived_at IS NULL`
 
 type statsScopeIDs struct {
 	projectID *int64
@@ -155,7 +158,7 @@ func fillStatsTotals(ctx context.Context, q Querier, scope statsScopeIDs, out *m
 		JOIN columns c ON c.id = t.column_id
 		JOIN boards b ON b.id = t.board_id
 		JOIN projects p ON p.id = b.project_id
-		WHERE ` + where
+		WHERE ` + where + ` AND ` + activeTaskSQL
 
 	var row struct {
 		Tasks   int64 `db:"tasks"`
@@ -189,7 +192,7 @@ func fillStatsByPriority(ctx context.Context, q Querier, scope statsScopeIDs, ou
 			FROM tasks t
 			JOIN boards b ON b.id = t.board_id
 			JOIN projects p ON p.id = b.project_id
-			WHERE ` + where + `
+			WHERE ` + where + ` AND ` + activeTaskSQL + `
 			GROUP BY t.priority
 		) cnt ON cnt.name = pri.name
 		ORDER BY pri.ord`
@@ -213,7 +216,7 @@ func fillStatsByColumn(ctx context.Context, q Querier, scope statsScopeIDs, out 
 		JOIN columns c ON c.id = t.column_id
 		JOIN boards b ON b.id = t.board_id
 		JOIN projects p ON p.id = b.project_id
-		WHERE ` + where + `
+		WHERE ` + where + ` AND ` + activeTaskSQL + `
 		GROUP BY lower(c.name)
 		ORDER BY COUNT(*) DESC, c.name ASC`
 
@@ -235,7 +238,7 @@ func fillStatsCreatedByDay(ctx context.Context, q Querier, scope statsScopeIDs, 
 		FROM tasks t
 		JOIN boards b ON b.id = t.board_id
 		JOIN projects p ON p.id = b.project_id
-		WHERE ` + where + `
+		WHERE ` + where + ` AND ` + activeTaskSQL + `
 		  AND t.created_at >= datetime('now', '-29 days')
 		GROUP BY date(t.created_at)
 		ORDER BY date ASC`
@@ -293,7 +296,7 @@ func listProjectStats(ctx context.Context, q Querier) ([]model.ProjectStatsRow, 
 			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + overdueSQL + ` THEN 1 ELSE 0 END), 0) AS overdue
 		FROM projects p
 		LEFT JOIN boards b ON b.project_id = p.id
-		LEFT JOIN tasks t ON t.board_id = b.id
+		LEFT JOIN tasks t ON t.board_id = b.id AND t.archived_at IS NULL
 		LEFT JOIN columns c ON c.id = t.column_id
 		GROUP BY p.id
 		ORDER BY p.name ASC`
@@ -329,7 +332,7 @@ func listBoardStats(ctx context.Context, q Querier, scope statsScopeIDs) ([]mode
 			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + overdueSQL + ` THEN 1 ELSE 0 END), 0) AS overdue
 		FROM boards b
 		JOIN projects p ON p.id = b.project_id
-		LEFT JOIN tasks t ON t.board_id = b.id
+		LEFT JOIN tasks t ON t.board_id = b.id AND t.archived_at IS NULL
 		LEFT JOIN columns c ON c.id = t.column_id
 		WHERE ` + where + `
 		GROUP BY b.id

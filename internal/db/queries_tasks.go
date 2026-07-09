@@ -16,7 +16,7 @@ import (
 const taskSelect = `
 	SELECT t.id, t.board_id, t.column_id, c.name AS status,
 	       t.parent_id, t.title, t.description, t.priority, t.position,
-	       t.due_date, t.created_at, t.updated_at
+	       t.due_date, t.completed_at, t.archived_at, t.created_at, t.updated_at
 	FROM tasks t
 	JOIN columns c ON c.id = t.column_id`
 
@@ -31,12 +31,15 @@ type TaskPatch struct {
 }
 
 type TaskFilter struct {
-	ColumnName string
-	Priorities []model.Priority
-	DueBefore  *time.Time
-	DueAfter   *time.Time
-	Search     string
-	Tags       []string
+	ColumnName      string
+	Priorities      []model.Priority
+	DueBefore       *time.Time
+	DueAfter        *time.Time
+	Search          string
+	Tags            []string
+	IncludeDone     bool
+	IncludeArchived bool
+	OnlyArchived    bool
 }
 
 func CreateTask(ctx context.Context, q Querier, t *model.Task) error {
@@ -126,7 +129,7 @@ func checkColumnWIP(ctx context.Context, q Querier, columnID, fromColumnID int64
 	}
 	var count int64
 	if err := q.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, columnID,
+		`SELECT COUNT(*) FROM tasks WHERE column_id = ? AND archived_at IS NULL`, columnID,
 	).Scan(&count); err != nil {
 		return fmt.Errorf("db: count tasks in column: %w", err)
 	}
@@ -169,11 +172,16 @@ func createTaskInsert(ctx context.Context, q Querier, t *model.Task) error {
 		dueParam = dbutil.FormatDueDate(t.DueDate.Time)
 	}
 
+	var completedParam any
+	if colName, err := columnNameByID(ctx, q, t.ColumnID); err == nil && IsTerminalColumn(colName) {
+		completedParam = time.Now().UTC().Format("2006-01-02T15:04:05.000000Z")
+	}
+
 	res, err := q.ExecContext(ctx, `
 		INSERT INTO tasks
-		  (board_id, column_id, parent_id, title, description, priority, position, due_date)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		t.BoardID, t.ColumnID, dbutil.NullableInt(t.ParentID), t.Title, t.Description, t.Priority.String(), pos, dueParam,
+		  (board_id, column_id, parent_id, title, description, priority, position, due_date, completed_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		t.BoardID, t.ColumnID, dbutil.NullableInt(t.ParentID), t.Title, t.Description, t.Priority.String(), pos, dueParam, completedParam,
 	)
 	if err != nil {
 		return fmt.Errorf("db: insert task: %w", err)
@@ -231,10 +239,20 @@ func ListTasksInBoard(ctx context.Context, q Querier, boardID int64, filter Task
 	)
 	where = append(where, "t.board_id = ?")
 	args = append(args, boardID)
+
+	if filter.OnlyArchived {
+		where = append(where, "t.archived_at IS NOT NULL")
+	} else if !filter.IncludeArchived {
+		where = append(where, "t.archived_at IS NULL")
+	}
+
 	if filter.ColumnName != "" {
 		where = append(where, "c.name = ?")
 		args = append(args, filter.ColumnName)
+	} else if !filter.IncludeDone && !filter.OnlyArchived {
+		where = append(where, "NOT ("+terminalColumnSQL+")")
 	}
+
 	if len(filter.Priorities) > 0 {
 		priVals := make([]string, len(filter.Priorities))
 		for i, p := range filter.Priorities {
@@ -262,10 +280,14 @@ func ListTasksInBoard(ctx context.Context, q Querier, boardID int64, filter Task
 		joins = append(joins, "JOIN task_tags ON task_tags.task_id = t.id JOIN tags ON tags.id = task_tags.tag_id")
 		distinct = "DISTINCT "
 	}
+	order := " ORDER BY c.position, t.position"
+	if filter.OnlyArchived {
+		order = " ORDER BY t.archived_at DESC, t.id DESC"
+	}
 	query := strings.Replace(taskSelect, "SELECT", "SELECT "+distinct, 1) +
 		" " + strings.Join(joins, " ") +
 		" WHERE " + strings.Join(where, " AND ") +
-		" ORDER BY c.position, t.position"
+		order
 	expanded, expandedArgs, err := sqlx.In(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("db: expand IN clauses: %w", err)
@@ -275,7 +297,38 @@ func ListTasksInBoard(ctx context.Context, q Querier, boardID int64, filter Task
 }
 
 func ListTasksInColumn(ctx context.Context, q Querier, columnID int64) ([]*model.Task, error) {
-	return runListTasks(ctx, q, taskSelect+" WHERE t.column_id = ? ORDER BY t.position", []any{columnID})
+	return runListTasks(ctx, q,
+		taskSelect+` WHERE t.column_id = ? AND t.archived_at IS NULL ORDER BY t.position`,
+		[]any{columnID})
+}
+
+func CountTasksInColumn(ctx context.Context, q Querier, columnID int64) (int64, error) {
+	var n int64
+	err := q.GetContext(ctx, &n,
+		`SELECT COUNT(*) FROM tasks WHERE column_id = ? AND archived_at IS NULL`, columnID)
+	if err != nil {
+		return 0, fmt.Errorf("db: count tasks in column: %w", err)
+	}
+	return n, nil
+}
+
+func CountArchivedInBoard(ctx context.Context, q Querier, boardID int64) (int64, error) {
+	var n int64
+	err := q.GetContext(ctx, &n,
+		`SELECT COUNT(*) FROM tasks WHERE board_id = ? AND archived_at IS NOT NULL`, boardID)
+	if err != nil {
+		return 0, fmt.Errorf("db: count archived: %w", err)
+	}
+	return n, nil
+}
+
+func columnNameByID(ctx context.Context, q Querier, columnID int64) (string, error) {
+	var name string
+	err := q.QueryRowContext(ctx, `SELECT name FROM columns WHERE id = ?`, columnID).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
 }
 
 func FirstTaskInColumn(ctx context.Context, q Querier, columnID int64) (*model.Task, error) {
@@ -417,29 +470,39 @@ func MoveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 
 func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, beforeTaskID *int64, force bool) error {
 	var currentCol int64
+	var archived any
 	err := q.QueryRowContext(ctx,
-		`SELECT column_id FROM tasks WHERE id = ?`, taskID,
-	).Scan(&currentCol)
+		`SELECT column_id, archived_at FROM tasks WHERE id = ?`, taskID,
+	).Scan(&currentCol, &archived)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%w: task %d", ErrNotFound, taskID)
 		}
 		return fmt.Errorf("db: get task column: %w", err)
 	}
+	if archived != nil {
+		return fmt.Errorf("%w: task %d is archived; unarchive before moving", model.ErrValidation, taskID)
+	}
 	if currentCol == targetColumnID && beforeTaskID == nil {
 		return nil
 	}
 
 	var targetBoard int64
+	var targetColName string
 	err = q.QueryRowContext(ctx,
-		`SELECT board_id FROM columns WHERE id = ?`, targetColumnID,
-	).Scan(&targetBoard)
+		`SELECT board_id, name FROM columns WHERE id = ?`, targetColumnID,
+	).Scan(&targetBoard, &targetColName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%w: column %d", ErrNotFound, targetColumnID)
 		}
 		return fmt.Errorf("db: get column: %w", err)
 	}
+
+	var currentColName string
+	_ = q.QueryRowContext(ctx,
+		`SELECT name FROM columns WHERE id = ?`, currentCol,
+	).Scan(&currentColName)
 
 	if !force {
 		if err := checkColumnWIP(ctx, q, targetColumnID, currentCol); err != nil {
@@ -482,9 +545,19 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 		return fmt.Errorf("db: compute position for move: %w", err)
 	}
 
+	toTerminal := IsTerminalColumn(targetColName)
+	fromTerminal := IsTerminalColumn(currentColName)
+	var completedSQL string
+	switch {
+	case toTerminal && !fromTerminal:
+		completedSQL = ", completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')"
+	case !toTerminal && fromTerminal:
+		completedSQL = ", completed_at = NULL"
+	}
+
 	_, err = exec.ExecContext(ctx, `
 		UPDATE tasks
-		SET column_id = ?, position = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+		SET column_id = ?, position = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`+completedSQL+`
 		WHERE id = ?`,
 		targetColumnID, pos, taskID,
 	)
@@ -510,6 +583,100 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 		Kind:      "task_move",
 	})
 	return nil
+}
+
+func ArchiveTask(ctx context.Context, q Querier, id int64) error {
+	t, err := GetTask(ctx, q, id)
+	if err != nil {
+		return err
+	}
+	if t.ArchivedAt != nil {
+		return nil
+	}
+	res, err := q.ExecContext(ctx, `
+		UPDATE tasks
+		SET archived_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+		    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+		WHERE id = ? AND archived_at IS NULL`, id)
+	if err != nil {
+		return fmt.Errorf("db: archive task: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("%w: task %d", ErrNotFound, id)
+	}
+	projectID := boardProjectID(ctx, q, t.BoardID)
+	boardID := t.BoardID
+	taskID := id
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: projectID,
+		BoardID:   &boardID,
+		TaskID:    &taskID,
+		Kind:      "task_update",
+		Payload:   "archive",
+	})
+	return nil
+}
+
+func UnarchiveTask(ctx context.Context, q Querier, id int64) error {
+	t, err := GetTask(ctx, q, id)
+	if err != nil {
+		return err
+	}
+	if t.ArchivedAt == nil {
+		return nil
+	}
+	res, err := q.ExecContext(ctx, `
+		UPDATE tasks
+		SET archived_at = NULL,
+		    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+		WHERE id = ? AND archived_at IS NOT NULL`, id)
+	if err != nil {
+		return fmt.Errorf("db: unarchive task: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("%w: task %d", ErrNotFound, id)
+	}
+	projectID := boardProjectID(ctx, q, t.BoardID)
+	boardID := t.BoardID
+	taskID := id
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: projectID,
+		BoardID:   &boardID,
+		TaskID:    &taskID,
+		Kind:      "task_update",
+		Payload:   "unarchive",
+	})
+	return nil
+}
+
+func ArchiveDoneInBoard(ctx context.Context, q Querier, boardID int64) (int64, error) {
+	res, err := q.ExecContext(ctx, `
+		UPDATE tasks
+		SET archived_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+		    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+		WHERE board_id = ?
+		  AND archived_at IS NULL
+		  AND column_id IN (
+		    SELECT id FROM columns c
+		    WHERE c.board_id = ? AND `+terminalColumnSQL+`
+		  )`, boardID, boardID)
+	if err != nil {
+		return 0, fmt.Errorf("db: archive done in board: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n > 0 {
+		projectID := boardProjectID(ctx, q, boardID)
+		boardIDCopy := boardID
+		_ = RecordEvent(ctx, q, Event{
+			ProjectID: projectID,
+			BoardID:   &boardIDCopy,
+			Kind:      "task_update",
+			Payload:   fmt.Sprintf("archive_done:%d", n),
+		})
+	}
+	return n, nil
 }
 
 func DeleteTask(ctx context.Context, q Querier, id int64) error {
