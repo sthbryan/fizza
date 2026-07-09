@@ -146,4 +146,20 @@ func TestWIP_ClearLimit(t *testing.T) {
 	assert.Nil(t, got.WIPLimit, "clearing the limit must surface nil on read")
 }
 
+func TestWIP_CreateRejectsOverLimit(t *testing.T) {
+	ctx := context.Background()
+	conn, b, _, inProgress, _ := seedWIPFixture(t)
+
+	limit := 1
+	require.NoError(t, UpdateColumnWIPLimit(ctx, conn, inProgress.ID, &limit))
+
+	first := &model.Task{BoardID: b.ID, ColumnID: inProgress.ID, Title: "first"}
+	require.NoError(t, CreateTask(ctx, conn, first))
+
+	second := &model.Task{BoardID: b.ID, ColumnID: inProgress.ID, Title: "second"}
+	err := CreateTask(ctx, conn, second)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrWIPLimitReached)
+}
+
 func intPtr(n int) *int { return &n }

@@ -62,7 +62,17 @@ func CreateProject(ctx context.Context, q Querier, name, description string) (*m
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("db: commit: %w", err)
 	}
-	return GetProject(ctx, q, id)
+	p, err := GetProject(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
+	projectID := p.ID
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: &projectID,
+		Kind:      "project_create",
+		Payload:   p.Name,
+	})
+	return p, nil
 }
 
 func GetProject(ctx context.Context, q Querier, id int64) (*model.Project, error) {
@@ -96,6 +106,9 @@ func ListProjects(ctx context.Context, q Querier) ([]*model.Project, error) {
 }
 
 func DeleteProject(ctx context.Context, q Querier, id int64) error {
+	var name string
+	_ = q.QueryRowContext(ctx, `SELECT name FROM projects WHERE id = ?`, id).Scan(&name)
+
 	res, err := q.ExecContext(ctx, `DELETE FROM projects WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete project: %w", err)
@@ -107,6 +120,10 @@ func DeleteProject(ctx context.Context, q Querier, id int64) error {
 	if n == 0 {
 		return fmt.Errorf("%w: project %d", ErrNotFound, id)
 	}
+	_ = RecordEvent(ctx, q, Event{
+		Kind:    "project_delete",
+		Payload: fmt.Sprintf("%d:%s", id, name),
+	})
 	return nil
 }
 

@@ -76,7 +76,19 @@ func CreateBoardWithColumns(ctx context.Context, q Querier, projectID int64, nam
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("db: commit: %w", err)
 	}
-	return GetBoard(ctx, q, id)
+	b, gerr := GetBoard(ctx, q, id)
+	if gerr != nil {
+		return nil, gerr
+	}
+	boardID := b.ID
+	projID := b.ProjectID
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: &projID,
+		BoardID:   &boardID,
+		Kind:      "board_create",
+		Payload:   b.Name,
+	})
+	return b, nil
 }
 
 func GetBoard(ctx context.Context, q Querier, id int64) (*model.Board, error) {
@@ -101,6 +113,12 @@ func ListBoards(ctx context.Context, q Querier, projectID int64) ([]*model.Board
 }
 
 func DeleteBoard(ctx context.Context, q Querier, id int64) error {
+	var name string
+	var projectID int64
+	_ = q.QueryRowContext(ctx,
+		`SELECT name, project_id FROM boards WHERE id = ?`, id,
+	).Scan(&name, &projectID)
+
 	res, err := q.ExecContext(ctx, `DELETE FROM boards WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete board: %w (move or delete tasks first)", err)
@@ -109,6 +127,10 @@ func DeleteBoard(ctx context.Context, q Querier, id int64) error {
 	if n == 0 {
 		return fmt.Errorf("%w: board %d", ErrNotFound, id)
 	}
+	_ = RecordEvent(ctx, q, Event{
+		Kind:    "board_delete",
+		Payload: fmt.Sprintf("%d:%s", id, name),
+	})
 	return nil
 }
 

@@ -58,6 +58,9 @@ func CreateTask(ctx context.Context, q Querier, t *model.Task) error {
 			return model.ErrTaskCycle
 		}
 	}
+	if err := checkColumnWIP(ctx, q, t.ColumnID, 0); err != nil {
+		return err
+	}
 
 	exec := q
 	committed := false
@@ -92,7 +95,55 @@ func CreateTask(ctx context.Context, q Querier, t *model.Task) error {
 		return err
 	}
 	*t = *fresh
+
+	projectID := boardProjectID(ctx, q, t.BoardID)
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: projectID,
+		BoardID:   &t.BoardID,
+		TaskID:    &t.ID,
+		Kind:      "task_create",
+		Payload:   t.Title,
+	})
 	return nil
+}
+
+func checkColumnWIP(ctx context.Context, q Querier, columnID, fromColumnID int64) error {
+	if columnID == 0 || columnID == fromColumnID {
+		return nil
+	}
+	var wipLimit *int64
+	err := q.QueryRowContext(ctx,
+		`SELECT wip_limit FROM columns WHERE id = ?`, columnID,
+	).Scan(&wipLimit)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: column %d", ErrNotFound, columnID)
+		}
+		return fmt.Errorf("db: get column wip: %w", err)
+	}
+	if wipLimit == nil {
+		return nil
+	}
+	var count int64
+	if err := q.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, columnID,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("db: count tasks in column: %w", err)
+	}
+	if count >= *wipLimit {
+		return ErrWIPLimitReached
+	}
+	return nil
+}
+
+func boardProjectID(ctx context.Context, q Querier, boardID int64) *int64 {
+	var projectID int64
+	if err := q.QueryRowContext(ctx,
+		`SELECT project_id FROM boards WHERE id = ?`, boardID,
+	).Scan(&projectID); err != nil {
+		return nil
+	}
+	return &projectID
 }
 
 func createTaskInsert(ctx context.Context, q Querier, t *model.Task) error {
@@ -280,6 +331,12 @@ func WouldCreateCycle(ctx context.Context, q Querier, taskID, proposedParent int
 	return true, fmt.Errorf("db: parent chain too long (possible cycle)")
 }
 
+func (p TaskPatch) Empty() bool {
+	return p.Title == nil && p.Description == nil && p.Priority == nil &&
+		p.DueDate == nil && !p.ClearDueDate &&
+		p.ParentID == nil && !p.ClearParentID
+}
+
 func UpdateTask(ctx context.Context, q Querier, id int64, patch TaskPatch) error {
 	sets := []string{}
 	args := []any{}
@@ -333,6 +390,16 @@ func UpdateTask(ctx context.Context, q Querier, id int64, patch TaskPatch) error
 	if n == 0 {
 		return fmt.Errorf("%w: task %d", ErrNotFound, id)
 	}
+
+	if t, err := GetTask(ctx, q, id); err == nil {
+		projectID := boardProjectID(ctx, q, t.BoardID)
+		_ = RecordEvent(ctx, q, Event{
+			ProjectID: projectID,
+			BoardID:   &t.BoardID,
+			TaskID:    &id,
+			Kind:      "task_update",
+		})
+	}
 	return nil
 }
 
@@ -364,10 +431,9 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 	}
 
 	var targetBoard int64
-	var wipLimit *int64
 	err = q.QueryRowContext(ctx,
-		`SELECT board_id, wip_limit FROM columns WHERE id = ?`, targetColumnID,
-	).Scan(&targetBoard, &wipLimit)
+		`SELECT board_id FROM columns WHERE id = ?`, targetColumnID,
+	).Scan(&targetBoard)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%w: column %d", ErrNotFound, targetColumnID)
@@ -375,15 +441,9 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 		return fmt.Errorf("db: get column: %w", err)
 	}
 
-	if !force && wipLimit != nil && currentCol != targetColumnID {
-		var count int64
-		if err := q.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM tasks WHERE column_id = ?`, targetColumnID,
-		).Scan(&count); err != nil {
-			return fmt.Errorf("db: count tasks in target column: %w", err)
-		}
-		if count >= *wipLimit {
-			return ErrWIPLimitReached
+	if !force {
+		if err := checkColumnWIP(ctx, q, targetColumnID, currentCol); err != nil {
+			return err
 		}
 	}
 
@@ -439,10 +499,21 @@ func moveTaskAt(ctx context.Context, q Querier, taskID, targetColumnID int64, be
 		committed = true
 	}
 	ensureHealthyPosition(ctx, q, targetColumnID)
+
+	projectID := boardProjectID(ctx, q, targetBoard)
+	taskIDCopy := taskID
+	boardIDCopy := targetBoard
+	_ = RecordEvent(ctx, q, Event{
+		ProjectID: projectID,
+		BoardID:   &boardIDCopy,
+		TaskID:    &taskIDCopy,
+		Kind:      "task_move",
+	})
 	return nil
 }
 
 func DeleteTask(ctx context.Context, q Querier, id int64) error {
+	t, getErr := GetTask(ctx, q, id)
 	res, err := q.ExecContext(ctx, `DELETE FROM tasks WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("db: delete task: %w", err)
@@ -450,6 +521,16 @@ func DeleteTask(ctx context.Context, q Querier, id int64) error {
 	n, _ := res.RowsAffected()
 	if n == 0 {
 		return fmt.Errorf("%w: task %d", ErrNotFound, id)
+	}
+	if getErr == nil && t != nil {
+		projectID := boardProjectID(ctx, q, t.BoardID)
+		boardIDCopy := t.BoardID
+		_ = RecordEvent(ctx, q, Event{
+			ProjectID: projectID,
+			BoardID:   &boardIDCopy,
+			Kind:      "task_delete",
+			Payload:   fmt.Sprintf("%d:%s", id, t.Title),
+		})
 	}
 	return nil
 }
