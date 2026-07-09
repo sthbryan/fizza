@@ -7,13 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"golang.org/x/sys/unix"
 )
-
-type unixStat_t = unix.Statfs_t
-
-var unixStatfs = unix.Statfs
 
 type MigrationInfo struct {
 	Version   int64  `json:"version"`
@@ -147,12 +141,4 @@ func checkWarnings(r *DoctorReport) []string {
 		w = append(w, fmt.Sprintf("%d pending migration(s) will be applied on next open", r.PendingMigs))
 	}
 	return w
-}
-
-func diskFree(path string) (uint64, error) {
-	var stat unixStat_t
-	if err := unixStatfs(path, &stat); err != nil {
-		return 0, err
-	}
-	return uint64(stat.Bavail) * uint64(stat.Bsize), nil
 }
