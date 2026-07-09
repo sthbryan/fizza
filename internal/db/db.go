@@ -31,11 +31,30 @@ type Migration struct {
 }
 
 func Open(ctx context.Context, path string) (*sqlx.DB, error) {
-	pool, err := OpenPool(ctx, path, 1, 1)
-	if err != nil {
-		return nil, err
+	if strings.TrimSpace(path) == "" {
+		return nil, errors.New("db: empty path")
 	}
-	return pool.Write, nil
+	dsn := fmt.Sprintf(walDSN, filepath.Clean(path))
+	raw, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("db: open: %w", err)
+	}
+	raw.SetMaxOpenConns(1)
+	raw.SetMaxIdleConns(1)
+	raw.SetConnMaxLifetime(0)
+
+	conn := sqlx.NewDb(raw, "sqlite")
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := conn.PingContext(pingCtx); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("db: ping: %w", err)
+	}
+	if err := Migrate(ctx, conn); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("db: migrate: %w", err)
+	}
+	return conn, nil
 }
 
 type Pool struct {
@@ -100,8 +119,19 @@ func (p *Pool) Close() error {
 	if p == nil {
 		return nil
 	}
-	werr := p.Write.Close()
-	rerr := p.Read.Close()
+	if p.Write == p.Read {
+		if p.Write == nil {
+			return nil
+		}
+		return p.Write.Close()
+	}
+	var werr, rerr error
+	if p.Write != nil {
+		werr = p.Write.Close()
+	}
+	if p.Read != nil {
+		rerr = p.Read.Close()
+	}
 	if werr != nil {
 		return werr
 	}
