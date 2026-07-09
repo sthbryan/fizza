@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { QueryClient, QueryClientProvider } from "@tanstack/svelte-query";
   import { getRoute } from "@/lib/router/router.svelte";
+  import { subscribeLiveInvalidation } from "@/lib/api";
   import HomeRedirect from "./HomeRedirect.svelte";
   import ProjectsPage from "@/features/projects/ProjectsPage.svelte";
   import BoardPage from "@/features/board/BoardPage.svelte";
@@ -15,6 +17,8 @@
       },
     },
   });
+
+  onMount(() => subscribeLiveInvalidation(queryClient));
 
   const route = $derived(getRoute());
 </script>

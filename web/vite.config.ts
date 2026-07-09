@@ -14,12 +14,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/v1": "http://127.0.0.1:6500",
+
+      "/v1": {
+        target: "http://127.0.0.1:6500",
+        changeOrigin: true,
+      },
       "/healthz": "http://127.0.0.1:6500",
     },
   },
   build: {
-    // Built UI is gitignored; only static/fallback.html is committed for embed.
+
     outDir: path.resolve(__dirname, "../internal/httpapi/static/app"),
     emptyOutDir: true,
     assetsDir: "assets",

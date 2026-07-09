@@ -11,7 +11,7 @@ import (
 var staticFS embed.FS
 
 func (s *Server) mountWeb() {
-	// Prefer Vite build output under static/app (gitignored); always have fallback.html.
+
 	if appFS, err := fs.Sub(staticFS, "static/app"); err == nil {
 		if _, err := fs.Stat(appFS, "index.html"); err == nil {
 			fileServer := http.FileServer(http.FS(appFS))
@@ -20,8 +20,6 @@ func (s *Server) mountWeb() {
 		}
 	}
 
-	// SPA entry + deep-link fallback (client routes under /, /projects, /p/...).
-	// API routes (/v1/*, /healthz) are registered separately and take precedence.
 	s.mux.HandleFunc("GET /{$}", s.handleIndex)
 	s.mux.HandleFunc("GET /projects", s.handleIndex)
 	s.mux.HandleFunc("GET /p/{project}/b/{board}", s.handleIndex)
@@ -36,7 +34,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// Ensure asset paths resolve at site root after embed.
+
 	html := string(data)
 	if !strings.Contains(html, `src="/assets/`) && strings.Contains(html, `src="./assets/`) {
 		html = strings.ReplaceAll(html, `src="./assets/`, `src="/assets/`)
