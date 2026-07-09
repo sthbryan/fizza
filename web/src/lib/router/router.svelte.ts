@@ -6,6 +6,7 @@
 export type Route =
   | { name: "home" }
   | { name: "projects" }
+  | { name: "stats" }
   | { name: "board"; project: string; board: string }
   | { name: "notfound" };
 
@@ -25,6 +26,7 @@ export function getPath(): string {
 export function parseRoute(pathname: string = path): Route {
   if (pathname === "/" || pathname === "") return { name: "home" };
   if (pathname === "/projects") return { name: "projects" };
+  if (pathname === "/stats") return { name: "stats" };
 
   const m = pathname.match(/^\/p\/([^/]+)\/b\/([^/]+)\/?$/);
   if (m) {

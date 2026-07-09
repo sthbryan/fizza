@@ -5,6 +5,7 @@
   const route = $derived(getRoute());
   const boardActive = $derived(route.name === "board" || route.name === "home");
   const projectsActive = $derived(route.name === "projects");
+  const statsActive = $derived(route.name === "stats");
 
   function goBoard() {
     if (route.name === "board") return;
@@ -96,6 +97,30 @@
           d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
           stroke="currentColor"
           stroke-width="1.6"
+        />
+      </svg>
+    </a>
+    <a
+      href="/stats"
+      title="Stats"
+      class={cn(
+        "flex h-11 w-11 items-center justify-center rounded-2xl transition sm:h-12 sm:w-12",
+        statsActive
+          ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
+          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-text-secondary)]"
+      )}
+      onclick={(e) => {
+        e.preventDefault();
+        navigate("/stats");
+      }}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M4 19V9M10 19V5M16 19v-7M22 19H2"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         />
       </svg>
     </a>

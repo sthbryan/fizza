@@ -107,7 +107,6 @@ func ListProjects(ctx context.Context, q Querier) ([]*model.Project, error) {
 	return out, nil
 }
 
-// UpdateProject renames and/or rewrites the description for a project by id.
 func UpdateProject(ctx context.Context, q Querier, id int64, name, description string) (*model.Project, error) {
 	if err := model.ValidateProject(name, description); err != nil {
 		return nil, err

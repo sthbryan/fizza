@@ -5,6 +5,7 @@
   import { subscribeLiveInvalidation } from "@/lib/api";
   import HomeRedirect from "./HomeRedirect.svelte";
   import ProjectsPage from "@/features/projects/ProjectsPage.svelte";
+  import StatsPage from "@/features/stats/StatsPage.svelte";
   import BoardPage from "@/features/board/BoardPage.svelte";
   import AppShell from "@/shared/layout/AppShell.svelte";
 
@@ -28,6 +29,8 @@
     <HomeRedirect />
   {:else if route.name === "projects"}
     <ProjectsPage />
+  {:else if route.name === "stats"}
+    <StatsPage />
   {:else if route.name === "board"}
     {#key `${route.project}/${route.board}`}
       <BoardPage project={route.project} board={route.board} />
