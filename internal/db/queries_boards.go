@@ -101,6 +101,17 @@ func GetBoard(ctx context.Context, q Querier, id int64) (*model.Board, error) {
 	return &b, nil
 }
 
+func GetBoardByName(ctx context.Context, q Querier, projectID int64, name string) (*model.Board, error) {
+	var b model.Board
+	err := q.GetContext(ctx, &b,
+		`SELECT id, project_id, name, is_default, created_at FROM boards
+		 WHERE project_id = ? AND name = ?`, projectID, name)
+	if err != nil {
+		return nil, mapErrNotFound(err, fmt.Sprintf("board %q in project %d", name, projectID))
+	}
+	return &b, nil
+}
+
 func ListBoards(ctx context.Context, q Querier, projectID int64) ([]*model.Board, error) {
 	var out []*model.Board
 	err := q.SelectContext(ctx, &out,
