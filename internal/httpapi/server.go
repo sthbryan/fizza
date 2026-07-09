@@ -194,7 +194,8 @@ func decodeJSONBody(r *http.Request, v any) error {
 
 func isValidationErr(err error) bool {
 	switch {
-	case errors.Is(err, model.ErrProjectNameEmpty),
+	case errors.Is(err, model.ErrValidation),
+		errors.Is(err, model.ErrProjectNameEmpty),
 		errors.Is(err, model.ErrProjectNameLong),
 		errors.Is(err, model.ErrProjectDescLong),
 		errors.Is(err, model.ErrBoardNameEmpty),
@@ -232,6 +233,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/projects/{name}/boards/{board}/columns", s.handleCreateColumn)
 	s.mux.HandleFunc("DELETE /v1/projects/{name}/boards/{board}/columns/{column}", s.handleDeleteColumn)
 	s.mux.HandleFunc("DELETE /v1/projects/{name}/boards/{board}", s.handleDeleteBoard)
+	s.mux.HandleFunc("GET /v1/projects/{name}/boards/{board}/archived", s.handleListArchived)
+	s.mux.HandleFunc("POST /v1/projects/{name}/boards/{board}/archive-done", s.handleArchiveDone)
 
 	s.mux.HandleFunc("GET /v1/projects/{name}/boards/{board}/tasks", s.handleListTasks)
 	s.mux.HandleFunc("POST /v1/projects/{name}/boards/{board}/tasks", s.handleCreateTask)
@@ -239,6 +242,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/tasks/{id}", s.handleGetTask)
 	s.mux.HandleFunc("PATCH /v1/tasks/{id}", s.handleUpdateTask)
 	s.mux.HandleFunc("POST /v1/tasks/{id}/move", s.handleMoveTask)
+	s.mux.HandleFunc("POST /v1/tasks/{id}/archive", s.handleArchiveTask)
+	s.mux.HandleFunc("POST /v1/tasks/{id}/unarchive", s.handleUnarchiveTask)
 	s.mux.HandleFunc("DELETE /v1/tasks/{id}", s.handleDeleteTask)
 }
 
@@ -247,12 +252,84 @@ func (s *Server) handleBoardSnapshot(w http.ResponseWriter, r *http.Request) {
 	projectName := r.PathValue("name")
 	boardName := r.PathValue("board")
 	svc := service.New(s.svc.DB(), projectName, boardName, "")
-	snap, err := svc.BoardSnapshot(ctx)
+	opts := service.SnapshotOpts{
+		IncludeDone: parseBool(r.URL.Query().Get("include_done")),
+	}
+	snap, err := svc.BoardSnapshotOpts(ctx, opts)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
 	writeOK(w, http.StatusOK, snap)
+}
+
+func (s *Server) handleListArchived(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	projectName := r.PathValue("name")
+	boardName := r.PathValue("board")
+	svc := service.New(s.svc.DB(), projectName, boardName, "")
+	tasks, err := svc.ListArchived(ctx)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	if tasks == nil {
+		tasks = []*model.Task{}
+	}
+	writeOK(w, http.StatusOK, tasks)
+}
+
+func (s *Server) handleArchiveDone(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	projectName := r.PathValue("name")
+	boardName := r.PathValue("board")
+	svc := service.New(s.svc.DB(), projectName, boardName, "")
+	n, err := svc.ArchiveDone(ctx)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusOK, map[string]any{"archived": n})
+}
+
+func (s *Server) handleArchiveTask(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := r.PathValue("id")
+	t, err := s.svc.GetTaskByPrefix(ctx, id)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	if err := s.svc.ArchiveTask(ctx, t.ID); err != nil {
+		respondError(w, err)
+		return
+	}
+	fresh, err := s.svc.GetTask(ctx, t.ID)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusOK, fresh)
+}
+
+func (s *Server) handleUnarchiveTask(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := r.PathValue("id")
+	t, err := s.svc.GetTaskByPrefix(ctx, id)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	if err := s.svc.UnarchiveTask(ctx, t.ID); err != nil {
+		respondError(w, err)
+		return
+	}
+	fresh, err := s.svc.GetTask(ctx, t.ID)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeOK(w, http.StatusOK, fresh)
 }
 
 type createColumnReq struct {
@@ -775,7 +852,13 @@ func parseBool(s string) bool {
 }
 
 func buildTaskFilter(q url.Values) (db.TaskFilter, error) {
-	filter := db.TaskFilter{ColumnName: q.Get("column"), Search: q.Get("search")}
+	filter := db.TaskFilter{
+		ColumnName:      q.Get("column"),
+		Search:          q.Get("search"),
+		IncludeDone:     parseBool(q.Get("include_done")),
+		IncludeArchived: parseBool(q.Get("include_archived")),
+		OnlyArchived:    parseBool(q.Get("archived")),
+	}
 	if p := q.Get("priority"); p != "" {
 		for _, piece := range strings.Split(p, ",") {
 			piece = strings.TrimSpace(piece)

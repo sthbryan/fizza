@@ -23,6 +23,7 @@ func (s *Server) mountWeb() {
 	s.mux.HandleFunc("GET /projects", s.handleIndex)
 	s.mux.HandleFunc("GET /stats", s.handleIndex)
 	s.mux.HandleFunc("GET /p/{project}/b/{board}", s.handleIndex)
+	s.mux.HandleFunc("GET /p/{project}/b/{board}/archived", s.handleIndex)
 	s.mux.HandleFunc("GET /{path...}", s.handleSPAFallback)
 }
 

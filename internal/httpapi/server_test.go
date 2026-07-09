@@ -271,6 +271,13 @@ func TestTasksLifecycle(t *testing.T) {
 	assert.True(t, env.OK)
 	var list []*model.Task
 	require.NoError(t, json.Unmarshal(env.Data, &list))
+	assert.Len(t, list, 1, "default list excludes done")
+	assert.Equal(t, t1.ID, list[0].ID)
+
+	resp, body = doJSON(t, "GET", ts.URL+"/v1/projects/alpha/boards/main/tasks?include_done=true", nil)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	env = decode(t, bytes.NewReader(body))
+	require.NoError(t, json.Unmarshal(env.Data, &list))
 	assert.Len(t, list, 2)
 
 	resp, body = doJSON(t, "GET", ts.URL+"/v1/projects/alpha/boards/main/tasks?column=done", nil)
