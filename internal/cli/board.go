@@ -224,7 +224,7 @@ func newBoardShowCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			tasks, err := db.ListTasksInBoard(ctx, svc.DB(), found.ID, db.TaskFilter{})
+			tasks, err := db.ListTasksInBoard(ctx, svc.DB(), found.ID, db.TaskFilter{IncludeDone: true})
 			if err != nil {
 				return report(cmd, rf, err)
 			}

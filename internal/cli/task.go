@@ -23,6 +23,9 @@ func newTaskCmd(rf *rootFlags) *cobra.Command {
 	cmd.AddCommand(newTaskMoveCmd(rf))
 	cmd.AddCommand(newTaskUpdateCmd(rf))
 	cmd.AddCommand(newTaskDeleteCmd(rf))
+	cmd.AddCommand(newTaskArchiveCmd(rf))
+	cmd.AddCommand(newTaskUnarchiveCmd(rf))
+	cmd.AddCommand(newTaskArchiveDoneCmd(rf))
 	cmd.AddCommand(newTaskHistoryCmd(rf))
 	return cmd
 }
@@ -178,6 +181,7 @@ type bulkTaskSpec struct {
 
 func newTaskListCmd(rf *rootFlags) *cobra.Command {
 	var board, column, priority, dueBefore, dueAfter, search string
+	var includeDone, archived bool
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "List tasks in a board (with optional filters)",
@@ -193,6 +197,8 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
+			filter.IncludeDone = includeDone
+			filter.OnlyArchived = archived
 			tasks, err := svc.ListTasks(ctx, filter)
 			if err != nil {
 				return report(cmd, rf, err)
@@ -209,6 +215,8 @@ func newTaskListCmd(rf *rootFlags) *cobra.Command {
 	c.Flags().StringVar(&dueBefore, "due-before", "", "Only tasks with due_date <= date (YYYY-MM-DD)")
 	c.Flags().StringVar(&dueAfter, "due-after", "", "Only tasks with due_date >= date (YYYY-MM-DD)")
 	c.Flags().StringVar(&search, "search", "", "Substring search on title/description")
+	c.Flags().BoolVar(&includeDone, "include-done", false, "Include done/completed/closed tasks")
+	c.Flags().BoolVar(&archived, "archived", false, "List only archived tasks")
 	return c
 }
 
@@ -518,6 +526,89 @@ func newTaskDeleteCmd(rf *rootFlags) *cobra.Command {
 		},
 	}
 	c.Flags().BoolVar(&force, "force", false, "Skip confirmation")
+	return c
+}
+
+func newTaskArchiveCmd(rf *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "archive <id>",
+		Short: "Archive a task (hide from board)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := svc.ArchiveTask(ctx, t.ID); err != nil {
+				return report(cmd, rf, err)
+			}
+			updated, err := svc.GetTask(ctx, t.ID)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, updated)
+		},
+	}
+}
+
+func newTaskUnarchiveCmd(rf *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "unarchive <id>",
+		Short: "Restore an archived task to the board",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mustArgs(cmd, args, 1); err != nil {
+				return report(cmd, rf, err)
+			}
+			ctx := cmd.Context()
+			svc, err := rf.openDB(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+			t, err := svc.GetTaskByPrefix(ctx, args[0])
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			if err := svc.UnarchiveTask(ctx, t.ID); err != nil {
+				return report(cmd, rf, err)
+			}
+			updated, err := svc.GetTask(ctx, t.ID)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, updated)
+		},
+	}
+}
+
+func newTaskArchiveDoneCmd(rf *rootFlags) *cobra.Command {
+	var board string
+	c := &cobra.Command{
+		Use:   "archive-done",
+		Short: "Archive all done/completed/closed tasks on a board",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			svc, err := rf.openDBWith(ctx, "", board, "")
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			defer svc.Close()
+			n, err := svc.ArchiveDone(ctx)
+			if err != nil {
+				return report(cmd, rf, err)
+			}
+			return writeOK(cmd, rf, map[string]any{"archived": n})
+		},
+	}
+	c.Flags().StringVar(&board, "board", "", "Board name (defaults to config)")
 	return c
 }
 
