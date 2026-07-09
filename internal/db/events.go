@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/fizza/fizza/internal/dbutil"
@@ -69,6 +70,35 @@ func ListEvents(ctx context.Context, q Querier, taskID *int64, limit int) ([]*mo
 		LIMIT ?`, taskID, taskID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("db: list events: %w", err)
+	}
+	return out, nil
+}
+
+func MaxEventID(ctx context.Context, q Querier) (int64, error) {
+	var id sql.NullInt64
+	err := q.GetContext(ctx, &id, `SELECT MAX(id) FROM events`)
+	if err != nil {
+		return 0, fmt.Errorf("db: max event id: %w", err)
+	}
+	if !id.Valid {
+		return 0, nil
+	}
+	return id.Int64, nil
+}
+
+func EventsAfter(ctx context.Context, q Querier, afterID int64, limit int) ([]*model.Event, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	var out []*model.Event
+	err := q.SelectContext(ctx, &out, `
+		SELECT id, project_id, board_id, task_id, kind, payload, created_at
+		FROM events
+		WHERE id > ?
+		ORDER BY id ASC
+		LIMIT ?`, afterID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("db: events after: %w", err)
 	}
 	return out, nil
 }
