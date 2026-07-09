@@ -4,10 +4,10 @@
   import { getRoute } from "@/lib/router/router.svelte";
   import { subscribeLiveInvalidation } from "@/lib/api";
   import HomeRedirect from "./HomeRedirect.svelte";
+  import NotFoundPage from "./NotFoundPage.svelte";
   import ProjectsPage from "@/features/projects/ProjectsPage.svelte";
   import StatsPage from "@/features/stats/StatsPage.svelte";
   import BoardPage from "@/features/board/BoardPage.svelte";
-  import AppShell from "@/shared/layout/AppShell.svelte";
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -36,19 +36,6 @@
       <BoardPage project={route.project} board={route.board} />
     {/key}
   {:else}
-    <AppShell>
-      <div class="flex flex-1 flex-col items-center justify-center gap-3.5 p-8">
-        <h1 class="text-xl font-semibold">Not found</h1>
-        <p class="text-base text-[var(--color-text-muted)]">
-          No page at this URL.
-        </p>
-        <a
-          href="/projects"
-          class="text-base text-[var(--color-accent)] hover:underline"
-        >
-          Go to projects
-        </a>
-      </div>
-    </AppShell>
+    <NotFoundPage />
   {/if}
 </QueryClientProvider>
