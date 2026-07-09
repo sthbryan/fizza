@@ -18,9 +18,10 @@
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tailwindcss/vite": "^4.3.2",
     "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^22.15.30",
     "svelte-check": "^4.7.2",
     "tailwindcss": "^4.3.2",
-    "typescript": "~7.0.2",
+    "typescript": "~5.9.3",
     "vite": "^8.1.4"
   }
 }
