@@ -39,7 +39,7 @@ func newProjectSetCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			if _, err := db.GetProjectByName(ctx, svc.DB(), args[0]); err != nil {
 				return report(cmd, rf, err)
@@ -72,7 +72,7 @@ func newProjectNewCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			p, err := db.CreateProject(ctx, svc.DB(), args[0], desc)
 			if err != nil {
@@ -95,7 +95,7 @@ func newProjectListCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			projects, err := db.ListProjects(ctx, svc.DB())
 			if err != nil {
@@ -122,7 +122,7 @@ func newProjectShowCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			p, err := db.GetProjectByName(ctx, svc.DB(), args[0])
 			if err != nil {
@@ -147,7 +147,7 @@ func newProjectDeleteCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			p, err := db.GetProjectByName(ctx, svc.DB(), args[0])
 			if err != nil {
@@ -184,7 +184,7 @@ func newProjectExportCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			p, err := db.GetProjectByName(ctx, svc.DB(), args[0])
 			if err != nil {
@@ -250,7 +250,7 @@ func newProjectImportCmd(rf *rootFlags) *cobra.Command {
 			if err != nil {
 				return report(cmd, rf, err)
 			}
-			defer svc.DB().Close()
+			defer svc.Close()
 
 			existing, err := db.GetProjectByName(ctx, svc.DB(), payload.Project.Name)
 			if err == nil && existing != nil {
