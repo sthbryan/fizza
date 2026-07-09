@@ -20,7 +20,7 @@
 
 <span
   class={cn(
-    "inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-medium capitalize",
+    "inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium capitalize",
     styles[key] || styles.medium
   )}
 >
