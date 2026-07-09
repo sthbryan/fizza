@@ -6,6 +6,43 @@ One static binary. One SQLite database. A CLI, a web board, and an [MCP](https:/
 
 ---
 
+## Install
+
+**One-liner (macOS / Linux):** downloads the latest release binary, verifies its checksum, and installs it.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sthbryan/fizza/main/scripts/install.sh | sh
+```
+
+The installer picks the right asset for your OS and architecture, falls back to `~/.local/bin` if `/usr/local/bin` is not writable, and prints the version it installed.
+
+**From source:** clones the repo, builds the web UI, and compiles the binary.
+
+```bash
+git clone https://github.com/sthbryan/fizza
+cd fizza
+make install    # web + build + copy to /usr/local/bin (use sudo if needed)
+```
+
+Override the install location with `PREFIX`:
+
+```bash
+make install PREFIX=$HOME/.local   # no sudo, user-local
+```
+
+Requires **Go 1.26+** and **Bun** (only the first time; afterwards the web assets are already embedded in your local clone).
+
+**Manual download:** pick a binary or package from the [latest release](https://github.com/sthbryan/fizza/releases/latest). Archives are provided for `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`, `windows/amd64`, `windows/arm64`, plus `.deb` / `.rpm` / `.apk` packages for Linux.
+
+After installing, verify:
+
+```bash
+fizza --version
+fizza serve          # opens http://127.0.0.1:6500
+```
+
+---
+
 ## Why fizza
 
 Most task tools are either built for humans (pretty UI, awkward for scripts) or for agents (JSON dumps that grow forever and blow the context window). fizza is both:
@@ -39,21 +76,29 @@ By default, listings and board snapshots keep **done bodies lean** (counts inste
 
 ---
 
-## Build
+## Development
 
-Requires **Go 1.26+**. For the embedded web UI, also **Bun**.
+Requires **Go 1.26+** and **Bun**.
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/sthbryan/fizza
 cd fizza
-make build-full   # builds web assets + bin/fizza
-# or, Go only (fallback page if web was never built):
-make build
+
+make build-full   # web assets + bin/fizza (with embedded UI)
+make build        # Go-only build (fallback page if web not built)
+make web          # bun install + vite build into internal/httpapi/static
+make test         # go test ./...
+make test-race    # go test -race ./...
+make vet          # go vet ./...
+make fmt          # gofmt -w + verify clean
+make install      # web + build + copy to /usr/local/bin (PREFIX=... override)
+make clean        # remove bin/ + test cache
 ```
 
+The web UI source lives in `web/` (Svelte 5 + Vite + TanStack Query + Tailwind). For hot reload while `fizza serve` is running:
+
 ```bash
-make test
-make install      # into $(go env GOPATH)/bin
+cd web && bun run dev
 ```
 
 ---
