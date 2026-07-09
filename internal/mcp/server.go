@@ -18,9 +18,11 @@ const serverInstructions = `Fizza manages local kanban boards (SQLite).
 
 Typical flow: project_new → board_snapshot → task_add → task_move / task_update.
 Default board "main" has columns todo, in_progress, in_review, done.
+board_snapshot and task_list omit done task bodies by default (done shows task_count only).
+Pass include_done=true to expand completed work. Archived tasks are hidden unless requested.
 Omit project/board when user config defaults are set, or the project has one board.
 Task ids are numeric (short prefixes OK if unique). Deletes require force=true.
-Attach labels via task_update add_tags/remove_tags. Use board_snapshot for a full board view.`
+Attach labels via task_update add_tags/remove_tags.`
 
 func Run(ctx context.Context, version string) error {
 	path, err := config.DBPath()
@@ -141,8 +143,9 @@ type boardDeleteInput struct {
 }
 
 type boardSnapshotInput struct {
-	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
-	Board   string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
+	Project     string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board       string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
+	IncludeDone bool   `json:"include_done,omitempty" jsonschema:"include full task lists for done/completed/closed columns (default false; those columns return task_count only)"`
 }
 
 func registerBoardTools(s *mcp.Server, pool *db.Pool) {
@@ -198,14 +201,14 @@ func registerBoardTools(s *mcp.Server, pool *db.Pool) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "board_snapshot",
-		Description: "Return every column on a board with its tasks in position order.",
+		Description: "Return every column on a board with tasks. Done/completed/closed columns are truncated to task_count by default; pass include_done=true for full lists. Archived tasks are never included.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in boardSnapshotInput) (*mcp.CallToolResult, any, error) {
 		project, board, err := resolveScope(in.Project, in.Board)
 		if err != nil {
 			return nil, nil, err
 		}
 		svc := newService(pool, project, board, "")
-		snap, err := svc.BoardSnapshot(ctx)
+		snap, err := svc.BoardSnapshotOpts(ctx, service.SnapshotOpts{IncludeDone: in.IncludeDone})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -246,13 +249,24 @@ type taskAddInput struct {
 }
 
 type taskListInput struct {
-	Project  string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
-	Board    string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
-	ID       string `json:"id,omitempty" jsonschema:"task ID or numeric prefix; if set, returns single-element array"`
-	Column   string `json:"column,omitempty" jsonschema:"filter by column name (acts as status filter)"`
-	Priority string `json:"priority,omitempty" jsonschema:"filter by priority: low|medium|high|urgent"`
-	Tag      string `json:"tag,omitempty" jsonschema:"filter by tag name"`
-	Search   string `json:"search,omitempty" jsonschema:"substring match against title/description"`
+	Project     string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board       string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
+	ID          string `json:"id,omitempty" jsonschema:"task ID or numeric prefix; if set, returns single-element array"`
+	Column      string `json:"column,omitempty" jsonschema:"filter by column name (acts as status filter); setting column=done returns done tasks"`
+	Priority    string `json:"priority,omitempty" jsonschema:"filter by priority: low|medium|high|urgent"`
+	Tag         string `json:"tag,omitempty" jsonschema:"filter by tag name"`
+	Search      string `json:"search,omitempty" jsonschema:"substring match against title/description"`
+	IncludeDone bool   `json:"include_done,omitempty" jsonschema:"include done/completed/closed tasks when no column filter (default false)"`
+	Archived    bool   `json:"archived,omitempty" jsonschema:"list only archived tasks"`
+}
+
+type taskArchiveInput struct {
+	ID string `json:"id" jsonschema:"task ID or numeric prefix"`
+}
+
+type taskArchiveDoneInput struct {
+	Project string `json:"project,omitempty" jsonschema:"project name (defaults to configured project)"`
+	Board   string `json:"board,omitempty" jsonschema:"board name (defaults to configured board or sole board)"`
 }
 
 type taskMoveInput struct {
@@ -337,7 +351,7 @@ func registerTaskTools(s *mcp.Server, pool *db.Pool) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "task_list",
-		Description: "List tasks in a board with optional filters (column, priority, tag, search), or fetch one by id.",
+		Description: "List tasks in a board with optional filters. By default excludes done/completed/closed and archived. Pass include_done, column=done, or archived=true as needed.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskListInput) (*mcp.CallToolResult, any, error) {
 		if in.ID != "" {
 			t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
@@ -351,7 +365,12 @@ func registerTaskTools(s *mcp.Server, pool *db.Pool) {
 			return nil, nil, err
 		}
 		svc := newService(pool, project, board, "")
-		filter := db.TaskFilter{ColumnName: in.Column, Search: in.Search}
+		filter := db.TaskFilter{
+			ColumnName:   in.Column,
+			Search:       in.Search,
+			IncludeDone:  in.IncludeDone,
+			OnlyArchived: in.Archived,
+		}
 		if in.Priority != "" {
 			pri, err := model.NewPriority(in.Priority)
 			if err != nil {
@@ -466,6 +485,60 @@ func registerTaskTools(s *mcp.Server, pool *db.Pool) {
 			return nil, nil, err
 		}
 		return nil, map[string]any{"deleted": t.ID, "title": t.Title}, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "task_archive",
+		Description: "Soft-archive a task (hides it from the board; recoverable via task_unarchive).",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskArchiveInput) (*mcp.CallToolResult, any, error) {
+		t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		svc := newService(pool, "", "", "")
+		if err := svc.ArchiveTask(ctx, t.ID); err != nil {
+			return nil, nil, err
+		}
+		updated, err := db.GetTask(ctx, conn, t.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, updated, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "task_unarchive",
+		Description: "Restore an archived task onto the board (stays in its column, typically done).",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskArchiveInput) (*mcp.CallToolResult, any, error) {
+		t, err := db.GetTaskByPrefix(ctx, conn, in.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		svc := newService(pool, "", "", "")
+		if err := svc.UnarchiveTask(ctx, t.ID); err != nil {
+			return nil, nil, err
+		}
+		updated, err := db.GetTask(ctx, conn, t.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, updated, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "task_archive_done",
+		Description: "Archive all non-archived tasks currently in done/completed/closed columns on a board.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in taskArchiveDoneInput) (*mcp.CallToolResult, any, error) {
+		project, board, err := resolveScope(in.Project, in.Board)
+		if err != nil {
+			return nil, nil, err
+		}
+		svc := newService(pool, project, board, "")
+		n, err := svc.ArchiveDone(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, map[string]any{"archived": n}, nil
 	})
 }
 
