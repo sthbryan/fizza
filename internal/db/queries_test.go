@@ -29,12 +29,26 @@ func TestCRUD_Project(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotZero(t, p.ID)
 	assert.Equal(t, "alpha", p.Name)
+	assert.Equal(t, int64(1), p.BoardCount, "seeded main board")
 
 	got, err := GetProjectByName(ctx, conn, "alpha")
 	require.NoError(t, err)
 	assert.Equal(t, p.ID, got.ID)
+	assert.Equal(t, int64(1), got.BoardCount)
 
-	_, err = CreateProject(ctx, conn, "alpha", "")
+	updated, err := UpdateProject(ctx, conn, p.ID, "alpha-renamed", "updated desc")
+	require.NoError(t, err)
+	assert.Equal(t, "alpha-renamed", updated.Name)
+	assert.Equal(t, "updated desc", updated.Description)
+	assert.Equal(t, int64(1), updated.BoardCount)
+
+	list, err := ListProjects(ctx, conn)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "alpha-renamed", list[0].Name)
+	assert.Equal(t, int64(1), list[0].BoardCount)
+
+	_, err = CreateProject(ctx, conn, "alpha-renamed", "")
 	require.True(t, IsDuplicate(err), "duplicate name should be detected")
 
 	require.NoError(t, DeleteProject(ctx, conn, p.ID))

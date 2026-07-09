@@ -8,6 +8,7 @@ type Project struct {
 	ID          int64       `json:"id" db:"id"`
 	Name        string      `json:"name" db:"name"`
 	Description string      `json:"description,omitempty" db:"description"`
+	BoardCount  int64       `json:"board_count" db:"board_count"`
 	CreatedAt   dbutil.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   dbutil.Time `json:"updated_at" db:"updated_at"`
 }

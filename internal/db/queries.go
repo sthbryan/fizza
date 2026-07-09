@@ -75,10 +75,14 @@ func CreateProject(ctx context.Context, q Querier, name, description string) (*m
 	return p, nil
 }
 
+const projectSelect = `
+	SELECT p.id, p.name, p.description, p.created_at, p.updated_at,
+	       (SELECT COUNT(*) FROM boards b WHERE b.project_id = p.id) AS board_count
+	FROM projects p`
+
 func GetProject(ctx context.Context, q Querier, id int64) (*model.Project, error) {
 	var p model.Project
-	err := q.GetContext(ctx, &p,
-		`SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?`, id)
+	err := q.GetContext(ctx, &p, projectSelect+` WHERE p.id = ?`, id)
 	if err != nil {
 		return nil, mapErrNotFound(err, "project")
 	}
@@ -87,8 +91,7 @@ func GetProject(ctx context.Context, q Querier, id int64) (*model.Project, error
 
 func GetProjectByName(ctx context.Context, q Querier, name string) (*model.Project, error) {
 	var p model.Project
-	err := q.GetContext(ctx, &p,
-		`SELECT id, name, description, created_at, updated_at FROM projects WHERE name = ?`, name)
+	err := q.GetContext(ctx, &p, projectSelect+` WHERE p.name = ?`, name)
 	if err != nil {
 		return nil, mapErrNotFound(err, "project")
 	}
@@ -97,12 +100,36 @@ func GetProjectByName(ctx context.Context, q Querier, name string) (*model.Proje
 
 func ListProjects(ctx context.Context, q Querier) ([]*model.Project, error) {
 	var out []*model.Project
-	err := q.SelectContext(ctx, &out,
-		`SELECT id, name, description, created_at, updated_at FROM projects ORDER BY name`)
+	err := q.SelectContext(ctx, &out, projectSelect+` ORDER BY p.name`)
 	if err != nil {
 		return nil, fmt.Errorf("db: list projects: %w", err)
 	}
 	return out, nil
+}
+
+// UpdateProject renames and/or rewrites the description for a project by id.
+func UpdateProject(ctx context.Context, q Querier, id int64, name, description string) (*model.Project, error) {
+	if err := model.ValidateProject(name, description); err != nil {
+		return nil, err
+	}
+	res, err := q.ExecContext(ctx, `
+		UPDATE projects
+		SET name = ?, description = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+		WHERE id = ?`, name, description, id)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, fmt.Errorf("%w: project %q already exists", ErrDuplicate, name)
+		}
+		return nil, fmt.Errorf("db: update project: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, fmt.Errorf("%w: project %d", ErrNotFound, id)
+	}
+	return GetProject(ctx, q, id)
 }
 
 func DeleteProject(ctx context.Context, q Querier, id int64) error {
