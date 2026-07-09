@@ -44,13 +44,14 @@ esac
 VERSION="${FIZZA_VERSION:-}"
 if [[ -z "${VERSION}" || "${VERSION}" == "latest" ]]; then
     note "resolving latest release from GitHub..."
-    VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-        | grep -m1 '"tag_name"' \
-        | sed -E 's/.*"v?([^"]+)".*/\1/') \
-        || err "could not determine latest version (set FIZZA_VERSION=<x.y.z> to override)"
+    # Capture the full JSON first so SIGPIPE from grep doesn't trip curl (exit 23)
+    # under `set -o pipefail`.
+    LATEST_JSON=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest") \
+        || err "could not fetch latest release from GitHub (set FIZZA_VERSION=<x.y.z> to override)"
+    VERSION=$(printf '%s' "${LATEST_JSON}" | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
 fi
 
-[[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || err "invalid version: ${VERSION}"
+[[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || err "invalid version: ${VERSION:-empty}"
 
 # --- pick install dir -------------------------------------------------------
 
