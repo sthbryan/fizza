@@ -5,6 +5,7 @@ project_name: fizza
 before:
   hooks:
     - go mod tidy
+    - make web
 
 builds:
   - id: fizza

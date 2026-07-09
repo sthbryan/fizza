@@ -18,6 +18,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: make web
       - run: go test -race ./...
       - run: go vet ./...
 
@@ -31,6 +35,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
