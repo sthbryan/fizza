@@ -12,10 +12,13 @@
   } from "@/lib/router/router.svelte";
   import { fizzaApi } from "@/lib/api";
   import { showToast } from "@/lib/toast/toast.svelte";
+  import type { Project } from "@/lib/api";
   import CreateProjectDialog from "./CreateProjectDialog.svelte";
+  import EditProjectDialog from "./EditProjectDialog.svelte";
   import { projectsApi } from "./api";
 
   let createOpen = $state(false);
+  let editing = $state<Project | null>(null);
   const hint = lastBoardHint();
   const queryClient = useQueryClient();
 
@@ -48,6 +51,12 @@
     }
   }
 
+  function handleEdit(e: MouseEvent, project: Project) {
+    e.stopPropagation();
+    e.preventDefault();
+    editing = project;
+  }
+
   function handleDelete(e: MouseEvent, name: string) {
     e.stopPropagation();
     e.preventDefault();
@@ -59,6 +68,11 @@
       return;
     }
     void $deleteMutation.mutateAsync(name);
+  }
+
+  function boardLabel(count: number | undefined) {
+    const n = count ?? 0;
+    return n === 1 ? "1 board" : `${n} boards`;
   }
 </script>
 
@@ -136,6 +150,14 @@
                     {/if}
                     <button
                       type="button"
+                      title="Edit project"
+                      class="pointer-events-auto cursor-pointer rounded-lg px-2 py-1 text-sm text-[var(--color-text-muted)] opacity-100 transition hover:bg-white/5 hover:text-[var(--color-text)] sm:opacity-0 sm:group-hover:opacity-100"
+                      onclick={(e) => handleEdit(e, p)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
                       title="Delete project"
                       class="pointer-events-auto cursor-pointer rounded-lg px-2 py-1 text-sm text-[var(--color-text-muted)] opacity-100 transition hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] sm:opacity-0 sm:group-hover:opacity-100"
                       onclick={(e) => handleDelete(e, p.name)}
@@ -149,11 +171,13 @@
                 >
                   {p.description?.trim() || "No description"}
                 </p>
-                <div class="mt-5 flex items-center justify-between">
-                  <span class="font-mono text-xs text-[var(--color-text-muted)]">
-                    #{p.id}
+                <div class="mt-5 flex items-center justify-between gap-3">
+                  <span class="text-sm text-[var(--color-text-muted)]">
+                    <span class="font-mono text-xs">#{p.id}</span>
+                    <span class="mx-1.5 opacity-40">·</span>
+                    {boardLabel(p.board_count)}
                   </span>
-                  <span class="text-sm text-[var(--color-text-secondary)]">
+                  <span class="shrink-0 text-sm text-[var(--color-text-secondary)]">
                     Open board →
                   </span>
                 </div>
@@ -172,3 +196,8 @@
 </AppShell>
 
 <CreateProjectDialog open={createOpen} onclose={() => (createOpen = false)} />
+<EditProjectDialog
+  project={editing}
+  open={editing !== null}
+  onclose={() => (editing = null)}
+/>

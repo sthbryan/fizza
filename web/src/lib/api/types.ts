@@ -4,6 +4,7 @@ export interface Project {
   id: number;
   name: string;
   description?: string;
+  board_count?: number;
 }
 
 export interface Board {

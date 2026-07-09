@@ -62,6 +62,10 @@ export const fizzaApi = {
   listProjects: () => api<Project[]>("GET", "/v1/projects"),
   createProject: (name: string, description = "") =>
     api<Project>("POST", "/v1/projects", { name, description }),
+  updateProject: (
+    name: string,
+    patch: { name?: string; description?: string }
+  ) => api<Project>("PATCH", `/v1/projects/${enc(name)}`, patch),
   deleteProject: (name: string) =>
     api<{ deleted: string; id: number }>(
       "DELETE",
