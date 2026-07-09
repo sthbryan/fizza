@@ -30,4 +30,7 @@ export const tasksApi = {
   ) => fizzaApi.moveTask(id, input),
 
   delete: (id: number) => fizzaApi.deleteTask(id),
+
+  archive: (id: number) => fizzaApi.archiveTask(id),
+  unarchive: (id: number) => fizzaApi.unarchiveTask(id),
 };

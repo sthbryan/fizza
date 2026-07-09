@@ -100,10 +100,24 @@ export const fizzaApi = {
       }`
     ),
 
-  snapshot: (project: string, board: string) =>
+  snapshot: (project: string, board: string, includeDone = false) =>
     api<BoardSnapshot>(
       "GET",
-      `/v1/projects/${enc(project)}/boards/${enc(board)}/snapshot`
+      `/v1/projects/${enc(project)}/boards/${enc(board)}/snapshot${
+        includeDone ? "?include_done=true" : ""
+      }`
+    ),
+
+  listArchived: (project: string, board: string) =>
+    api<Task[]>(
+      "GET",
+      `/v1/projects/${enc(project)}/boards/${enc(board)}/archived`
+    ),
+
+  archiveDone: (project: string, board: string) =>
+    api<{ archived: number }>(
+      "POST",
+      `/v1/projects/${enc(project)}/boards/${enc(board)}/archive-done`
     ),
 
   createTask: (
@@ -141,6 +155,9 @@ export const fizzaApi = {
 
   deleteTask: (id: number) =>
     api<{ deleted: number }>("DELETE", `/v1/tasks/${id}?force=true`),
+
+  archiveTask: (id: number) => api<Task>("POST", `/v1/tasks/${id}/archive`),
+  unarchiveTask: (id: number) => api<Task>("POST", `/v1/tasks/${id}/unarchive`),
 
   stats: (project?: string, board?: string) => {
     const q = new URLSearchParams();

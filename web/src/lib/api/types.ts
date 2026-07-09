@@ -23,6 +23,8 @@ export interface Task {
   description?: string;
   priority: Priority | string;
   due_date?: string | null;
+  completed_at?: string | null;
+  archived_at?: string | null;
   parent_id?: number | null;
 }
 
@@ -32,12 +34,15 @@ export interface ColumnSnapshot {
   position: number;
   wip_limit?: number | null;
   tasks: Task[];
+  task_count?: number;
+  truncated?: boolean;
 }
 
 export interface BoardSnapshot {
   project: string;
   board: Board;
   columns: ColumnSnapshot[];
+  archived_count?: number;
 }
 
 export interface Column {

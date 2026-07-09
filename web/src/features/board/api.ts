@@ -14,6 +14,10 @@ export const boardApi = {
     name: string,
     force = false
   ) => fizzaApi.deleteColumn(project, board, name, force),
-  snapshot: (project: string, board: string) =>
-    fizzaApi.snapshot(project, board),
+  snapshot: (project: string, board: string, includeDone = false) =>
+    fizzaApi.snapshot(project, board, includeDone),
+  listArchived: (project: string, board: string) =>
+    fizzaApi.listArchived(project, board),
+  archiveDone: (project: string, board: string) =>
+    fizzaApi.archiveDone(project, board),
 };
