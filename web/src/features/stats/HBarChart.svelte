@@ -5,12 +5,14 @@
   interface Props {
     rows: NamedCount[];
     colorFor?: (name: string) => string;
+    labelFor?: (name: string) => string;
     emptyLabel?: string;
   }
 
   let {
     rows,
     colorFor = () => "var(--color-accent)",
+    labelFor = (name: string) => name,
     emptyLabel = "No data yet",
   }: Props = $props();
 
@@ -29,7 +31,7 @@
       <div class="min-w-0">
         <div class="mb-1 flex items-baseline justify-between gap-2">
           <span class="truncate text-sm text-[var(--color-text-secondary)]">
-            {row.name}
+            {labelFor(row.name)}
           </span>
           <span class="shrink-0 font-mono text-xs text-[var(--color-text-muted)]">
             {row.count}

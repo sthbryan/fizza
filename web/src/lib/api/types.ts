@@ -68,6 +68,7 @@ export interface ProjectStatsRow {
   done: number;
   open: number;
   overdue: number;
+  archived: number;
 }
 
 export interface BoardStatsRow {
@@ -77,6 +78,7 @@ export interface BoardStatsRow {
   done: number;
   open: number;
   overdue: number;
+  archived: number;
 }
 
 export interface Stats {
@@ -88,6 +90,7 @@ export interface Stats {
     done: number;
     open: number;
     overdue: number;
+    archived: number;
   };
   by_priority: NamedCount[];
   by_column: NamedCount[];

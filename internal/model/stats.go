@@ -11,21 +11,23 @@ type DayCount struct {
 }
 
 type ProjectStatsRow struct {
-	Name    string `json:"name" db:"name"`
-	Boards  int64  `json:"boards" db:"boards"`
-	Tasks   int64  `json:"tasks" db:"tasks"`
-	Done    int64  `json:"done" db:"done"`
-	Open    int64  `json:"open" db:"open"`
-	Overdue int64  `json:"overdue" db:"overdue"`
+	Name     string `json:"name" db:"name"`
+	Boards   int64  `json:"boards" db:"boards"`
+	Tasks    int64  `json:"tasks" db:"tasks"`
+	Done     int64  `json:"done" db:"done"`
+	Open     int64  `json:"open" db:"open"`
+	Overdue  int64  `json:"overdue" db:"overdue"`
+	Archived int64  `json:"archived" db:"archived"`
 }
 
 type BoardStatsRow struct {
-	Project string `json:"project" db:"project"`
-	Name    string `json:"name" db:"name"`
-	Tasks   int64  `json:"tasks" db:"tasks"`
-	Done    int64  `json:"done" db:"done"`
-	Open    int64  `json:"open" db:"open"`
-	Overdue int64  `json:"overdue" db:"overdue"`
+	Project  string `json:"project" db:"project"`
+	Name     string `json:"name" db:"name"`
+	Tasks    int64  `json:"tasks" db:"tasks"`
+	Done     int64  `json:"done" db:"done"`
+	Open     int64  `json:"open" db:"open"`
+	Overdue  int64  `json:"overdue" db:"overdue"`
+	Archived int64  `json:"archived" db:"archived"`
 }
 
 type StatsScope struct {
@@ -40,6 +42,7 @@ type StatsTotals struct {
 	Done     int64 `json:"done"`
 	Open     int64 `json:"open"`
 	Overdue  int64 `json:"overdue"`
+	Archived int64 `json:"archived"`
 }
 
 type Stats struct {

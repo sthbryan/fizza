@@ -173,6 +173,17 @@ func fillStatsTotals(ctx context.Context, q Querier, scope statsScopeIDs, out *m
 	out.Totals.Done = row.Done
 	out.Totals.Open = row.Open
 	out.Totals.Overdue = row.Overdue
+
+	archQuery := `
+		SELECT COUNT(*) FROM tasks t
+		JOIN boards b ON b.id = t.board_id
+		JOIN projects p ON p.id = b.project_id
+		WHERE ` + where + ` AND t.archived_at IS NOT NULL`
+	var archived int64
+	if err := q.GetContext(ctx, &archived, archQuery, args...); err != nil {
+		return fmt.Errorf("db: stats archived count: %w", err)
+	}
+	out.Totals.Archived = archived
 	return nil
 }
 
@@ -293,7 +304,10 @@ func listProjectStats(ctx context.Context, q Querier) ([]model.ProjectStatsRow, 
 			COUNT(t.id) AS tasks,
 			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + doneColumnSQL + ` THEN 1 ELSE 0 END), 0) AS done,
 			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND NOT (` + doneColumnSQL + `) THEN 1 ELSE 0 END), 0) AS open,
-			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + overdueSQL + ` THEN 1 ELSE 0 END), 0) AS overdue
+			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + overdueSQL + ` THEN 1 ELSE 0 END), 0) AS overdue,
+			(SELECT COUNT(*) FROM tasks ta
+			 JOIN boards ba ON ba.id = ta.board_id
+			 WHERE ba.project_id = p.id AND ta.archived_at IS NOT NULL) AS archived
 		FROM projects p
 		LEFT JOIN boards b ON b.project_id = p.id
 		LEFT JOIN tasks t ON t.board_id = b.id AND t.archived_at IS NULL
@@ -329,7 +343,9 @@ func listBoardStats(ctx context.Context, q Querier, scope statsScopeIDs) ([]mode
 			COUNT(t.id) AS tasks,
 			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + doneColumnSQL + ` THEN 1 ELSE 0 END), 0) AS done,
 			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND NOT (` + doneColumnSQL + `) THEN 1 ELSE 0 END), 0) AS open,
-			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + overdueSQL + ` THEN 1 ELSE 0 END), 0) AS overdue
+			COALESCE(SUM(CASE WHEN t.id IS NOT NULL AND ` + overdueSQL + ` THEN 1 ELSE 0 END), 0) AS overdue,
+			(SELECT COUNT(*) FROM tasks ta
+			 WHERE ta.board_id = b.id AND ta.archived_at IS NOT NULL) AS archived
 		FROM boards b
 		JOIN projects p ON p.id = b.project_id
 		LEFT JOIN tasks t ON t.board_id = b.id AND t.archived_at IS NULL

@@ -76,6 +76,7 @@ func TestGetStats_WithTasks(t *testing.T) {
 	assert.Equal(t, int64(1), stats.Totals.Done)
 	assert.Equal(t, int64(2), stats.Totals.Open)
 	assert.Equal(t, int64(1), stats.Totals.Overdue)
+	assert.Equal(t, int64(0), stats.Totals.Archived)
 
 	require.Len(t, stats.ByPriority, 4)
 	pri := map[string]int64{}

@@ -11,6 +11,7 @@
   import DayChart from "./DayChart.svelte";
   import {
     columnColor,
+    formatStatusLabel,
     pct,
     priorityColor,
   } from "./utils";
@@ -40,18 +41,21 @@
   }));
 
   const projectOptions = $derived([
-    { value: "", label: "All projects" },
+    { value: "", label: "ALL PROJECTS" },
     ...((projectsQuery.data as Project[] | undefined) ?? []).map((p) => ({
       value: p.name,
-      label: p.name,
+      label: formatStatusLabel(p.name),
     })),
   ]);
 
   const boardOptions = $derived([
-    { value: "", label: projectFilter ? "All boards" : "Pick a project first" },
+    {
+      value: "",
+      label: projectFilter ? "ALL BOARDS" : "PICK A PROJECT FIRST",
+    },
     ...((boardsQuery.data as Board[] | undefined) ?? []).map((b) => ({
       value: b.name,
-      label: b.name,
+      label: formatStatusLabel(b.name),
     })),
   ]);
 
@@ -66,9 +70,11 @@
   }
 
   function scopeLabel() {
-    if (projectFilter && boardFilter) return `${projectFilter} / ${boardFilter}`;
-    if (projectFilter) return projectFilter;
-    return "All projects";
+    if (projectFilter && boardFilter) {
+      return `${formatStatusLabel(projectFilter)} / ${formatStatusLabel(boardFilter)}`;
+    }
+    if (projectFilter) return formatStatusLabel(projectFilter);
+    return "ALL PROJECTS";
   }
 </script>
 
@@ -135,12 +141,12 @@
       {:else}
         <div class="space-y-5 p-4 sm:space-y-6 sm:p-6">
           <div
-            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 sm:gap-4"
+            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 sm:gap-4"
           >
             {#each [
               { label: "Projects", value: t.projects, show: !projectFilter },
               { label: "Boards", value: t.boards, show: !boardFilter },
-              { label: "Tasks", value: t.tasks, show: true },
+              { label: "Active", value: t.tasks, show: true },
               { label: "Open", value: t.open, show: true },
               { label: "Done", value: t.done, show: true },
               {
@@ -148,6 +154,11 @@
                 value: t.overdue,
                 show: true,
                 danger: t.overdue > 0,
+              },
+              {
+                label: "Archived",
+                value: t.archived ?? 0,
+                show: true,
               },
             ] as card (card.label)}
               {#if card.show}
@@ -177,7 +188,7 @@
               <ProgressRing
                 value={donePct}
                 label="Completion"
-                sublabel="{t.done} of {t.tasks} tasks done"
+                sublabel="{t.done} of {t.tasks} active done"
               />
             </div>
 
@@ -190,6 +201,7 @@
               <HBarChart
                 rows={stats.by_priority}
                 colorFor={priorityColor}
+                labelFor={formatStatusLabel}
                 emptyLabel="No tasks yet"
               />
             </div>
@@ -203,6 +215,7 @@
               <HBarChart
                 rows={stats.by_column}
                 colorFor={columnColor}
+                labelFor={formatStatusLabel}
                 emptyLabel="No tasks yet"
               />
             </div>
@@ -254,10 +267,11 @@
                     >
                       <th class="pb-2.5 pr-3 font-medium">Project</th>
                       <th class="pb-2.5 pr-3 font-medium">Boards</th>
-                      <th class="pb-2.5 pr-3 font-medium">Tasks</th>
+                      <th class="pb-2.5 pr-3 font-medium">Active</th>
                       <th class="pb-2.5 pr-3 font-medium">Done</th>
                       <th class="pb-2.5 pr-3 font-medium">Open</th>
                       <th class="pb-2.5 pr-3 font-medium">Overdue</th>
+                      <th class="pb-2.5 pr-3 font-medium">Archived</th>
                       <th class="pb-2.5 font-medium">Progress</th>
                     </tr>
                   </thead>
@@ -267,7 +281,9 @@
                       <tr
                         class="border-b border-[var(--color-border-subtle)]/60 last:border-0"
                       >
-                        <td class="py-3 pr-3 font-medium">{row.name}</td>
+                        <td class="py-3 pr-3 font-medium"
+                          >{formatStatusLabel(row.name)}</td
+                        >
                         <td class="py-3 pr-3 text-[var(--color-text-muted)]"
                           >{row.boards}</td
                         >
@@ -280,6 +296,9 @@
                           class="py-3 pr-3"
                           class:text-[var(--color-danger)]={row.overdue > 0}
                           >{row.overdue}</td
+                        >
+                        <td class="py-3 pr-3 text-[var(--color-text-muted)]"
+                          >{row.archived ?? 0}</td
                         >
                         <td class="py-3">
                           <div class="flex min-w-[6rem] items-center gap-2">
@@ -322,10 +341,11 @@
                         <th class="pb-2.5 pr-3 font-medium">Project</th>
                       {/if}
                       <th class="pb-2.5 pr-3 font-medium">Board</th>
-                      <th class="pb-2.5 pr-3 font-medium">Tasks</th>
+                      <th class="pb-2.5 pr-3 font-medium">Active</th>
                       <th class="pb-2.5 pr-3 font-medium">Done</th>
                       <th class="pb-2.5 pr-3 font-medium">Open</th>
                       <th class="pb-2.5 pr-3 font-medium">Overdue</th>
+                      <th class="pb-2.5 pr-3 font-medium">Archived</th>
                       <th class="pb-2.5 font-medium">Progress</th>
                     </tr>
                   </thead>
@@ -338,10 +358,12 @@
                         {#if !projectFilter}
                           <td
                             class="py-3 pr-3 text-[var(--color-text-secondary)]"
-                            >{row.project}</td
+                            >{formatStatusLabel(row.project)}</td
                           >
                         {/if}
-                        <td class="py-3 pr-3 font-medium">{row.name}</td>
+                        <td class="py-3 pr-3 font-medium"
+                          >{formatStatusLabel(row.name)}</td
+                        >
                         <td class="py-3 pr-3">{row.tasks}</td>
                         <td class="py-3 pr-3 text-[var(--color-ok)]"
                           >{row.done}</td
@@ -351,6 +373,9 @@
                           class="py-3 pr-3"
                           class:text-[var(--color-danger)]={row.overdue > 0}
                           >{row.overdue}</td
+                        >
+                        <td class="py-3 pr-3 text-[var(--color-text-muted)]"
+                          >{row.archived ?? 0}</td
                         >
                         <td class="py-3">
                           <div class="flex min-w-[6rem] items-center gap-2">
