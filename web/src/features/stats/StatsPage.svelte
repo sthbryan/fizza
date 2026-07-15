@@ -193,7 +193,7 @@
             </div>
 
             <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
+              class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
             >
               <h2 class="mb-4 text-base font-semibold tracking-tight">
                 By priority
@@ -207,7 +207,7 @@
             </div>
 
             <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
+              class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
             >
               <h2 class="mb-4 text-base font-semibold tracking-tight">
                 By column
@@ -223,7 +223,7 @@
 
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
             <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
+              class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
             >
               <h2 class="mb-1 text-base font-semibold tracking-tight">
                 Tasks created
@@ -237,7 +237,7 @@
               />
             </div>
             <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
+              class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
             >
               <h2 class="mb-1 text-base font-semibold tracking-tight">
                 Activity
@@ -254,7 +254,7 @@
 
           {#if stats.by_project?.length}
             <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
+              class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
             >
               <h2 class="mb-4 text-base font-semibold tracking-tight">
                 By project
@@ -326,7 +326,7 @@
 
           {#if stats.by_board?.length}
             <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
+              class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
             >
               <h2 class="mb-4 text-base font-semibold tracking-tight">
                 By board

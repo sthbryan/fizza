@@ -153,7 +153,7 @@
       <div class="space-y-3 p-4 sm:p-6">
         {#each archivedQuery.data as task (task.id)}
           <article
-            class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-4 sm:p-5"
+            class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-4 sm:p-5"
           >
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">

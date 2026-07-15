@@ -123,7 +123,7 @@
             {@const active = hint?.project === p.name}
             <div
               class={
-                "group relative rounded-3xl border p-5 text-left transition sm:p-6 " +
+                "group relative rounded-2xl border p-5 text-left transition sm:p-6 " +
                 (active
                   ? "border-[var(--color-accent)]/50 bg-[var(--color-bg-hover)] ring-1 ring-[var(--color-accent)]/30"
                   : "border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]")
@@ -131,7 +131,7 @@
             >
               <button
                 type="button"
-                class="absolute inset-0 cursor-pointer rounded-3xl"
+                class="absolute inset-0 cursor-pointer rounded-2xl"
                 aria-label={`Open project ${p.name}`}
                 onclick={() => void openProject(p.name)}
               ></button>

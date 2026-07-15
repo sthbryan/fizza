@@ -20,7 +20,7 @@
     class="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6"
   >
     <div
-      class="w-full max-w-md rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] px-6 py-10 text-center sm:px-8 sm:py-12"
+      class="w-full max-w-md rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] px-6 py-10 text-center sm:px-8 sm:py-12"
     >
       <div
         class="mb-3 font-mono text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-accent)]"
