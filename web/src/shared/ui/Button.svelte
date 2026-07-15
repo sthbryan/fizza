@@ -22,33 +22,46 @@
 
   const variants: Record<Variant, string> = {
     primary:
-      "bg-[var(--color-accent)] text-white hover:brightness-110 active:brightness-95",
+      "bg-[var(--color-text-display)] text-[var(--color-bg)] hover:opacity-90",
     secondary:
-      "bg-[var(--color-bg-soft)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]",
+      "bg-transparent text-[var(--color-text)] border border-[var(--color-border-visible)] hover:border-[var(--color-text-muted)]",
     ghost:
-      "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
+      "bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
     danger:
-      "bg-transparent text-[var(--color-danger)] border border-[var(--color-danger)]/25 hover:bg-[var(--color-danger)]/10",
+      "bg-transparent text-[var(--color-danger)] border border-[var(--color-danger)] hover:bg-[var(--color-danger)] hover:text-[var(--color-text-display)]",
     destructive:
-      "bg-[var(--color-danger)] text-white hover:brightness-110 active:brightness-95",
-    icon: "bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
+      "bg-transparent text-[var(--color-danger)] border border-[var(--color-danger)] hover:bg-[var(--color-danger)] hover:text-[var(--color-text-display)]",
+    icon:
+      "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
   };
 
   const sizes: Record<Size, string> = {
-    sm: "h-9 px-3.5 text-sm rounded-xl gap-1.5",
-    md: "h-10 px-4 text-sm rounded-xl gap-2",
-    lg: "h-11 px-5 text-base rounded-2xl gap-2",
+    sm: "h-9 px-4 text-[11px] tracking-[0.08em] gap-2",
+    md: "h-11 px-5 text-xs gap-2.5",
+    lg: "h-12 px-6 text-sm gap-3",
   };
+
+  const radius = $derived(
+    variant === "icon"
+      ? "rounded-md"
+      : variant === "primary" ||
+          variant === "secondary" ||
+          variant === "danger" ||
+          variant === "destructive"
+        ? "rounded-full"
+        : "rounded-none"
+  );
 </script>
 
 <button
   class={cn(
-    "inline-flex cursor-pointer items-center justify-center font-medium tracking-tight transition",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
-    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40",
+    "inline-flex cursor-pointer items-center justify-center font-mono font-medium uppercase transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text-display)]/30",
+    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-30",
     variants[variant],
     sizes[size],
-    variant === "icon" && "h-10 w-10 px-0",
+    radius,
+    variant === "icon" && "h-10 w-10 px-0 rounded-md",
     className
   )}
   {disabled}
