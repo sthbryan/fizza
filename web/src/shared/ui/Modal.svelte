@@ -41,27 +41,34 @@
     <button
       type="button"
       aria-label="Close dialog"
-      class="absolute inset-0 bg-black/70 backdrop-blur-sm"
+      class="absolute inset-0 bg-black/80"
       onclick={onclose}
     ></button>
     <div
       role="dialog"
       aria-modal="true"
-      class="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
+      class="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-neutral-700 bg-neutral-950"
     >
       <div
-        class="flex items-center justify-between border-b border-[var(--color-border-subtle)] px-6 py-5"
+        class="flex items-center justify-between border-b border-neutral-800 px-6 py-4"
       >
-        <h2 class="text-lg font-semibold tracking-tight">{title}</h2>
-        <Button variant="icon" size="sm" onclick={onclose} aria-label="Close"
-          >×</Button
+        <span class="text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-neutral-400">
+          {title}
+        </span>
+        <button
+          type="button"
+          aria-label="Close"
+          onclick={onclose}
+          class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-neutral-200"
         >
+          ×
+        </button>
       </div>
-      <div class="space-y-4 px-6 py-6">
+      <div class="space-y-4 px-6 py-5">
         {@render children()}
       </div>
       <div
-        class="flex justify-end gap-2.5 border-t border-[var(--color-border-subtle)] px-6 py-5"
+        class="flex justify-end gap-2 border-t border-neutral-800 px-6 py-4"
       >
         <Button variant="ghost" onclick={onclose} disabled={busy}>{cancelLabel}</Button>
         {#if onsubmit}
