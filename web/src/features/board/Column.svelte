@@ -3,30 +3,6 @@
   import { cn } from "@/lib/cn";
   import TaskCard from "./TaskCard.svelte";
 
-  type Accent = { border: string; dot: string };
-
-  const ACCENTS: Accent[] = [
-    { border: "var(--color-col-pink)", dot: "var(--color-col-todo)" },
-    { border: "var(--color-col-peach)", dot: "var(--color-col-progress)" },
-    { border: "var(--color-col-sky)", dot: "var(--color-col-review)" },
-    { border: "var(--color-col-lilac)", dot: "var(--color-col-done)" },
-    { border: "var(--color-col-mint)", dot: "var(--color-pri-urgent)" },
-  ];
-
-  function accentFor(name: string, index: number): Accent {
-    const n = name.toLowerCase();
-    if (n.includes("todo") || n.includes("to do") || n.includes("backlog")) {
-      return ACCENTS[0];
-    }
-    if (n.includes("progress") || n.includes("doing") || n.includes("week")) {
-      return ACCENTS[1];
-    }
-    if (n.includes("review")) return ACCENTS[2];
-    if (n.includes("done") || n.includes("complete")) return ACCENTS[3];
-    if (n.includes("blocked") || n.includes("hold")) return ACCENTS[4];
-    return ACCENTS[index % ACCENTS.length];
-  }
-
   interface Props {
     column: ColumnSnapshot;
     index: number;
@@ -68,34 +44,39 @@
   }: Props = $props();
 
   const tasks = $derived(column.tasks || []);
-  const accent = $derived(accentFor(column.name, index));
   const count = $derived(column.task_count ?? tasks.length);
   const countLabel = $derived(
     column.wip_limit != null ? `${count}/${column.wip_limit}` : String(count)
+  );
+  const indexLabel = $derived(String(index + 1).padStart(2, "0"));
+  const overLimit = $derived(
+    column.wip_limit != null && count > column.wip_limit
   );
 </script>
 
 <section
   class={cn(
-    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-2xl p-3 sm:w-[360px] sm:p-3.5",
+    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-md border bg-neutral-950 p-3 sm:w-[360px] sm:p-3.5",
     "max-h-[calc(100dvh-8.5rem)] sm:max-h-[calc(100vh-8rem)]",
-    "border border-[var(--color-border-subtle)] border-t-2 bg-[var(--color-bg-card)]",
-    dragOver && "ring-2 ring-[var(--color-accent)]/50"
+    "border-neutral-800",
+    dragOver && "border-white/40"
   )}
-  style:border-top-color={accent.border}
 >
   <header class="mb-3 flex items-center justify-between gap-2 px-1">
     <div class="flex min-w-0 items-center gap-2">
+      <span class="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500">
+        {indexLabel}
+      </span>
       <span
-        class="h-2 w-2 shrink-0 rounded-full"
-        style:background={accent.dot}
-      ></span>
-      <h3
-        class="truncate text-sm font-semibold capitalize tracking-tight text-[var(--color-text)]"
+        class="truncate text-[13px] font-medium tracking-tight text-neutral-100"
       >
         {column.name.replaceAll("_", " ")}
-      </h3>
-      <span class="text-xs font-medium tabular-nums text-[var(--color-text-muted)]">
+      </span>
+      <span
+        class="font-mono text-[11px] tabular-nums"
+        class:text-red-500={overLimit}
+        class:text-neutral-500={!overLimit}
+      >
         {countLabel}
       </span>
     </div>
@@ -105,7 +86,7 @@
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-danger)]"
+          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-red-500"
         >
           ×
         </button>
@@ -114,7 +95,7 @@
         type="button"
         title="Add task"
         onclick={() => onadd(column.name)}
-        class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+        class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
       >
         +
       </button>
@@ -123,7 +104,7 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex flex-1 flex-col gap-3 overflow-y-auto"
+    class="flex flex-1 flex-col gap-2.5 overflow-y-auto"
     role="list"
     ondragover={(e) => {
       e.preventDefault();
@@ -153,7 +134,7 @@
   >
     {#if column.truncated && tasks.length === 0}
       <div
-        class="flex min-h-20 items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-center text-xs text-[var(--color-text-muted)]"
+        class="flex min-h-16 items-center justify-center rounded-md border border-dashed border-neutral-800 bg-neutral-900 px-3 text-center text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500"
       >
         {count} completed · hidden for a lean board
       </div>
@@ -161,7 +142,7 @@
       <button
         type="button"
         onclick={() => onadd(column.name)}
-        class="flex min-h-20 cursor-pointer items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)]/40 hover:text-[var(--color-text-secondary)]"
+        class="flex min-h-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-neutral-800 bg-transparent text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:border-white/30 hover:text-neutral-300"
       >
         + Add task
       </button>
