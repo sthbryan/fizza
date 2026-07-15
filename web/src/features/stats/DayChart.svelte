@@ -28,7 +28,7 @@
   </p>
 {:else}
   <div class="flex flex-col gap-3">
-    <div class="flex h-32 items-end gap-0.5 sm:h-36 sm:gap-1">
+    <div class="flex h-32 gap-0.5 sm:h-36 sm:gap-1">
       {#each series as day (day.date)}
         {@const h = max > 0 ? Math.max((day.count / max) * 100, day.count > 0 ? 6 : 0) : 0}
         <div
