@@ -58,13 +58,13 @@
   }}
   ondragend={ondragend}
   class={cn(
-    "group cursor-grab rounded-2xl border border-white/8 bg-[#141418] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition sm:p-5",
-    "min-h-[5.75rem] hover:border-white/12 hover:bg-[#1a1a20]",
+    "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-3.5 transition-colors sm:p-4",
+    "min-h-[5rem] hover:border-neutral-700 hover:bg-neutral-900",
     "active:cursor-grabbing",
-    dragging && "scale-[0.98] opacity-40 ring-1 ring-[var(--color-accent)]/40"
+    dragging && "opacity-30 ring-1 ring-white/30"
   )}
 >
-  <div class="mb-2.5 flex items-start justify-between gap-2">
+  <div class="mb-2 flex items-start justify-between gap-2">
     <Badge priority={task.priority} />
     <div class="shrink-0">
       <Menu items={menuItems} label="Task actions" />
@@ -72,23 +72,21 @@
   </div>
 
   <h4
-    class="mb-2 text-[15px] font-semibold leading-snug tracking-tight text-[var(--color-text)] sm:text-base"
+    class="mb-2 text-[14px] font-medium leading-snug tracking-tight text-neutral-100 sm:text-[15px]"
   >
     {task.title}
   </h4>
 
   {#if task.description}
-    <p class="mb-3 line-clamp-3 text-sm leading-relaxed text-[var(--color-text-muted)]">
+    <p class="mb-3 line-clamp-3 text-xs leading-relaxed text-neutral-500">
       {task.description}
     </p>
   {/if}
 
-  <div class="flex flex-wrap items-center gap-2">
-    <span class="font-mono text-[11px] text-[var(--color-text-muted)]">
-      #{task.id}
-    </span>
+  <div class="flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+    <span>#{task.id}</span>
     {#if due}
-      <span class="text-[11px] text-[var(--color-text-muted)]">{due}</span>
+      <span>{due}</span>
     {/if}
   </div>
 </article>
