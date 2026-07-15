@@ -70,7 +70,7 @@
       font-family="'Doto', 'Space Mono', monospace"
       font-weight="500"
       font-size="32"
-      fill="var(--color-text-display)"
+      fill="var(--color-text-secondary)"
     >
       {clamped}
     </text>
