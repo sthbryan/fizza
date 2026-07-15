@@ -5,38 +5,31 @@
   --font-mono: "Space Mono", ui-monospace, monospace;
   --font-display: "Doto", "Space Mono", monospace;
 
-  --color-bg: #0b0b0d;
-  --color-bg-elevated: #121214;
-  --color-bg-soft: #16161a;
-  --color-bg-card: #1a1a1f;
-  --color-bg-hover: #222228;
-  --color-border: #2a2a32;
-  --color-border-subtle: #1f1f26;
-  --color-text: #f4f4f5;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
-  --color-accent: #8b7cf7;
-  --color-accent-soft: #6d5efc;
-  --color-danger: #f07178;
-  --color-ok: #7fd99a;
+  --color-bg: #000000;
+  --color-bg-elevated: #111111;
+  --color-bg-soft: #111111;
+  --color-bg-card: #1a1a1a;
+  --color-bg-hover: #1f1f1f;
+  --color-border: #333333;
+  --color-border-subtle: #222222;
+  --color-text: #e8e8e8;
+  --color-text-secondary: #999999;
+  --color-text-muted: #666666;
+  --color-accent: #d71921;
+  --color-accent-soft: #1f1f1f;
+  --color-danger: #d71921;
+  --color-ok: #4a9e5c;
 
-  --color-col-pink: #3a2430;
-  --color-col-peach: #3a2e22;
-  --color-col-sky: #1e2e3a;
-  --color-col-lilac: #2c2540;
-  --color-col-mint: #1e322c;
-  --color-col-slate: #25252c;
+  --color-col-todo: #999999;
+  --color-col-progress: #999999;
+  --color-col-done: #999999;
+  --color-col-review: #999999;
+  --color-col-default: #999999;
 
-  --color-col-todo: #f9a8d4;
-  --color-col-progress: #fdba74;
-  --color-col-done: #86efac;
-  --color-col-review: #93c5fd;
-  --color-col-default: #a1a1aa;
-
-  --color-pri-low: #7dd3fc;
-  --color-pri-medium: #fbbf24;
-  --color-pri-high: #f472b6;
-  --color-pri-urgent: #f87171;
+  --color-pri-low: #999999;
+  --color-pri-medium: #999999;
+  --color-pri-high: #999999;
+  --color-pri-urgent: #d71921;
 }
 
 @layer base {
