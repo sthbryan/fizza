@@ -11,7 +11,7 @@
 
   let {
     rows,
-    colorFor = () => "var(--color-accent)",
+    colorFor = () => "var(--color-text-display)",
     labelFor = (name: string) => name,
     emptyLabel = "No data yet",
   }: Props = $props();
@@ -21,7 +21,7 @@
 </script>
 
 {#if !hasAny}
-  <p class="py-6 text-center text-sm text-[var(--color-text-muted)]">
+  <p class="py-6 text-center text-xs font-mono uppercase tracking-[0.1em] text-neutral-500">
     {emptyLabel}
   </p>
 {:else}
@@ -29,19 +29,19 @@
     {#each rows as row (row.name)}
       {@const width = max > 0 ? (row.count / max) * 100 : 0}
       <div class="min-w-0">
-        <div class="mb-1 flex items-baseline justify-between gap-2">
-          <span class="truncate text-sm text-[var(--color-text-secondary)]">
+        <div class="mb-1.5 flex items-baseline justify-between gap-2">
+          <span class="truncate text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-400">
             {labelFor(row.name)}
           </span>
-          <span class="shrink-0 font-mono text-xs text-[var(--color-text-muted)]">
+          <span class="shrink-0 font-mono text-xs tabular-nums text-white">
             {row.count}
           </span>
         </div>
         <div
-          class="h-2.5 overflow-hidden rounded-full bg-[var(--color-bg-soft)]"
+          class="h-1 overflow-hidden bg-neutral-800"
         >
           <div
-            class="h-full rounded-full transition-all duration-300"
+            class="h-full transition-all duration-300"
             style:width="{width}%"
             style:background={colorFor(row.name)}
           ></div>
