@@ -132,7 +132,7 @@
 <div class={cn("block min-w-0", className)}>
   {#if label}
     <span
-      class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]"
+      class="mb-2 block text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-[var(--color-text-secondary)]"
     >
       {label}
     </span>
@@ -148,19 +148,20 @@
     }}
     onkeydown={onKeyDown}
     class={cn(
-      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-left text-[var(--color-text)] transition",
-      "hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]",
-      "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
-      "disabled:cursor-not-allowed disabled:opacity-40",
-      size === "sm" ? "h-9 px-3 text-sm" : "h-11 px-4 text-base"
+      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-[var(--color-border-visible)] bg-[var(--color-bg-elevated)] text-left text-[var(--color-text)] transition-colors",
+      "hover:border-[var(--color-text-muted)]",
+      "focus:outline-none focus-visible:border-[var(--color-text-display)]",
+      "disabled:cursor-not-allowed disabled:opacity-30",
+      "font-mono",
+      size === "sm" ? "h-9 px-3 text-xs" : "h-11 px-3.5 text-sm"
     )}
   >
-    <span class={cn("truncate", !selected && "text-[var(--color-text-muted)]")}>
+    <span class={cn("truncate uppercase tracking-[0.06em]", !selected && "text-[var(--color-text-muted)]")}>
       {selected?.label ?? placeholder}
     </span>
     <svg
-      width="14"
-      height="14"
+      width="12"
+      height="12"
       viewBox="0 0 24 24"
       fill="none"
       class={cn(
@@ -183,13 +184,13 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-[80] max-h-72 overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+      class="fixed z-[80] max-h-72 overflow-auto rounded-md border border-[var(--color-border-visible)] bg-[var(--color-bg-elevated)] py-1"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
     >
       {#if options.length === 0}
-        <div class="px-3.5 py-2.5 text-sm text-[var(--color-text-muted)]">
+        <div class="px-3.5 py-2 text-xs font-mono text-[var(--color-text-muted)]">
           No options
         </div>
       {:else}
@@ -203,11 +204,12 @@
             aria-selected={isSelected}
             disabled={opt.disabled}
             class={cn(
-              "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-left text-base transition",
-              "disabled:cursor-not-allowed disabled:opacity-40",
-              isActive || isSelected
+              "flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-xs font-mono uppercase tracking-[0.06em] transition-colors",
+              "disabled:cursor-not-allowed disabled:opacity-30",
+              isActive
                 ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
-                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
+              isSelected && "text-[var(--color-text)]"
             )}
             onmouseenter={() => {
               if (!opt.disabled) active = idx;
@@ -218,7 +220,7 @@
           >
             <span class="truncate">{opt.label}</span>
             {#if isSelected}
-              <span class="text-[var(--color-accent)]">✓</span>
+              <span class="text-[var(--color-text-display)]">·</span>
             {/if}
           </button>
         {/each}
