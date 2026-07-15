@@ -358,19 +358,19 @@
 
 <AppShell>
   <header
-    class="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)]"
+    class="border-b border-neutral-800 bg-black"
   >
     <div
       class="flex flex-col gap-3.5 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
     >
       <div class="min-w-0">
         <nav
-          class="mb-1.5 flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]"
+          class="mb-1.5 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
             href="/projects"
-            class="transition hover:text-[var(--color-text-secondary)]"
+            class="transition-colors hover:text-neutral-300"
             onclick={(e) => {
               e.preventDefault();
               navigate("/projects");
@@ -379,28 +379,27 @@
             Projects
           </a>
           <span class="opacity-40">/</span>
-          <span class="truncate text-[var(--color-text-secondary)]"
+          <span class="truncate text-neutral-400"
             >{project}</span
           >
         </nav>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 class="truncate text-2xl font-semibold tracking-tight sm:text-3xl text-white">
             {project}
           </h1>
           {#if taskCount > 0}
-            <span class="text-base text-[var(--color-text-muted)]">
+            <span class="font-mono text-sm tabular-nums text-neutral-500">
               {taskCount} tasks
             </span>
           {/if}
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2.5">
+      <div class="flex flex-wrap gap-2">
         <Button
           variant="ghost"
           onclick={() => (showCompleted = !showCompleted)}
           disabled={!project || !board}
-          class={showCompleted ? "text-[var(--color-accent)]" : ""}
         >
           {showCompleted ? "Hide completed" : "Show completed"}
           {#if doneCount > 0}
@@ -430,7 +429,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+          class="hover:text-red-500"
         >
           Delete project
         </Button>
@@ -464,7 +463,7 @@
           class={cn(
             "group/tab relative flex shrink-0 items-center border-b-2",
             active
-              ? "border-[var(--color-accent)]"
+              ? "border-white"
               : "border-transparent"
           )}
         >
@@ -473,10 +472,10 @@
             role="tab"
             aria-selected={active}
             class={cn(
-              "px-3.5 py-3 text-base font-medium transition",
+              "px-3.5 py-3 text-sm font-medium transition-colors",
               active
-                ? "text-[var(--color-text)]"
-                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                ? "text-white"
+                : "text-neutral-500 hover:text-neutral-300"
             )}
             onclick={(e) => {
               e.preventDefault();
@@ -489,8 +488,8 @@
             type="button"
             title={`Delete board ${b.name}`}
             class={cn(
-              "mr-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded text-sm transition",
-              "text-[var(--color-text-muted)] hover:bg-[var(--color-danger)]/15 hover:text-[var(--color-danger)]",
+              "mr-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded text-sm font-mono transition-colors",
+              "text-neutral-500 hover:bg-red-500/15 hover:text-red-500",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
             onclick={(e) => {
@@ -506,7 +505,7 @@
       <button
         type="button"
         title="New board"
-        class="mb-0.5 ml-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+        class="mb-0.5 ml-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-lg font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
         onclick={() => (boardDialog = true)}
       >
         +
@@ -516,9 +515,9 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if snapshotQuery.isPending && !snapshotQuery.data}
-      <div class="p-8 text-base text-[var(--color-text-muted)]">Loading board…</div>
+      <div class="p-8 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">Loading board…</div>
     {:else if snapshotQuery.isError}
-      <div class="p-8 text-base text-[var(--color-danger)]">
+      <div class="p-8 text-sm font-mono text-red-500">
         {snapshotQuery.error.message}
       </div>
     {:else}
