@@ -132,7 +132,7 @@
 <div class={cn("block min-w-0", className)}>
   {#if label}
     <span
-      class="mb-2 block text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-[var(--color-text-secondary)]"
+      class="mb-2 block text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-neutral-400"
     >
       {label}
     </span>
@@ -148,15 +148,15 @@
     }}
     onkeydown={onKeyDown}
     class={cn(
-      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-[var(--color-border-visible)] bg-[var(--color-bg-elevated)] text-left text-[var(--color-text)] transition-colors",
-      "hover:border-[var(--color-text-muted)]",
-      "focus:outline-none focus-visible:border-[var(--color-text-display)]",
+      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-neutral-700 bg-neutral-900 text-left text-neutral-200 transition-colors",
+      "hover:border-neutral-500",
+      "focus:outline-none focus-visible:border-white",
       "disabled:cursor-not-allowed disabled:opacity-30",
       "font-mono",
       size === "sm" ? "h-9 px-3 text-xs" : "h-11 px-3.5 text-sm"
     )}
   >
-    <span class={cn("truncate uppercase tracking-[0.06em]", !selected && "text-[var(--color-text-muted)]")}>
+    <span class={cn("truncate uppercase tracking-[0.06em]", !selected && "text-neutral-500")}>
       {selected?.label ?? placeholder}
     </span>
     <svg
@@ -165,7 +165,7 @@
       viewBox="0 0 24 24"
       fill="none"
       class={cn(
-        "shrink-0 text-[var(--color-text-muted)] transition-transform",
+        "shrink-0 text-neutral-500 transition-transform",
         open && "rotate-180"
       )}
       aria-hidden="true"
@@ -184,13 +184,13 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-[80] max-h-72 overflow-auto rounded-md border border-[var(--color-border-visible)] bg-[var(--color-bg-elevated)] py-1"
+      class="fixed z-[80] max-h-72 overflow-auto rounded-md border border-neutral-700 bg-neutral-900 py-1"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
     >
       {#if options.length === 0}
-        <div class="px-3.5 py-2 text-xs font-mono text-[var(--color-text-muted)]">
+        <div class="px-3.5 py-2 text-xs font-mono text-neutral-500">
           No options
         </div>
       {:else}
@@ -207,9 +207,9 @@
               "flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-xs font-mono uppercase tracking-[0.06em] transition-colors",
               "disabled:cursor-not-allowed disabled:opacity-30",
               isActive
-                ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
-                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
-              isSelected && "text-[var(--color-text)]"
+                ? "bg-neutral-800 text-neutral-200"
+                : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200",
+              isSelected && "text-white"
             )}
             onmouseenter={() => {
               if (!opt.disabled) active = idx;
@@ -220,7 +220,7 @@
           >
             <span class="truncate">{opt.label}</span>
             {#if isSelected}
-              <span class="text-[var(--color-text-display)]">·</span>
+              <span class="text-white">·</span>
             {/if}
           </button>
         {/each}
