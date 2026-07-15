@@ -120,6 +120,49 @@
         </div>
       </div>
     </div>
+    {#if stats}
+      {@const totals = stats.totals}
+      <div
+        class="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2 font-mono text-sm"
+      >
+        {#if !projectFilter}
+          <span>
+            <span class="text-base font-semibold tabular-nums text-[var(--color-text)]">{totals.projects}</span>
+            <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">projects</span>
+          </span>
+        {/if}
+        {#if !boardFilter}
+          <span>
+            <span class="text-base font-semibold tabular-nums text-[var(--color-text)]">{totals.boards}</span>
+            <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">boards</span>
+          </span>
+        {/if}
+        <span>
+          <span class="text-base font-semibold tabular-nums text-[var(--color-text)]">{totals.tasks}</span>
+          <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">active</span>
+        </span>
+        <span>
+          <span class="text-base font-semibold tabular-nums text-[var(--color-text)]">{totals.open}</span>
+          <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">open</span>
+        </span>
+        <span>
+          <span class="text-base font-semibold tabular-nums text-[var(--color-ok)]">{totals.done}</span>
+          <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">done</span>
+        </span>
+        <span>
+          <span
+            class="text-base font-semibold tabular-nums"
+            class:text-[var(--color-danger)]={totals.overdue > 0}
+            class:text-[var(--color-text)]={totals.overdue === 0}
+          >{totals.overdue}</span>
+          <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">overdue</span>
+        </span>
+        <span>
+          <span class="text-base font-semibold tabular-nums text-[var(--color-text)]">{totals.archived ?? 0}</span>
+          <span class="ml-1.5 text-xs font-sans text-[var(--color-text-muted)]">archived</span>
+        </span>
+      </div>
+    {/if}
   </header>
 
   <main class="min-h-0 flex-1 overflow-y-auto">
@@ -140,47 +183,6 @@
         />
       {:else}
         <div class="space-y-5 p-4 sm:space-y-6 sm:p-6">
-          <div
-            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 sm:gap-4"
-          >
-            {#each [
-              { label: "Projects", value: t.projects, show: !projectFilter },
-              { label: "Boards", value: t.boards, show: !boardFilter },
-              { label: "Active", value: t.tasks, show: true },
-              { label: "Open", value: t.open, show: true },
-              { label: "Done", value: t.done, show: true },
-              {
-                label: "Overdue",
-                value: t.overdue,
-                show: true,
-                danger: t.overdue > 0,
-              },
-              {
-                label: "Archived",
-                value: t.archived ?? 0,
-                show: true,
-              },
-            ] as card (card.label)}
-              {#if card.show}
-                <div
-                  class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] px-4 py-4 sm:px-5 sm:py-5"
-                >
-                  <div
-                    class="mb-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
-                  >
-                    {card.label}
-                  </div>
-                  <div
-                    class="text-2xl font-semibold tracking-tight sm:text-3xl"
-                    class:text-[var(--color-danger)]={card.danger}
-                  >
-                    {card.value}
-                  </div>
-                </div>
-              {/if}
-            {/each}
-          </div>
-
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
             <div
               class="flex flex-col items-center justify-center rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-6"
