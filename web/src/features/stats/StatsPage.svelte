@@ -74,7 +74,7 @@
       return `${formatStatusLabel(projectFilter)} / ${formatStatusLabel(boardFilter)}`;
     }
     if (projectFilter) return formatStatusLabel(projectFilter);
-    return "ALL PROJECTS";
+    return "All projects";
   }
 </script>
 

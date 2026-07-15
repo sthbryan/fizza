@@ -23,7 +23,7 @@
 <label class="block min-w-0">
   {#if label}
     <span
-      class="mb-2 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
+      class="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]"
     >
       {label}
     </span>
