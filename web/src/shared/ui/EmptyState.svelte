@@ -12,17 +12,14 @@
 </script>
 
 <div class="mx-auto flex max-w-md flex-col items-center px-6 py-28 text-center">
-  <div
-    class="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xl text-[var(--color-accent)]"
-  >
-    ◈
-  </div>
-  <h2 class="text-xl font-semibold tracking-tight">{title}</h2>
-  <p class="mt-2.5 text-base leading-relaxed text-[var(--color-text-muted)]">
+  <h2 class="mb-3 text-2xl font-semibold tracking-tight text-neutral-200">
+    {title}
+  </h2>
+  <p class="max-w-sm text-sm leading-relaxed text-neutral-500">
     {description}
   </p>
   {#if actionLabel && onaction}
-    <Button class="mt-7" variant="primary" size="lg" onclick={onaction}>
+    <Button class="mt-7" variant="primary" onclick={onaction}>
       {actionLabel}
     </Button>
   {/if}
