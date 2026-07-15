@@ -21,18 +21,15 @@
   }: Props = $props();
 
   const variants: Record<Variant, string> = {
-    primary:
-      "bg-[var(--color-text-display)] text-[var(--color-bg)] hover:opacity-90",
+    primary: "bg-white text-black hover:opacity-90",
     secondary:
-      "bg-transparent text-[var(--color-text)] border border-[var(--color-border-visible)] hover:border-[var(--color-text-muted)]",
-    ghost:
-      "bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
+      "bg-transparent text-neutral-200 border border-neutral-700 hover:border-neutral-500",
+    ghost: "bg-transparent text-neutral-400 hover:text-neutral-200",
     danger:
-      "bg-transparent text-[var(--color-danger)] border border-[var(--color-danger)] hover:bg-[var(--color-danger)] hover:text-[var(--color-text-display)]",
+      "bg-transparent text-red-500 border border-red-500 hover:bg-red-500 hover:text-white",
     destructive:
-      "bg-transparent text-[var(--color-danger)] border border-[var(--color-danger)] hover:bg-[var(--color-danger)] hover:text-[var(--color-text-display)]",
-    icon:
-      "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+      "bg-transparent text-red-500 border border-red-500 hover:bg-red-500 hover:text-white",
+    icon: "bg-transparent text-neutral-500 hover:text-neutral-200",
   };
 
   const sizes: Record<Size, string> = {
@@ -56,7 +53,7 @@
 <button
   class={cn(
     "inline-flex cursor-pointer items-center justify-center font-mono font-medium uppercase transition-colors",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text-display)]/30",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-30",
     variants[variant],
     sizes[size],
