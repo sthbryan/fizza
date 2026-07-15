@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Task } from "@/lib/api";
   import Badge from "@/shared/ui/Badge.svelte";
+  import Menu from "@/shared/ui/Menu.svelte";
+  import type { MenuItem } from "@/shared/ui/Menu.svelte";
   import { cn } from "@/lib/cn";
 
   interface Props {
@@ -28,6 +30,23 @@
   }: Props = $props();
 
   const due = $derived(task.due_date ? String(task.due_date).slice(0, 10) : null);
+
+  const menuItems = $derived<MenuItem[]>(
+    [
+      ...(terminal && onrestore
+        ? [{ label: "Restore", onSelect: () => onrestore(task) }]
+        : []),
+      ...(onarchive
+        ? [{ label: "Archive", onSelect: () => onarchive(task) }]
+        : []),
+      { label: "Edit", onSelect: () => onedit(task) },
+      {
+        label: "Delete",
+        danger: true,
+        onSelect: () => ondelete(task),
+      },
+    ]
+  );
 </script>
 
 <article
@@ -47,41 +66,8 @@
 >
   <div class="mb-2.5 flex items-start justify-between gap-2">
     <Badge priority={task.priority} />
-    <div
-      class="flex shrink-0 gap-0.5 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100"
-    >
-      {#if terminal && onrestore}
-        <button
-          type="button"
-          class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-ok)]"
-          onclick={() => onrestore(task)}
-        >
-          Restore
-        </button>
-      {/if}
-      {#if onarchive}
-        <button
-          type="button"
-          class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]"
-          onclick={() => onarchive(task)}
-        >
-          Archive
-        </button>
-      {/if}
-      <button
-        type="button"
-        class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]"
-        onclick={() => onedit(task)}
-      >
-        Edit
-      </button>
-      <button
-        type="button"
-        class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
-        onclick={() => ondelete(task)}
-      >
-        Del
-      </button>
+    <div class="shrink-0">
+      <Menu items={menuItems} label="Task actions" />
     </div>
   </div>
 
