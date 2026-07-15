@@ -13,6 +13,7 @@
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
+  import PlusIcon from "@/shared/ui/PlusIcon.svelte";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
   import { isTerminalColumn } from "./terminal";
@@ -444,9 +445,11 @@
           variant="primary"
           onclick={() => openTask()}
           disabled={!project || !board}
-          class="flex-1 sm:flex-none"
+          title="New task"
+          aria-label="New task"
+          class="h-11 w-11 px-0"
         >
-          + Task
+          <PlusIcon size={16} />
         </Button>
       </div>
     </div>
