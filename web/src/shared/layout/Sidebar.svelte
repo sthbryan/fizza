@@ -29,108 +29,110 @@
       navigate("/projects");
     }
   }
+
+  const itemClass = (active: boolean) =>
+    cn(
+      "group flex cursor-pointer flex-col items-center gap-1.5 rounded-md py-2.5 transition-colors",
+      active
+        ? "text-white"
+        : "text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300"
+    );
+
+  const labelClass = "text-[9px] font-mono font-medium uppercase tracking-[0.1em]";
 </script>
 
 <aside
-  class="flex w-16 shrink-0 flex-col items-center border-r border-[var(--color-border-subtle)] bg-[var(--color-bg)] py-4 sm:w-[4.5rem] sm:py-5"
+  class="flex w-20 shrink-0 flex-col items-stretch border-r border-neutral-800 bg-black py-5"
 >
   <div
-    class="mb-5 flex h-11 w-11 cursor-default items-center justify-center rounded-2xl bg-[var(--color-accent)] text-base font-bold text-white sm:mb-7 sm:h-12 sm:w-12"
+    class="mb-6 flex items-center justify-center font-mono text-sm font-medium tracking-tight text-white"
   >
-    f
+    fizza
   </div>
 
-  <nav class="flex flex-1 flex-col items-center gap-1.5">
-    <a
-      href={lastBoardHint()
-        ? boardPath(lastBoardHint()!.project, lastBoardHint()!.board)
-        : "/projects"}
+  <nav class="flex flex-1 flex-col items-stretch gap-1 px-3">
+    <button
+      type="button"
       title="Board"
-      class={cn(
-        "flex h-11 w-11 items-center justify-center rounded-2xl transition sm:h-12 sm:w-12",
-        boardActive
-          ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
-          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-text-secondary)]"
-      )}
       onclick={(e) => {
         e.preventDefault();
         goBoard();
       }}
+      class={itemClass(boardActive)}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect
-          x="3"
-          y="4"
-          width="7"
-          height="16"
-          rx="2"
-          stroke="currentColor"
-          stroke-width="1.6"
-        />
-        <rect
-          x="14"
-          y="4"
-          width="7"
-          height="10"
-          rx="2"
-          stroke="currentColor"
-          stroke-width="1.6"
-        />
-      </svg>
-    </a>
-    <a
-      href="/projects"
+      <span class="relative">
+        {#if boardActive}
+          <span
+            class="absolute -left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white"
+          ></span>
+        {/if}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="4" width="7" height="16" rx="1" stroke="currentColor" stroke-width="1.5" />
+          <rect x="14" y="4" width="7" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+      </span>
+      <span class={labelClass}>Board</span>
+    </button>
+
+    <button
+      type="button"
       title="Projects"
-      class={cn(
-        "flex h-11 w-11 items-center justify-center rounded-2xl transition sm:h-12 sm:w-12",
-        projectsActive
-          ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
-          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-text-secondary)]"
-      )}
       onclick={(e) => {
         e.preventDefault();
         navigate("/projects");
       }}
+      class={itemClass(projectsActive)}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-          stroke="currentColor"
-          stroke-width="1.6"
-        />
-      </svg>
-    </a>
-    <a
-      href="/stats"
+      <span class="relative">
+        {#if projectsActive}
+          <span
+            class="absolute -left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white"
+          ></span>
+        {/if}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+            stroke="currentColor"
+            stroke-width="1.5"
+          />
+        </svg>
+      </span>
+      <span class={labelClass}>Projects</span>
+    </button>
+
+    <button
+      type="button"
       title="Stats"
-      class={cn(
-        "flex h-11 w-11 items-center justify-center rounded-2xl transition sm:h-12 sm:w-12",
-        statsActive
-          ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
-          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-text-secondary)]"
-      )}
       onclick={(e) => {
         e.preventDefault();
         navigate("/stats");
       }}
+      class={itemClass(statsActive)}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M4 19V9M10 19V5M16 19v-7M22 19H2"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-    </a>
+      <span class="relative">
+        {#if statsActive}
+          <span
+            class="absolute -left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white"
+          ></span>
+        {/if}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 19V9M10 19V5M16 19v-7M22 19H2"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
+      </span>
+      <span class={labelClass}>Stats</span>
+    </button>
   </nav>
 
   <button
     type="button"
     title="New task"
     onclick={goNewTask}
-    class="mt-auto flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-[var(--color-border)] text-lg text-[var(--color-text-secondary)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] sm:h-12 sm:w-12"
+    class="mx-3 mb-1 flex h-9 cursor-pointer items-center justify-center rounded-md border border-neutral-700 text-base font-mono text-neutral-400 transition-colors hover:border-white hover:text-white"
   >
     +
   </button>
