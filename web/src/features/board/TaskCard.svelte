@@ -7,7 +7,7 @@
 
   interface Props {
     task: Task;
-    dragging?: boolean;
+    draggingId: number | null;
     terminal?: boolean;
     ondragstart: (task: Task) => void;
     ondragend: () => void;
@@ -19,7 +19,7 @@
 
   let {
     task,
-    dragging = false,
+    draggingId,
     terminal = false,
     ondragstart,
     ondragend,
@@ -30,6 +30,9 @@
   }: Props = $props();
 
   const due = $derived(task.due_date ? String(task.due_date).slice(0, 10) : null);
+
+  const dragging = $derived(draggingId === task.id);
+  const siblingDragging = $derived(draggingId !== null && !dragging);
 
   const menuItems = $derived<MenuItem[]>(
     [
@@ -47,21 +50,40 @@
       },
     ]
   );
+
+  function handleDragStart(e: DragEvent) {
+    const target = e.currentTarget as HTMLElement;
+    const ghost = target.cloneNode(true) as HTMLElement;
+    ghost.style.cssText = `
+      position: absolute;
+      top: -1000px;
+      left: -1000px;
+      width: ${target.offsetWidth}px;
+      opacity: 0.65;
+      transform: rotate(1.5deg);
+      pointer-events: none;
+      z-index: -1;
+    `;
+    document.body.appendChild(ghost);
+    e.dataTransfer!.setDragImage(ghost, 20, 20);
+    setTimeout(() => ghost.remove(), 0);
+    e.dataTransfer!.effectAllowed = "move";
+    e.dataTransfer!.setData("text/plain", String(task.id));
+    ondragstart(task);
+  }
 </script>
 
 <article
   draggable="true"
-  ondragstart={(e) => {
-    e.dataTransfer!.effectAllowed = "move";
-    e.dataTransfer!.setData("text/plain", String(task.id));
-    ondragstart(task);
-  }}
+  ondragstart={handleDragStart}
   ondragend={ondragend}
   class={cn(
-    "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-3.5 transition-colors sm:p-4",
-    "min-h-[5rem] hover:border-neutral-700 hover:bg-neutral-900",
+    "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-3.5 transition-all duration-150 sm:p-4",
+    "min-h-[5rem]",
+    "hover:border-neutral-700 hover:bg-neutral-900",
     "active:cursor-grabbing",
-    dragging && "opacity-30 ring-1 ring-white/30"
+    dragging && "scale-95 ring-1 ring-white/50 opacity-50",
+    siblingDragging && "opacity-50"
   )}
 >
   <div class="mb-2 flex items-start justify-between gap-2">

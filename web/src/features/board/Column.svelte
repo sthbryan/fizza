@@ -52,14 +52,52 @@
   const overLimit = $derived(
     column.wip_limit != null && count > column.wip_limit
   );
+
+  let dropBeforeId = $state<number | null | undefined>(undefined);
+
+  function handleDragOver(e: DragEvent) {
+    const target = e.currentTarget as HTMLElement;
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "move";
+    const cards = [
+      ...target.querySelectorAll<HTMLElement>("[data-task-id]"),
+    ];
+    let beforeId: number | null = null;
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) {
+        beforeId = Number(card.dataset.taskId);
+        break;
+      }
+    }
+    dropBeforeId = beforeId;
+    ondragover(column.name);
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    const target = e.currentTarget as HTMLElement;
+    if (!target.contains(e.relatedTarget as Node)) {
+      dropBeforeId = undefined;
+      ondragleave();
+    }
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    const beforeId = dropBeforeId;
+    dropBeforeId = undefined;
+    ondrop(column.name, beforeId != null ? String(beforeId) : undefined);
+  }
 </script>
 
 <section
   class={cn(
-    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-md border bg-neutral-950 p-3 sm:w-[360px] sm:p-3.5",
+    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-md border p-3 sm:w-[360px] sm:p-3.5",
     "max-h-[calc(100dvh-8.5rem)] sm:max-h-[calc(100vh-8rem)]",
-    "border-neutral-800",
-    dragOver && "border-white/40"
+    "transition-colors duration-150",
+    dragOver
+      ? "border-white/30 bg-neutral-900"
+      : "border-neutral-800 bg-neutral-950"
   )}
 >
   <header class="mb-3 flex items-center justify-between gap-2 px-1">
@@ -96,7 +134,7 @@
         title="Add task"
         onclick={() => onadd(column.name)}
         class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
-      >
+        >
         +
       </button>
     </div>
@@ -106,39 +144,11 @@
   <div
     class="flex flex-1 flex-col gap-2.5 overflow-y-auto"
     role="list"
-    ondragover={(e) => {
-      e.preventDefault();
-      e.dataTransfer!.dropEffect = "move";
-      ondragover(column.name);
-    }}
-    ondragleave={(e) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-        ondragleave();
-      }
-    }}
-    ondrop={(e) => {
-      e.preventDefault();
-      const cards = [
-        ...e.currentTarget.querySelectorAll<HTMLElement>("[data-task-id]"),
-      ];
-      let beforeId: string | undefined;
-      for (const card of cards) {
-        const rect = card.getBoundingClientRect();
-        if (e.clientY < rect.top + rect.height / 2) {
-          beforeId = card.dataset.taskId;
-          break;
-        }
-      }
-      ondrop(column.name, beforeId);
-    }}
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
   >
-    {#if column.truncated && tasks.length === 0}
-      <div
-        class="flex min-h-16 items-center justify-center rounded-md border border-dashed border-neutral-800 bg-neutral-900 px-3 text-center text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500"
-      >
-        {count} completed · hidden for a lean board
-      </div>
-    {:else if tasks.length === 0}
+    {#if tasks.length === 0 && dropBeforeId === undefined}
       <button
         type="button"
         onclick={() => onadd(column.name)}
@@ -147,11 +157,22 @@
         + Add task
       </button>
     {:else}
-      {#each tasks as task (task.id)}
-        <div data-task-id={task.id}>
+      {#each tasks as task, i (task.id)}
+        {@const isLast = i === tasks.length - 1}
+        {@const showAbove = dropBeforeId === task.id}
+        {@const showBelow =
+          dropBeforeId === null && isLast && tasks.length > 0}
+        <div
+          data-task-id={task.id}
+          class={cn(
+            "rounded-md transition-[margin] duration-100",
+            showAbove && "-mt-0.5 border-t-2 border-t-white",
+            showBelow && "-mb-0.5 border-b-2 border-b-white"
+          )}
+        >
           <TaskCard
             {task}
-            dragging={draggingId === task.id}
+            {draggingId}
             {terminal}
             {ondragstart}
             {ondragend}
