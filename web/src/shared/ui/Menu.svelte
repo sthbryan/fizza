@@ -145,16 +145,16 @@
   }}
   onkeydown={onKeyDown}
   class={cn(
-    "flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[var(--color-text-muted)] transition",
-    "hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
+    "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-neutral-500 transition-colors",
+    "hover:bg-neutral-900 hover:text-neutral-200",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
     className
   )}
 >
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="12" cy="5" r="1.6" fill="currentColor" />
-    <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-    <circle cx="12" cy="19" r="1.6" fill="currentColor" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="19" r="1.5" fill="currentColor" />
   </svg>
 </button>
 
@@ -162,7 +162,7 @@
   <div
     bind:this={listEl}
     role="menu"
-    class="fixed z-[80] min-w-[10rem] overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+    class="fixed z-[80] min-w-[10rem] overflow-auto rounded-md border border-neutral-700 bg-neutral-950 p-1"
     style:top="{pos.top}px"
     style:left="{pos.left}px"
     style:transform={align === "end" ? "translateX(-100%)" : "none"}
@@ -179,15 +179,13 @@
         }}
         onclick={() => commit(item)}
         class={cn(
-          "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition",
-          "disabled:cursor-not-allowed disabled:opacity-40",
+          "flex w-full cursor-pointer items-center gap-2.5 rounded-sm px-3 py-2 text-left text-[11px] font-mono uppercase tracking-[0.08em] transition-colors",
+          "disabled:cursor-not-allowed disabled:opacity-30",
           item.danger
-            ? "text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
-          isActive &&
-            !item.danger &&
-            "bg-[var(--color-bg-hover)] text-[var(--color-text)]",
-          isActive && item.danger && "bg-[var(--color-danger)]/10"
+            ? "text-red-500 hover:bg-red-500/10"
+            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200",
+          isActive && !item.danger && "bg-neutral-900 text-neutral-200",
+          isActive && item.danger && "bg-red-500/10"
         )}
       >
         {#if item.icon}
