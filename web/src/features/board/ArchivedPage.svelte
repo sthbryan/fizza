@@ -85,19 +85,19 @@
 
 <AppShell>
   <header
-    class="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)] px-4 py-4 sm:px-6 sm:py-5"
+    class="border-b border-neutral-800 bg-black px-4 py-4 sm:px-6 sm:py-5"
   >
     <div
       class="flex flex-col gap-3.5 sm:flex-row sm:items-end sm:justify-between"
     >
       <div class="min-w-0">
         <nav
-          class="mb-1.5 flex flex-wrap items-center gap-1.5 text-sm text-[var(--color-text-muted)]"
+          class="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
             href="/projects"
-            class="transition hover:text-[var(--color-text-secondary)]"
+            class="transition-colors hover:text-neutral-300"
             onclick={(e) => {
               e.preventDefault();
               navigate("/projects");
@@ -108,7 +108,7 @@
           <span class="opacity-40">/</span>
           <a
             href={boardPath(project, board)}
-            class="truncate transition hover:text-[var(--color-text-secondary)]"
+            class="truncate transition-colors hover:text-neutral-300"
             onclick={(e) => {
               e.preventDefault();
               navigate(boardPath(project, board));
@@ -117,16 +117,16 @@
             {project}
           </a>
           <span class="opacity-40">/</span>
-          <span class="text-[var(--color-text-secondary)]">{board}</span>
+          <span class="text-neutral-400">{board}</span>
           <span class="opacity-40">/</span>
-          <span class="text-[var(--color-text-secondary)]">archived</span>
+          <span class="text-neutral-400">archived</span>
         </nav>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl text-white">
             Archived
           </h1>
           {#if archivedQuery.data}
-            <span class="text-base text-[var(--color-text-muted)]">
+            <span class="font-mono text-sm tabular-nums text-neutral-500">
               {archivedQuery.data.length} total
             </span>
           {/if}
@@ -143,9 +143,9 @@
 
   <main class="min-h-0 flex-1 overflow-y-auto">
     {#if archivedQuery.isPending}
-      <div class="p-8 text-base text-[var(--color-text-muted)]">Loading…</div>
+      <div class="p-8 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">Loading…</div>
     {:else if archivedQuery.isError}
-      <div class="p-8 text-base text-[var(--color-danger)]">
+      <div class="p-8 text-sm font-mono text-red-500">
         {archivedQuery.error.message}
       </div>
     {:else if !archivedQuery.data?.length}
@@ -156,30 +156,30 @@
         onaction={() => navigate(boardPath(project, board))}
       />
     {:else}
-      <div class="space-y-3 p-4 sm:p-6">
+      <div class="space-y-2.5 p-4 sm:p-6">
         {#each archivedQuery.data as task (task.id)}
           <article
-            class="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-4 sm:p-5"
+            class="rounded-md border border-neutral-800 bg-neutral-950 p-4 sm:p-5"
           >
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
-                <div class="mb-2 flex flex-wrap items-center gap-2">
+                <div class="mb-2 flex flex-wrap items-center gap-3">
                   <Badge priority={task.priority} />
-                  <span class="font-mono text-xs text-[var(--color-text-muted)]">
+                  <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-neutral-500">
                     #{task.id}
                   </span>
-                  <span class="text-xs text-[var(--color-text-muted)]">
+                  <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-neutral-500">
                     {task.status?.replaceAll("_", " ") || "—"}
                   </span>
                 </div>
-                <h2 class="text-lg font-semibold tracking-tight">{task.title}</h2>
+                <h2 class="text-base font-medium tracking-tight text-neutral-100">{task.title}</h2>
                 {#if task.description}
-                  <p class="mt-1 line-clamp-2 text-sm text-[var(--color-text-muted)]">
+                  <p class="mt-1 line-clamp-2 text-xs text-neutral-500">
                     {task.description}
                   </p>
                 {/if}
                 <div
-                  class="mt-3 flex flex-wrap gap-3 text-xs text-[var(--color-text-muted)]"
+                  class="mt-3 flex flex-wrap gap-3 text-[10px] font-mono uppercase tracking-[0.08em] text-neutral-500"
                 >
                   <span>Completed {fmt(task.completed_at)}</span>
                   <span>Archived {fmt(task.archived_at)}</span>
