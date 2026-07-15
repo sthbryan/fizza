@@ -10,9 +10,9 @@ CGO_ENABLED=0
 BUILD_DIR=bin
 PKG=./cmd/fizza
 
-# Install location (override with `make install PREFIX=/path/to/root`)
-PREFIX ?= /usr/local
-BINDIR ?= $(PREFIX)/bin
+# Install location (override with `make install BINDIR=/path/to/bin`)
+GOBIN := $(shell go env GOPATH)/bin
+BINDIR ?= $(GOBIN)
 DESTDIR ?=
 INSTALL_PATH=$(DESTDIR)$(BINDIR)/$(BINARY_NAME)
 
@@ -115,7 +115,7 @@ install: web build
 .PHONY: uninstall
 uninstall:
 	@echo "Uninstalling $(BINARY_NAME)..."
-	@rm -f $$(go env GOPATH)/bin/$(BINARY_NAME)
+	@rm -f $(INSTALL_PATH)
 
 # Help target
 .PHONY: help
@@ -131,6 +131,6 @@ help:
 	@echo "  fmt            - Run gofmt -w and verify CI formatting check passes"
 	@echo "  mcp-test       - Smoke-test the MCP server end-to-end"
 	@echo "  clean          - Remove build artifacts"
-	@echo "  install        - Build web + binary, copy to \$$BINDIR (PREFIX=... override)"
-	@echo "  uninstall      - Remove installed binary"
+	@echo "  install        - Build web + binary, copy to \$$BINDIR (BINDIR=... override; default \$$(go env GOPATH)/bin)"
+	@echo "  uninstall      - Remove installed binary from \$$BINDIR"
 	@echo "  help           - Show this help message"
