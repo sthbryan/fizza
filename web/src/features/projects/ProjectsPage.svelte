@@ -17,6 +17,7 @@
   import EditProjectDialog from "./EditProjectDialog.svelte";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
   import { projectsApi } from "./api";
+  import { cn } from "@/lib/cn";
 
   let createOpen = $state(false);
   let editing = $state<Project | null>(null);
@@ -80,19 +81,19 @@
 
 <AppShell>
   <header
-    class="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)] px-4 py-4 sm:px-6 sm:py-5"
+    class="border-b border-neutral-800 bg-black px-4 py-4 sm:px-6 sm:py-5"
   >
     <div class="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div class="min-w-0">
-        <div class="mb-1.5 text-sm text-[var(--color-text-muted)]">
+        <div class="mb-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">
           fizza / projects
         </div>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl text-white">
             Projects
           </h1>
           {#if projectsQuery.data}
-            <span class="text-base text-[var(--color-text-muted)]">
+            <span class="font-mono text-sm tabular-nums text-neutral-500">
               {projectsQuery.data.length} total
             </span>
           {/if}
@@ -106,9 +107,11 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if projectsQuery.isPending}
-      <div class="p-8 text-base text-[var(--color-text-muted)]">Loading…</div>
+      <div class="p-8 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">
+        Loading…
+      </div>
     {:else if projectsQuery.isError}
-      <div class="p-8 text-base text-[var(--color-danger)]">
+      <div class="p-8 text-sm font-mono text-red-500">
         {projectsQuery.error.message}
       </div>
     {:else if !projectsQuery.data?.length}
@@ -120,74 +123,61 @@
       />
     {:else}
       <div class="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="divide-y divide-neutral-900 border-y border-neutral-800">
           {#each projectsQuery.data as p (p.id)}
             {@const active = hint?.project === p.name}
             <div
-              class={
-                "group relative rounded-2xl border p-5 text-left transition sm:p-6 " +
-                (active
-                  ? "border-[var(--color-accent)]/50 bg-[var(--color-bg-hover)] ring-1 ring-[var(--color-accent)]/30"
-                  : "border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]")
-              }
+              class={cn(
+                "group flex items-center gap-3 py-3 transition-colors",
+                active ? "bg-white/[0.02]" : "hover:bg-white/[0.02]"
+              )}
             >
               <button
                 type="button"
-                class="absolute inset-0 cursor-pointer rounded-2xl"
+                class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
                 aria-label={`Open project ${p.name}`}
                 onclick={() => void openProject(p.name)}
-              ></button>
-              <div class="relative z-10 pointer-events-none">
-                <div class="mb-2.5 flex items-start justify-between gap-2">
-                  <h3 class="truncate text-lg font-semibold tracking-tight">
-                    {p.name}
-                  </h3>
-                  <div class="flex shrink-0 items-center gap-1.5">
-                    {#if active}
-                      <span
-                        class="rounded-lg bg-[var(--color-accent)]/15 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)]"
-                      >
-                        Recent
-                      </span>
-                    {/if}
-                    <button
-                      type="button"
-                      title="Edit project"
-                      class="pointer-events-auto cursor-pointer rounded-lg px-2 py-1 text-sm text-[var(--color-text-muted)] opacity-100 transition hover:bg-white/5 hover:text-[var(--color-text)] sm:opacity-0 sm:group-hover:opacity-100"
-                      onclick={(e) => handleEdit(e, p)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      title="Delete project"
-                      class="pointer-events-auto cursor-pointer rounded-lg px-2 py-1 text-sm text-[var(--color-text-muted)] opacity-100 transition hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] sm:opacity-0 sm:group-hover:opacity-100"
-                      onclick={(e) => handleDelete(e, p)}
-                    >
-                      Del
-                    </button>
-                  </div>
-                </div>
-                <p
-                  class="line-clamp-2 min-h-12 text-base text-[var(--color-text-muted)]"
-                >
+              >
+                {#if active}
+                  <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-white"></span>
+                {:else}
+                  <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-700"></span>
+                {/if}
+                <span class="truncate text-base font-medium tracking-tight text-neutral-100">
+                  {p.name}
+                </span>
+                <span class="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500">
+                  #{p.id}
+                </span>
+                <span class="hidden truncate text-xs text-neutral-500 sm:inline">
                   {p.description?.trim() || "No description"}
-                </p>
-                <div class="mt-5 flex items-center justify-between gap-3">
-                  <span class="text-sm text-[var(--color-text-muted)]">
-                    <span class="font-mono text-xs">#{p.id}</span>
-                    <span class="mx-1.5 opacity-40">·</span>
-                    {boardLabel(p.board_count)}
-                  </span>
-                  <span class="shrink-0 text-sm text-[var(--color-text-secondary)]">
-                    Open board →
-                  </span>
-                </div>
+                </span>
+              </button>
+              <span class="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:inline">
+                {boardLabel(p.board_count)}
+              </span>
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  title="Edit project"
+                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-neutral-200"
+                  onclick={(e) => handleEdit(e, p)}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  title="Delete project"
+                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-red-500/10 hover:text-red-500"
+                  onclick={(e) => handleDelete(e, p)}
+                >
+                  Del
+                </button>
               </div>
             </div>
           {/each}
         </div>
-        <div class="mt-5 flex justify-center sm:mt-7">
+        <div class="mt-6 flex justify-center sm:mt-8">
           <Button variant="secondary" onclick={() => (createOpen = true)}>
             + Create project
           </Button>
