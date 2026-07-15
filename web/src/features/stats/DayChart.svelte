@@ -12,7 +12,7 @@
   let {
     rows,
     days = 30,
-    color = "var(--color-accent)",
+    color = "var(--color-text-display)",
     emptyLabel = "No activity in this period",
   }: Props = $props();
 
@@ -23,7 +23,7 @@
 </script>
 
 {#if !hasAny}
-  <p class="py-8 text-center text-sm text-[var(--color-text-muted)]">
+  <p class="py-8 text-center text-xs font-mono uppercase tracking-[0.1em] text-neutral-500">
     {emptyLabel}
   </p>
 {:else}
@@ -36,19 +36,19 @@
           title="{day.date}: {day.count}"
         >
           <div
-            class="w-full max-w-3 rounded-t-sm transition-all duration-200 group-hover:opacity-90"
+            class="w-full max-w-3 rounded-none transition-all duration-200 group-hover:opacity-70"
             style:height="{h}%"
             style:background={day.count > 0 ? color : "var(--color-border-subtle)"}
-            style:min-height={day.count > 0 ? "3px" : "1px"}
+            style:min-height={day.count > 0 ? "2px" : "1px"}
           ></div>
         </div>
       {/each}
     </div>
     <div
-      class="flex justify-between text-[10px] text-[var(--color-text-muted)] sm:text-xs"
+      class="flex justify-between text-[10px] font-mono uppercase tracking-[0.08em] text-neutral-500"
     >
       <span>{formatDayLabel(series[0]?.date ?? "")}</span>
-      <span class="text-[var(--color-text-secondary)]">{total} total</span>
+      <span class="text-neutral-200 tabular-nums">{total} total</span>
       <span>{formatDayLabel(series[series.length - 1]?.date ?? "")}</span>
     </div>
   </div>
