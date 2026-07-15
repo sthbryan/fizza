@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cn } from "@/lib/cn";
+  import PlusIcon from "@/shared/ui/PlusIcon.svelte";
   import { getRoute, navigate, boardPath, lastBoardHint } from "@/lib/router/router.svelte";
 
   const route = $derived(getRoute());
@@ -131,9 +132,10 @@
   <button
     type="button"
     title="New task"
+    aria-label="New task"
     onclick={goNewTask}
-    class="mx-3 mb-1 flex h-9 cursor-pointer items-center justify-center rounded-md border border-neutral-700 text-base font-mono text-neutral-400 transition-colors hover:border-white hover:text-white"
+    class="mx-3 mb-1 flex h-9 cursor-pointer items-center justify-center rounded-md border border-neutral-700 text-neutral-400 transition-colors hover:border-white hover:text-white"
   >
-    +
+    <PlusIcon size={16} />
   </button>
 </aside>
