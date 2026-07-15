@@ -2,7 +2,7 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { cn } from "@/lib/cn";
 
-  type Variant = "primary" | "secondary" | "ghost" | "danger" | "icon";
+  type Variant = "primary" | "secondary" | "ghost" | "danger" | "destructive" | "icon";
   type Size = "sm" | "md" | "lg";
 
   interface Props extends HTMLButtonAttributes {
@@ -29,6 +29,8 @@
       "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
     danger:
       "bg-transparent text-[var(--color-danger)] border border-[var(--color-danger)]/25 hover:bg-[var(--color-danger)]/10",
+    destructive:
+      "bg-[var(--color-danger)] text-white hover:brightness-110 active:brightness-95",
     icon: "bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]",
   };
 

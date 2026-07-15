@@ -7,6 +7,8 @@
     open: boolean;
     title: string;
     submitLabel?: string;
+    cancelLabel?: string;
+    submitVariant?: "primary" | "destructive";
     busy?: boolean;
     onclose: () => void;
     onsubmit?: () => void | Promise<void>;
@@ -17,6 +19,8 @@
     open,
     title,
     submitLabel = "Save",
+    cancelLabel = "Cancel",
+    submitVariant = "primary",
     busy = false,
     onclose,
     onsubmit,
@@ -59,14 +63,14 @@
       <div
         class="flex justify-end gap-2.5 border-t border-[var(--color-border-subtle)] px-6 py-5"
       >
-        <Button variant="ghost" onclick={onclose} disabled={busy}>Cancel</Button>
+        <Button variant="ghost" onclick={onclose} disabled={busy}>{cancelLabel}</Button>
         {#if onsubmit}
           <Button
-            variant="primary"
+            variant={submitVariant}
             disabled={busy}
             onclick={() => void onsubmit()}
           >
-            {busy ? "Saving…" : submitLabel}
+            {busy ? "Working…" : submitLabel}
           </Button>
         {/if}
       </div>

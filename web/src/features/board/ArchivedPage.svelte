@@ -13,6 +13,7 @@
   import { showToast } from "@/lib/toast/toast.svelte";
   import { boardApi } from "./api";
   import { tasksApi } from "@/features/tasks/api";
+  import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
 
   interface Props {
     project: string;
@@ -21,6 +22,8 @@
 
   let { project, board }: Props = $props();
   const queryClient = useQueryClient();
+
+  let pendingDelete = $state<Task | null>(null);
 
   $effect(() => {
     rememberBoard(project, board);
@@ -70,10 +73,13 @@
   }
 
   function handleDelete(task: Task) {
-    if (!confirm(`Permanently delete archived task #${task.id}: “${task.title}”?`)) {
-      return;
-    }
-    void deleteMutation.mutateAsync(task);
+    pendingDelete = task;
+  }
+
+  async function confirmDelete() {
+    const target = pendingDelete;
+    pendingDelete = null;
+    if (target) await deleteMutation.mutateAsync(target);
   }
 </script>
 
@@ -204,3 +210,14 @@
     {/if}
   </main>
 </AppShell>
+
+<ConfirmDialog
+  open={pendingDelete !== null}
+  title={pendingDelete ? `Permanently delete task #${pendingDelete.id}?` : ""}
+  description={pendingDelete
+    ? `“${pendingDelete.title}” will be removed from the archive. This cannot be undone.`
+    : ""}
+  confirmLabel="Delete permanently"
+  onclose={() => (pendingDelete = null)}
+  onconfirm={confirmDelete}
+/>

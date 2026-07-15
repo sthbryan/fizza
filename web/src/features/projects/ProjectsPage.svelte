@@ -15,10 +15,13 @@
   import type { Project } from "@/lib/api";
   import CreateProjectDialog from "./CreateProjectDialog.svelte";
   import EditProjectDialog from "./EditProjectDialog.svelte";
+  import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
   import { projectsApi } from "./api";
 
   let createOpen = $state(false);
   let editing = $state<Project | null>(null);
+
+  let pendingDelete = $state<Project | null>(null);
   const hint = lastBoardHint();
   const queryClient = useQueryClient();
 
@@ -57,17 +60,16 @@
     editing = project;
   }
 
-  function handleDelete(e: MouseEvent, name: string) {
+  function handleDelete(e: MouseEvent, project: Project) {
     e.stopPropagation();
     e.preventDefault();
-    if (
-      !confirm(
-        `Delete project “${name}” and all of its boards, columns, and tasks? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-    void deleteMutation.mutateAsync(name);
+    pendingDelete = project;
+  }
+
+  async function confirmDelete() {
+    const target = pendingDelete;
+    pendingDelete = null;
+    if (target) await deleteMutation.mutateAsync(target.name);
   }
 
   function boardLabel(count: number | undefined) {
@@ -160,7 +162,7 @@
                       type="button"
                       title="Delete project"
                       class="pointer-events-auto cursor-pointer rounded-lg px-2 py-1 text-sm text-[var(--color-text-muted)] opacity-100 transition hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] sm:opacity-0 sm:group-hover:opacity-100"
-                      onclick={(e) => handleDelete(e, p.name)}
+                      onclick={(e) => handleDelete(e, p)}
                     >
                       Del
                     </button>
@@ -200,4 +202,14 @@
   project={editing}
   open={editing !== null}
   onclose={() => (editing = null)}
+/>
+<ConfirmDialog
+  open={pendingDelete !== null}
+  title={pendingDelete ? `Delete project “${pendingDelete.name}”?` : ""}
+  description={pendingDelete
+    ? `All boards, columns, and tasks in this project will be permanently deleted. This cannot be undone.`
+    : ""}
+  confirmLabel="Delete project"
+  onclose={() => (pendingDelete = null)}
+  onconfirm={confirmDelete}
 />

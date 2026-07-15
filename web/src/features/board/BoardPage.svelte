@@ -12,6 +12,7 @@
   import { cn } from "@/lib/cn";
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
+  import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
   import { isTerminalColumn } from "./terminal";
@@ -47,6 +48,26 @@
 
   let draggingId = $state<number | null>(null);
   let dragOverColumn = $state<string | null>(null);
+
+  type ConfirmSpec = {
+    title: string;
+    description: string;
+    confirmLabel: string;
+    cancelLabel?: string;
+    run: () => void | Promise<void>;
+  };
+
+  let pendingConfirm = $state<ConfirmSpec | null>(null);
+
+  function ask(spec: ConfirmSpec) {
+    pendingConfirm = spec;
+  }
+
+  async function runConfirm() {
+    const spec = pendingConfirm;
+    pendingConfirm = null;
+    if (spec) await spec.run();
+  }
 
   $effect(() => {
     rememberBoard(project, board);
@@ -237,8 +258,14 @@
   }
 
   function handleDelete(task: Task) {
-    if (!confirm(`Delete task #${task.id}: “${task.title}”?`)) return;
-    void deleteMutation.mutateAsync(task);
+    ask({
+      title: `Delete task #${task.id}?`,
+      description: `“${task.title}” will be permanently removed. This cannot be undone.`,
+      confirmLabel: "Delete task",
+      run: async () => {
+        await deleteMutation.mutateAsync(task);
+      },
+    });
   }
 
   function handleArchive(task: Task) {
@@ -251,54 +278,66 @@
 
   function handleArchiveDone() {
     if (doneCount <= 0) return;
-    if (
-      !confirm(
-        `Archive all ${doneCount} completed task${doneCount === 1 ? "" : "s"} on this board?`
-      )
-    ) {
-      return;
-    }
-    void archiveDoneMutation.mutateAsync();
+    ask({
+      title: `Archive ${doneCount} completed task${doneCount === 1 ? "" : "s"}?`,
+      description: `They will move out of the board and stay recoverable from the Archived view.`,
+      confirmLabel: "Archive all",
+      run: async () => {
+        await archiveDoneMutation.mutateAsync();
+      },
+    });
   }
 
   function handleDeleteColumn(col: ColumnSnapshot) {
     const n = col.task_count ?? col.tasks?.length ?? 0;
     const label = col.name.replaceAll("_", " ");
     if (n > 0) {
-      if (
-        !confirm(
-          `Delete column “${label}” and its ${n} task(s)? This cannot be undone.`
-        )
-      ) {
-        return;
-      }
-      void deleteColumnMutation.mutateAsync({ name: col.name, force: true });
+      ask({
+        title: `Delete column “${label}”?`,
+        description: `${n} task${n === 1 ? "" : "s"} in this column will also be permanently deleted. This cannot be undone.`,
+        confirmLabel: "Delete column",
+        run: async () => {
+          await deleteColumnMutation.mutateAsync({
+            name: col.name,
+            force: true,
+          });
+        },
+      });
       return;
     }
-    if (!confirm(`Delete empty column “${label}”?`)) return;
-    void deleteColumnMutation.mutateAsync({ name: col.name, force: false });
+    ask({
+      title: `Delete empty column “${label}”?`,
+      description: `This column has no tasks and can be safely removed.`,
+      confirmLabel: "Delete column",
+      run: async () => {
+        await deleteColumnMutation.mutateAsync({
+          name: col.name,
+          force: false,
+        });
+      },
+    });
   }
 
   function handleDeleteBoard(name: string) {
-    if (
-      !confirm(
-        `Delete board “${name}” and all of its columns and tasks? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-    void deleteBoardMutation.mutateAsync(name);
+    ask({
+      title: `Delete board “${name}”?`,
+      description: `All columns and tasks on this board will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete board",
+      run: async () => {
+        await deleteBoardMutation.mutateAsync(name);
+      },
+    });
   }
 
   function handleDeleteProject() {
-    if (
-      !confirm(
-        `Delete project “${project}” and all boards, columns, and tasks? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-    void deleteProjectMutation.mutateAsync();
+    ask({
+      title: `Delete project “${project}”?`,
+      description: `All boards, columns, and tasks in this project will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete project",
+      run: async () => {
+        await deleteProjectMutation.mutateAsync();
+      },
+    });
   }
 
   function handleDrop(column: string, beforeId?: string) {
@@ -538,4 +577,13 @@
   task={editing}
   columns={columnOptions}
   onclose={() => (editing = null)}
+/>
+<ConfirmDialog
+  open={pendingConfirm !== null}
+  title={pendingConfirm?.title ?? ""}
+  description={pendingConfirm?.description ?? ""}
+  confirmLabel={pendingConfirm?.confirmLabel}
+  cancelLabel={pendingConfirm?.cancelLabel}
+  onclose={() => (pendingConfirm = null)}
+  onconfirm={runConfirm}
 />
