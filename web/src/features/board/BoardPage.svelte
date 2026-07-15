@@ -2,7 +2,7 @@
   import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
   import type { ColumnSnapshot, Task } from "@/lib/api";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import {
     archivedPath,
     boardPath,
@@ -146,7 +146,7 @@
       await invalidateBoard();
     },
     onError: async (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
       await invalidateBoard();
     },
     onSettled: () => {
@@ -159,10 +159,10 @@
     mutationFn: (task: Task) => tasksApi.delete(task.id),
     onSuccess: async (_data, task) => {
       await invalidateBoard();
-      showToast(`Task #${task.id} deleted`);
+      showStatus(`Task #${task.id} deleted`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -170,10 +170,10 @@
     mutationFn: (task: Task) => tasksApi.archive(task.id),
     onSuccess: async (_data, task) => {
       await invalidateBoard();
-      showToast(`Task #${task.id} archived`);
+      showStatus(`Task #${task.id} archived`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -182,10 +182,10 @@
       tasksApi.move(task.id, { project, board, column: openColumn }),
     onSuccess: async (_data, task) => {
       await invalidateBoard();
-      showToast(`Task #${task.id} restored to ${openColumn}`);
+      showStatus(`Task #${task.id} restored to ${openColumn}`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -193,14 +193,14 @@
     mutationFn: () => boardApi.archiveDone(project, board),
     onSuccess: async (data) => {
       await invalidateBoard();
-      showToast(
+      showStatus(
         data.archived
           ? `Archived ${data.archived} completed task${data.archived === 1 ? "" : "s"}`
           : "No completed tasks to archive"
       );
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -209,17 +209,17 @@
       boardApi.deleteColumn(project, board, input.name, input.force),
     onSuccess: async (_data, input) => {
       await invalidateBoard();
-      showToast(`Column “${input.name}” deleted`);
+      showStatus(`Column “${input.name}” deleted`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   const deleteBoardMutation = createMutation(() => ({
     mutationFn: (name: string) => boardApi.delete(project, name),
     onSuccess: async (_data, name) => {
-      showToast(`Board “${name}” deleted`);
+      showStatus(`Board “${name}” deleted`);
       const remaining =
         (await queryClient.fetchQuery({
           queryKey: queryKeys.boards(project),
@@ -235,7 +235,7 @@
       }
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -244,11 +244,11 @@
     onSuccess: async () => {
       rememberBoard("", "");
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects });
-      showToast(`Project “${project}” deleted`);
+      showStatus(`Project “${project}” deleted`);
       navigate("/projects");
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 

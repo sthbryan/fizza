@@ -11,7 +11,7 @@
     rememberBoard,
   } from "@/lib/router/router.svelte";
   import { fizzaApi } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import type { Project } from "@/lib/api";
   import CreateProjectDialog from "./CreateProjectDialog.svelte";
   import EditProjectDialog from "./EditProjectDialog.svelte";
@@ -36,10 +36,10 @@
       const stored = lastBoardHint();
       if (stored?.project === name) rememberBoard("", "");
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects });
-      showToast(`Project “${name}” deleted`);
+      showStatus(`Project “${name}” deleted`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 

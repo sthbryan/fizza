@@ -10,7 +10,7 @@
     navigate,
     rememberBoard,
   } from "@/lib/router/router.svelte";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import { boardApi } from "./api";
   import { tasksApi } from "@/features/tasks/api";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
@@ -44,10 +44,10 @@
       await queryClient.invalidateQueries({
         queryKey: ["snapshot", project, board],
       });
-      showToast(`Task #${task.id} unarchived`);
+      showStatus(`Task #${task.id} unarchived`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -60,10 +60,10 @@
       await queryClient.invalidateQueries({
         queryKey: ["snapshot", project, board],
       });
-      showToast(`Task #${task.id} deleted`);
+      showStatus(`Task #${task.id} deleted`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 

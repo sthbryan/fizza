@@ -5,7 +5,7 @@
   import Input from "@/shared/ui/Input.svelte";
   import TextArea from "@/shared/ui/TextArea.svelte";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import { lastBoardHint, rememberBoard } from "@/lib/router/router.svelte";
   import { projectsApi } from "./api";
 
@@ -48,17 +48,17 @@
           queryKey: queryKeys.boards(project.name),
         });
       }
-      showToast(`Project “${updated.name}” updated`);
+      showStatus(`Project “${updated.name}” updated`);
       onclose();
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   async function submit() {
     if (!name.trim()) {
-      showToast("Name is required", "error");
+      showStatus("Name is required", "error");
       return;
     }
     await mutation.mutateAsync();

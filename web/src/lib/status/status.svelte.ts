@@ -1,18 +1,18 @@
-export type ToastKind = "ok" | "error";
+export type StatusKind = "ok" | "error";
 
-type ToastState = {
+type StatusState = {
   message: string;
-  kind: ToastKind;
+  kind: StatusKind;
 } | null;
 
-let current = $state<ToastState>(null);
+let current = $state<StatusState>(null);
 let timer: number | undefined;
 
-export function getToast(): ToastState {
+export function getStatus(): StatusState {
   return current;
 }
 
-export function showToast(message: string, kind: ToastKind = "ok") {
+export function showStatus(message: string, kind: StatusKind = "ok") {
   current = { message, kind };
   if (timer !== undefined) window.clearTimeout(timer);
   timer = window.setTimeout(() => {
@@ -20,6 +20,6 @@ export function showToast(message: string, kind: ToastKind = "ok") {
   }, 3200);
 }
 
-export function clearToast() {
+export function clearStatus() {
   current = null;
 }
