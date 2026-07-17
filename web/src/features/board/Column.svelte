@@ -93,8 +93,8 @@
 
 <section
   class={cn(
-    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-md border p-3 sm:w-[360px] sm:p-3.5",
-    "max-h-[calc(100dvh-8.5rem)] sm:max-h-[calc(100vh-8rem)]",
+    "flex w-[min(88%,320px)] shrink-0 flex-col rounded-md border p-3 sm:w-[360px] sm:p-3.5",
+    "max-h-[calc(100dvh-9rem)] sm:max-h-[calc(100vh-8rem)]",
     "transition-colors duration-150",
     dragOver
       ? "border-white/30 bg-neutral-900"

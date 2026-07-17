@@ -396,11 +396,12 @@
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <Button
           variant="ghost"
           onclick={() => (showCompleted = !showCompleted)}
           disabled={!project || !board}
+          class="!hidden sm:!inline-flex"
         >
           {showCompleted ? "Hide completed" : "Show completed"}
           {#if doneCount > 0}
@@ -422,6 +423,7 @@
             variant="ghost"
             onclick={handleArchiveDone}
             disabled={archiveDoneMutation.isPending}
+            class="!hidden sm:!inline-flex"
           >
             Archive all done
           </Button>
@@ -430,7 +432,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="hover:text-red-500"
+          class="!hidden hover:text-red-500 sm:!inline-flex"
         >
           Delete project
         </Button>
@@ -438,6 +440,7 @@
           variant="ghost"
           onclick={() => (columnDialog = true)}
           disabled={!project || !board}
+          class="!hidden sm:!inline-flex"
         >
           + Column
         </Button>
@@ -447,7 +450,7 @@
           disabled={!project || !board}
           title="New task"
           aria-label="New task"
-          class="p-0! shink-0 aspect-square"
+          class="size-9 shrink-0 p-0"
         >
           <Plus size={16} strokeWidth={1.5} />
         </Button>
