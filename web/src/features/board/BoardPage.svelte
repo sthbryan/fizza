@@ -447,7 +447,7 @@
           disabled={!project || !board}
           title="New task"
           aria-label="New task"
-          class="h-9! w-9 p-0! shink-0"
+          class="p-0! shink-0 aspect-square"
         >
           <PlusIcon size={16} />
         </Button>
