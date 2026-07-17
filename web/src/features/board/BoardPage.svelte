@@ -13,7 +13,7 @@
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
-  import PlusIcon from "@/shared/ui/PlusIcon.svelte";
+  import Plus from "lucide-svelte/icons/plus";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
   import { isTerminalColumn } from "./terminal";
@@ -449,7 +449,7 @@
           aria-label="New task"
           class="p-0! shink-0 aspect-square"
         >
-          <PlusIcon size={16} />
+          <Plus size={16} strokeWidth={1.5} />
         </Button>
       </div>
     </div>
