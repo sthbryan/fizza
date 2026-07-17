@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import { cn } from "@/lib/cn";
 
   export type SelectOption = {
@@ -188,6 +190,8 @@
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
+      in:scale={{ duration: 100, start: 0.96, opacity: 0, easing: cubicOut }}
+      out:scale={{ duration: 80, start: 0.96, opacity: 0, easing: cubicOut }}
     >
       {#if options.length === 0}
         <div class="px-3.5 py-2 text-xs font-mono text-neutral-500">
