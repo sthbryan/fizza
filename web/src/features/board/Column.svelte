@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ColumnSnapshot, Task } from "@/lib/api";
   import { cn } from "@/lib/cn";
+  import { animate } from "@/lib/animate";
   import TaskCard from "./TaskCard.svelte";
 
   interface Props {
@@ -147,6 +148,7 @@
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
     ondrop={handleDrop}
+    use:animate={{ duration: 180, easing: "ease-out" }}
   >
     {#if tasks.length === 0 && dropBeforeId === undefined}
       <button
