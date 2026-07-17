@@ -13,7 +13,7 @@
 
   let {
     variant = "secondary",
-    size = "md",
+    size = "sm",
     class: className = "",
     children,
     disabled,
