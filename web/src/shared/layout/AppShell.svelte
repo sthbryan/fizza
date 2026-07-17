@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Sidebar from "./Sidebar.svelte";
+  import BottomTabBar from "./BottomTabBar.svelte";
   import Status from "@/shared/ui/Status.svelte";
 
   interface Props {
@@ -14,6 +15,9 @@
   <Sidebar />
   <div class="flex min-w-0 flex-1 flex-col">
     <Status />
-    {@render children()}
+    <div class="flex min-h-0 flex-1 flex-col">
+      {@render children()}
+    </div>
+    <BottomTabBar />
   </div>
 </div>
