@@ -52,6 +52,8 @@
   );
 
   function handleDragStart(e: DragEvent) {
+    const dt = e.dataTransfer;
+    if (!dt) return;
     const target = e.currentTarget as HTMLElement;
     const ghost = target.cloneNode(true) as HTMLElement;
     ghost.style.cssText = `
@@ -65,10 +67,10 @@
       z-index: -1;
     `;
     document.body.appendChild(ghost);
-    e.dataTransfer!.setDragImage(ghost, 20, 20);
+    dt.setDragImage(ghost, 20, 20);
     setTimeout(() => ghost.remove(), 0);
-    e.dataTransfer!.effectAllowed = "move";
-    e.dataTransfer!.setData("text/plain", String(task.id));
+    dt.effectAllowed = "move";
+    dt.setData("text/plain", String(task.id));
     ondragstart(task);
   }
 </script>

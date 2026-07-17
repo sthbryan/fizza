@@ -1,4 +1,4 @@
-export { api, fizzaApi, ApiError } from "./client";
+export { ApiError, api, fizzaApi } from "./client";
 export { queryKeys } from "./keys";
 export { subscribeLiveInvalidation } from "./live";
 export type {

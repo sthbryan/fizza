@@ -58,8 +58,10 @@
 
   function handleDragOver(e: DragEvent) {
     const target = e.currentTarget as HTMLElement;
+    const dt = e.dataTransfer;
+    if (!dt) return;
     e.preventDefault();
-    e.dataTransfer!.dropEffect = "move";
+    dt.dropEffect = "move";
     const cards = [...target.querySelectorAll<HTMLElement>("[data-task-id]")];
     let beforeId: number | null = null;
     for (const card of cards) {
