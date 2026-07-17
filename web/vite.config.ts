@@ -1,7 +1,7 @@
-import { defineConfig } from "vite";
+import path from "node:path";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
-import path from "node:path";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [svelte(), tailwindcss()],
@@ -14,7 +14,6 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-
       "/v1": {
         target: "http://127.0.0.1:6500",
         changeOrigin: true,
@@ -23,7 +22,6 @@ export default defineConfig({
     },
   },
   build: {
-
     outDir: path.resolve(__dirname, "../internal/httpapi/static/app"),
     emptyOutDir: true,
     assetsDir: "assets",

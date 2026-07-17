@@ -5,9 +5,7 @@ export function fillDaySeries(rows: DayCount[], days = 30): DayCount[] {
   const out: DayCount[] = [];
   const now = new Date();
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i)
-    );
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
     const key = d.toISOString().slice(0, 10);
     out.push({ date: key, count: map.get(key) ?? 0 });
   }
@@ -56,9 +54,5 @@ export function formatDayLabel(iso: string): string {
 
 /** in_progress → IN PROGRESS; keeps charts/selects readable */
 export function formatStatusLabel(name: string): string {
-  return name
-    .replaceAll(/[_-]+/g, " ")
-    .replaceAll(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
+  return name.replaceAll(/[_-]+/g, " ").replaceAll(/\s+/g, " ").trim().toUpperCase();
 }
