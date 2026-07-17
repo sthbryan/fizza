@@ -28,7 +28,7 @@
 
 <nav
   aria-label="Primary"
-  class="sticky bottom-0 z-40 grid grid-cols-3 border-t border-neutral-800 bg-black/85 backdrop-blur-md pb-[env(safe-area-inset-bottom)] md:hidden"
+  class="sticky bottom-0 z-40 grid grid-cols-3 border-t border-neutral-800 bg-black/85 backdrop-blur-md pb-[env(safe-area-inset-bottom)] md:hidden h-16 md:h-auto"
 >
   <button
     type="button"
