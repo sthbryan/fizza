@@ -14,6 +14,7 @@
   import { boardApi } from "./api";
   import { tasksApi } from "@/features/tasks/api";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
+  import { animate } from "@/lib/animate";
 
   interface Props {
     project: string;
@@ -156,7 +157,10 @@
         onaction={() => navigate(boardPath(project, board))}
       />
     {:else}
-      <div class="space-y-2.5 p-4 sm:p-6">
+      <div
+        class="space-y-2.5 p-4 sm:p-6"
+        use:animate={{ duration: 180, easing: "ease-out" }}
+      >
         {#each archivedQuery.data as task (task.id)}
           <article
             class="rounded-md border border-neutral-800 bg-neutral-950 p-4 sm:p-5"
