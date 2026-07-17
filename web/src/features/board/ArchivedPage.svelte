@@ -3,7 +3,6 @@
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
   import EmptyState from "@/shared/ui/EmptyState.svelte";
-  import Badge from "@/shared/ui/Badge.svelte";
   import { queryKeys, type Task } from "@/lib/api";
   import {
     boardPath,
@@ -15,6 +14,7 @@
   import { tasksApi } from "@/features/tasks/api";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
   import { animate } from "@/lib/animate";
+  import { cn } from "@/lib/cn";
 
   interface Props {
     project: string;
@@ -71,6 +71,14 @@
   function fmt(v?: string | null) {
     if (!v) return "—";
     return String(v).slice(0, 10);
+  }
+
+  function priorityDot(p?: string | null): string {
+    const k = String(p || "medium").toLowerCase();
+    if (k === "urgent") return "bg-red-500";
+    if (k === "high") return "bg-neutral-300";
+    if (k === "low") return "bg-neutral-600";
+    return "bg-neutral-400";
   }
 
   function handleDelete(task: Task) {
@@ -157,59 +165,66 @@
         onaction={() => navigate(boardPath(project, board))}
       />
     {:else}
-      <div
-        class="space-y-2.5 p-4 sm:p-6"
-        use:animate={{ duration: 180, easing: "ease-out" }}
-      >
-        {#each archivedQuery.data as task (task.id)}
-          <article
-            class="rounded-md border border-neutral-800 bg-neutral-950 p-4 sm:p-5"
-          >
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div class="min-w-0">
-                <div class="mb-2 flex flex-wrap items-center gap-3">
-                  <Badge priority={task.priority} />
-                  <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-neutral-500">
-                    #{task.id}
-                  </span>
-                  <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-neutral-500">
-                    {task.status?.replaceAll("_", " ") || "—"}
-                  </span>
-                </div>
-                <h2 class="text-base font-medium tracking-tight text-neutral-100">{task.title}</h2>
-                {#if task.description}
-                  <p class="mt-1 line-clamp-2 text-xs text-neutral-500">
-                    {task.description}
-                  </p>
-                {/if}
-                <div
-                  class="mt-3 flex flex-wrap gap-3 text-[10px] font-mono uppercase tracking-[0.08em] text-neutral-500"
-                >
-                  <span>Completed {fmt(task.completed_at)}</span>
-                  <span>Archived {fmt(task.archived_at)}</span>
-                </div>
-              </div>
-              <div class="flex shrink-0 flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onclick={() => void unarchiveMutation.mutateAsync(task)}
+      <div class="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+        <div
+          class="divide-y divide-neutral-900 border-y border-neutral-800"
+          use:animate={{ duration: 180, easing: "ease-out" }}
+        >
+          {#each archivedQuery.data as task (task.id)}
+            <div
+              class="group flex items-center gap-3 py-2.5 transition-colors hover:bg-white/[0.02]"
+            >
+              <span
+                class={cn(
+                  "h-1.5 w-1.5 shrink-0 rounded-full",
+                  priorityDot(task.priority)
+                )}
+                aria-hidden="true"
+              ></span>
+              <span
+                class="hidden w-16 shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:inline"
+              >
+                {String(task.priority || "medium").toLowerCase()}
+              </span>
+              <span
+                class="hidden w-24 shrink-0 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 md:inline"
+                title={task.status}
+              >
+                {task.status?.replaceAll("_", " ") || "—"}
+              </span>
+              <span class="min-w-0 flex-1 truncate text-sm text-neutral-200">
+                {task.title}
+              </span>
+              <span
+                class="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:inline"
+                title={`Archived ${fmt(task.archived_at)}`}
+              >
+                {fmt(task.archived_at)}
+              </span>
+              <span class="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-600">
+                #{task.id}
+              </span>
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={unarchiveMutation.isPending}
+                  onclick={() => void unarchiveMutation.mutateAsync(task)}
                 >
                   Unarchive
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onclick={() => handleDelete(task)}
+                </button>
+                <button
+                  type="button"
+                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={deleteMutation.isPending}
+                  onclick={() => handleDelete(task)}
                 >
-                  Delete
-                </Button>
+                  Del
+                </button>
               </div>
             </div>
-          </article>
-        {/each}
+          {/each}
+        </div>
       </div>
     {/if}
   </main>
