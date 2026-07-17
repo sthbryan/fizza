@@ -1,6 +1,9 @@
 <script lang="ts">
   import { cn } from "@/lib/cn";
   import { getRoute, navigate, boardPath, lastBoardHint } from "@/lib/router/router.svelte";
+  import Kanban from "lucide-svelte/icons/kanban";
+  import Folder from "lucide-svelte/icons/folder";
+  import ChartColumn from "lucide-svelte/icons/chart-column";
 
   const route = $derived(getRoute());
   const boardActive = $derived(route.name === "board" || route.name === "home");
@@ -26,7 +29,7 @@
 </script>
 
 <aside
-  class="flex w-20 shrink-0 flex-col items-stretch border-r border-neutral-800 bg-black py-5"
+  class="hidden w-20 shrink-0 flex-col items-stretch border-r border-neutral-800 bg-black py-5 md:flex"
 >
   <div
     class="mb-6 flex items-center justify-center font-mono text-sm font-medium tracking-tight text-white"
@@ -50,10 +53,7 @@
             class="absolute -left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white"
           ></span>
         {/if}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect x="3" y="4" width="7" height="16" rx="1" stroke="currentColor" stroke-width="1.5" />
-          <rect x="14" y="4" width="7" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
-        </svg>
+        <Kanban size={20} strokeWidth={1.5} />
       </span>
       <span class={labelClass}>Board</span>
     </button>
@@ -73,13 +73,7 @@
             class="absolute -left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white"
           ></span>
         {/if}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-            stroke="currentColor"
-            stroke-width="1.5"
-          />
-        </svg>
+        <Folder size={20} strokeWidth={1.5} />
       </span>
       <span class={labelClass}>Projects</span>
     </button>
@@ -99,14 +93,7 @@
             class="absolute -left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white"
           ></span>
         {/if}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 19V9M10 19V5M16 19v-7M22 19H2"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          />
-        </svg>
+        <ChartColumn size={20} strokeWidth={1.5} />
       </span>
       <span class={labelClass}>Stats</span>
     </button>
