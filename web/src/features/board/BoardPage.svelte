@@ -450,7 +450,7 @@
           disabled={!project || !board}
           title="New task"
           aria-label="New task"
-          class="size-9 shrink-0 p-0"
+          class="size-9 shrink-0 p-0!"
         >
           <Plus size={16} strokeWidth={1.5} />
         </Button>
