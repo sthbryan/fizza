@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import { cn } from "@/lib/cn";
 
   export type MenuItem = {
@@ -166,6 +168,8 @@
     style:top="{pos.top}px"
     style:left="{pos.left}px"
     style:transform={align === "end" ? "translateX(-100%)" : "none"}
+    in:scale={{ duration: 100, start: 0.96, opacity: 0, easing: cubicOut }}
+    out:scale={{ duration: 80, start: 0.96, opacity: 0, easing: cubicOut }}
   >
     {#each items as item, idx (idx)}
       {@const isActive = idx === active}
