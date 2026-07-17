@@ -11,6 +11,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@formkit/auto-animate": "^0.10.0",
     "@tanstack/svelte-query": "^6.1.36",
     "svelte": "^5.56.4"
   },

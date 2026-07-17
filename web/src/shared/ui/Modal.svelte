@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
+  import { fade, scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import Button from "./Button.svelte";
 
   interface Props {
@@ -42,12 +44,16 @@
       type="button"
       aria-label="Close dialog"
       class="absolute inset-0 bg-black/80"
+      in:fade={{ duration: 150, easing: cubicOut }}
+      out:fade={{ duration: 100, easing: cubicOut }}
       onclick={onclose}
     ></button>
     <div
       role="dialog"
       aria-modal="true"
       class="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-neutral-700 bg-neutral-950"
+      in:scale={{ duration: 200, start: 0.96, opacity: 0, easing: cubicOut }}
+      out:scale={{ duration: 150, start: 0.96, opacity: 0, easing: cubicOut }}
     >
       <div
         class="flex items-center justify-between border-b border-neutral-800 px-6 py-4"
