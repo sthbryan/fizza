@@ -18,6 +18,7 @@
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
   import { projectsApi } from "./api";
   import { cn } from "@/lib/cn";
+  import { animate } from "@/lib/animate";
 
   let createOpen = $state(false);
   let editing = $state<Project | null>(null);
@@ -123,7 +124,10 @@
       />
     {:else}
       <div class="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-        <div class="divide-y divide-neutral-900 border-y border-neutral-800">
+        <div
+          class="divide-y divide-neutral-900 border-y border-neutral-800"
+          use:animate={{ duration: 200, easing: "ease-out" }}
+        >
           {#each projectsQuery.data as p (p.id)}
             {@const active = hint?.project === p.name}
             <div
