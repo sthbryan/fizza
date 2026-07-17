@@ -46,11 +46,11 @@
   const tasks = $derived(column.tasks || []);
   const count = $derived(column.task_count ?? tasks.length);
   const countLabel = $derived(
-    column.wip_limit != null ? `${count}/${column.wip_limit}` : String(count)
+    column.wip_limit != null ? `${count}/${column.wip_limit}` : String(count),
   );
   const indexLabel = $derived(String(index + 1).padStart(2, "0"));
   const overLimit = $derived(
-    column.wip_limit != null && count > column.wip_limit
+    column.wip_limit != null && count > column.wip_limit,
   );
 
   let dropBeforeId = $state<number | null | undefined>(undefined);
@@ -59,9 +59,7 @@
     const target = e.currentTarget as HTMLElement;
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
-    const cards = [
-      ...target.querySelectorAll<HTMLElement>("[data-task-id]"),
-    ];
+    const cards = [...target.querySelectorAll<HTMLElement>("[data-task-id]")];
     let beforeId: number | null = null;
     for (const card of cards) {
       const rect = card.getBoundingClientRect();
@@ -97,12 +95,14 @@
     "transition-colors duration-150",
     dragOver
       ? "border-white/30 bg-neutral-900"
-      : "border-neutral-800 bg-neutral-950"
+      : "border-neutral-800 bg-neutral-950",
   )}
 >
   <header class="mb-3 flex items-center justify-between gap-2 px-1">
     <div class="flex min-w-0 items-center gap-2">
-      <span class="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500">
+      <span
+        class="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500"
+      >
         {indexLabel}
       </span>
       <span
@@ -134,7 +134,7 @@
         title="Add task"
         onclick={() => onadd(column.name)}
         class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
-        >
+      >
         +
       </button>
     </div>
@@ -158,17 +158,9 @@
       </button>
     {:else}
       {#each tasks as task, i (task.id)}
-        {@const isLast = i === tasks.length - 1}
-        {@const showAbove = dropBeforeId === task.id}
-        {@const showBelow =
-          dropBeforeId === null && isLast && tasks.length > 0}
         <div
           data-task-id={task.id}
-          class={cn(
-            "rounded-md transition-[margin] duration-100",
-            showAbove && "-mt-0.5 border-t-2 border-t-white",
-            showBelow && "-mb-0.5 border-b-2 border-b-white"
-          )}
+          class="rounded-md transition-[margin] duration-100"
         >
           <TaskCard
             {task}
