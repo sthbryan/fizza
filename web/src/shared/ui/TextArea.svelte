@@ -17,7 +17,7 @@
 
   const fieldClass =
     "w-full min-h-28 resize-y border border-neutral-700 bg-transparent px-3 py-2.5 text-base leading-relaxed text-neutral-200 placeholder:text-neutral-500 transition-colors " +
-    "rounded-lg font-mono focus:border-neutral-200 focus:outline-none";
+    "font-mono focus:border-neutral-200 focus:outline-none";
 </script>
 
 <label class="block min-w-0">

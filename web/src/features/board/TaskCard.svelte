@@ -80,7 +80,7 @@
   ondragstart={handleDragStart}
   ondragend={ondragend}
   class={cn(
-    "group cursor-grab rounded-md border border-neutral-800 bg-black p-3.5 transition-colors duration-150 sm:p-4",
+    "group cursor-grab border border-neutral-800 bg-black p-3.5 transition-colors duration-150 sm:p-4",
     "min-h-20",
     "hover:border-neutral-600",
     "active:cursor-grabbing",

@@ -51,7 +51,7 @@
     <div
       role="dialog"
       aria-modal="true"
-      class="relative z-10 m-auto w-full max-w-lg overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
+      class="relative z-10 m-auto w-full max-w-lg overflow-hidden border border-neutral-700 bg-neutral-950"
       in:fade={{ duration: 200, easing: cubicOut }}
       out:fade={{ duration: 150, easing: cubicOut }}
     >

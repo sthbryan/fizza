@@ -164,7 +164,7 @@
   <div
     bind:this={listEl}
     role="menu"
-    class="fixed z-50 min-w-40 overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
+    class="fixed z-50 min-w-40 overflow-auto border border-neutral-700 bg-neutral-950 py-1"
     style:top="{pos.top}px"
     style:left="{pos.left}px"
     style:transform={align === "end" ? "translateX(-100%)" : "none"}

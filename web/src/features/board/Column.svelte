@@ -93,7 +93,7 @@
 
 <section
   class={cn(
-    "flex w-72 shrink-0 flex-col rounded-lg border p-3 sm:w-80 sm:p-3.5",
+    "flex w-80 shrink-0 flex-col border p-3 sm:w-96 sm:p-4",
     "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
     "transition-colors duration-150",
     dragOver
@@ -152,7 +152,7 @@
       <button
         type="button"
         onclick={() => onadd(column.name)}
-        class="flex min-h-20 flex-1 cursor-pointer items-center justify-center rounded-md border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
+        class="flex min-h-20 flex-1 cursor-pointer items-center justify-center border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
       >
         + Add task
       </button>

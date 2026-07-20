@@ -186,7 +186,7 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-50 max-h-72 overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
+      class="fixed z-50 max-h-72 overflow-auto border border-neutral-700 bg-neutral-950 py-1"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
