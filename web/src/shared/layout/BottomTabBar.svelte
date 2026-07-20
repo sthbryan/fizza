@@ -23,12 +23,12 @@
       active ? "text-white" : "text-neutral-500 active:text-neutral-300"
     );
 
-  const labelClass = "text-[9px] font-mono font-medium uppercase tracking-[0.1em]";
+  const labelClass = "text-[11px] font-mono uppercase tracking-[0.08em]";
 </script>
 
 <nav
   aria-label="Primary"
-  class="sticky bottom-0 z-40 grid grid-cols-3 border-t border-neutral-800 bg-black/85 backdrop-blur-md pb-[env(safe-area-inset-bottom)] md:hidden h-16 md:h-auto"
+  class="sticky bottom-0 z-40 grid h-16 grid-cols-3 border-t border-neutral-800 bg-black pb-[env(safe-area-inset-bottom)] md:hidden"
 >
   <button
     type="button"

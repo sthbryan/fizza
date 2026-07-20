@@ -26,16 +26,16 @@
       "bg-transparent text-neutral-200 border border-neutral-700 hover:border-neutral-500",
     ghost: "bg-transparent text-neutral-400 hover:text-neutral-200",
     danger:
-      "bg-transparent text-red-500 border border-red-500 hover:bg-red-500 hover:text-white",
+      "bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] hover:text-white",
     destructive:
-      "bg-transparent text-red-500 border border-red-500 hover:bg-red-500 hover:text-white",
+      "bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] hover:text-white",
     icon: "bg-transparent text-neutral-500 hover:text-neutral-200",
   };
 
   const sizes: Record<Size, string> = {
-    sm: "h-9 px-4 text-[11px] tracking-[0.08em] gap-2",
-    md: "h-11 px-5 text-xs gap-2.5",
-    lg: "h-12 px-6 text-sm gap-3",
+    sm: "min-h-11 px-6 text-[11px] tracking-[0.08em] gap-2",
+    md: "min-h-11 px-6 text-[11px] tracking-[0.08em] gap-2",
+    lg: "min-h-11 px-6 text-[11px] tracking-[0.08em] gap-2",
   };
 
   const radius = $derived(
@@ -58,7 +58,7 @@
     variants[variant],
     sizes[size],
     radius,
-    variant === "icon" && "h-10 w-10 px-0 rounded-md",
+    variant === "icon" && "h-11 w-11 px-0",
     className
   )}
   {disabled}

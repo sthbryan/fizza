@@ -80,11 +80,11 @@
   ondragstart={handleDragStart}
   ondragend={ondragend}
   class={cn(
-    "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-3.5 transition-all duration-150 sm:p-4",
+    "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-4 transition-colors duration-150",
     "min-h-[5rem]",
-    "hover:border-neutral-700 hover:bg-neutral-900",
+    "hover:border-neutral-600",
     "active:cursor-grabbing",
-    dragging && "scale-95 ring-1 ring-white/50 opacity-50",
+    dragging && "border-white/40 opacity-50",
     siblingDragging && "opacity-50"
   )}
 >
@@ -96,18 +96,18 @@
   </div>
 
   <h4
-    class="mb-2 text-[14px] font-medium leading-snug tracking-tight text-neutral-100 sm:text-[15px]"
+    class="mb-2 text-base leading-snug tracking-tight text-neutral-100"
   >
     {task.title}
   </h4>
 
   {#if task.description}
-    <p class="mb-3 line-clamp-3 text-xs leading-relaxed text-neutral-500">
+    <p class="mb-3 line-clamp-3 text-base leading-relaxed text-neutral-500">
       {task.description}
     </p>
   {/if}
 
-  <div class="flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+  <div class="flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
     <span>#{task.id}</span>
     {#if due}
       <span>{due}</span>
