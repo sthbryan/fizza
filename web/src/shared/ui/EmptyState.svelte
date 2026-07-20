@@ -12,10 +12,10 @@
 </script>
 
 <div class="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center sm:py-28">
-  <h2 class="mb-3 text-base tracking-tight text-neutral-400">
+  <h2 class="mb-2 text-sm tracking-tight text-neutral-400">
     {title}
   </h2>
-  <p class="max-w-sm text-base leading-relaxed text-neutral-600">
+  <p class="max-w-sm text-sm leading-relaxed text-neutral-600">
     {description}
   </p>
   {#if actionLabel && onaction}

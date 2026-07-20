@@ -131,11 +131,11 @@
           <span class="text-neutral-400">archived</span>
         </nav>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-xl tracking-tight text-white sm:text-2xl">
+          <h1 class="text-lg tracking-tight text-white">
             Archived
           </h1>
           {#if archivedQuery.data}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
+            <span class="font-mono text-label tabular-nums text-neutral-500">
               {archivedQuery.data.length} total
             </span>
           {/if}
@@ -188,7 +188,7 @@
               >
                 {task.status?.replaceAll("_", " ") || "-"}
               </span>
-              <span class="min-w-0 flex-1 truncate text-base text-neutral-200">
+              <span class="min-w-0 flex-1 truncate text-sm text-neutral-200">
                 {task.title}
               </span>
               <span

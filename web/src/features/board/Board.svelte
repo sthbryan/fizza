@@ -107,7 +107,7 @@
         onclick={onshowcompleted}
         class="flex h-full min-h-32 w-72 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-800 bg-transparent px-4 text-center transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-80"
       >
-        <span class="font-mono text-base tabular-nums text-white">
+        <span class="font-mono text-sm tabular-nums text-white">
           {hiddenDoneCount}
         </span>
         <span class="text-label font-mono uppercase text-neutral-500">

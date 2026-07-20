@@ -26,7 +26,7 @@
         [ERROR] 404
       </div>
       <div
-        class="mb-4 font-display text-6xl leading-none tracking-tight text-white sm:text-7xl"
+        class="mb-4 font-display text-3xl leading-none tracking-tight text-white sm:text-4xl"
       >
         404
       </div>

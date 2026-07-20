@@ -33,7 +33,7 @@
           <span class="truncate text-label font-mono uppercase text-neutral-400">
             {labelFor(row.name)}
           </span>
-          <span class="shrink-0 font-mono text-base tabular-nums text-white">
+          <span class="shrink-0 font-mono text-sm tabular-nums text-white">
             {row.count}
           </span>
         </div>

@@ -106,7 +106,7 @@
       <span class="text-label font-mono uppercase text-neutral-500">
         {indexLabel}
       </span>
-      <span class="truncate text-base tracking-tight text-neutral-100">
+      <span class="truncate text-sm tracking-tight text-neutral-100">
         {column.name.replaceAll("_", " ")}
       </span>
       <span

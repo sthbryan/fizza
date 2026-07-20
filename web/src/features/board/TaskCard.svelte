@@ -96,13 +96,13 @@
   </div>
 
   <h4
-    class="mb-2 text-base leading-snug tracking-tight text-neutral-100"
+    class="mb-2 text-sm leading-snug tracking-tight text-neutral-100"
   >
     {task.title}
   </h4>
 
   {#if task.description}
-    <p class="mb-3 line-clamp-3 text-base leading-relaxed text-neutral-500">
+    <p class="mb-3 line-clamp-3 text-sm leading-relaxed text-neutral-500">
       {task.description}
     </p>
   {/if}

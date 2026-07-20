@@ -91,11 +91,11 @@
           fizza / stats
         </div>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-xl tracking-tight text-white sm:text-2xl">
+          <h1 class="text-lg tracking-tight text-white">
             Progress
           </h1>
           {#if stats}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
+            <span class="font-mono text-label tabular-nums text-neutral-500">
               {donePct}% done
             </span>
           {/if}
@@ -129,7 +129,7 @@
     {#if stats}
       {@const totals = stats.totals}
       <div
-        class="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2 font-mono text-base"
+        class="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2 font-mono text-sm"
       >
         {#if !projectFilter}
           <span>
@@ -256,7 +256,7 @@
                 By project
               </h2>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-xl text-left text-base">
+                <table class="w-full min-w-xl text-left text-sm">
                   <thead>
                     <tr
                       class="border-b border-neutral-700 text-label font-mono uppercase text-neutral-500"
@@ -324,7 +324,7 @@
                 By board
               </h2>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-xl text-left text-base">
+                <table class="w-full min-w-xl text-left text-sm">
                   <thead>
                     <tr
                       class="border-b border-neutral-700 text-label font-mono uppercase text-neutral-500"

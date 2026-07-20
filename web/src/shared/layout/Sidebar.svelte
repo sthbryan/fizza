@@ -32,7 +32,7 @@
   class="hidden w-20 shrink-0 flex-col items-stretch border-r border-neutral-800 bg-black py-5 md:flex"
 >
   <div
-    class="mb-8 flex items-center justify-center font-display text-lg tracking-tight text-white"
+    class="mb-8 flex items-center justify-center font-display text-base tracking-tight text-white"
   >
     fizza
   </div>

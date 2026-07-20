@@ -90,11 +90,11 @@
           fizza / projects
         </div>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-xl tracking-tight text-white sm:text-2xl">
+          <h1 class="text-lg tracking-tight text-white">
             Projects
           </h1>
           {#if projectsQuery.data}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
+            <span class="font-mono text-label tabular-nums text-neutral-500">
               {projectsQuery.data.length} total
             </span>
           {/if}
@@ -147,13 +147,13 @@
                 {:else}
                   <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-700"></span>
                 {/if}
-                <span class="truncate text-base tracking-tight text-neutral-100">
+                <span class="truncate text-sm tracking-tight text-neutral-100">
                   {p.name}
                 </span>
                 <span class="hidden text-label font-mono uppercase text-neutral-500 sm:inline">
                   #{p.id}
                 </span>
-                <span class="hidden truncate text-base text-neutral-500 md:inline">
+                <span class="hidden truncate text-sm text-neutral-500 md:inline">
                   {p.description?.trim() || "No description"}
                 </span>
               </button>

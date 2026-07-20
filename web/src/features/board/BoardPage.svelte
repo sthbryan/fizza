@@ -383,11 +383,11 @@
           <span class="truncate text-neutral-400">{project}</span>
         </nav>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="truncate text-xl tracking-tight text-white sm:text-2xl">
+          <h1 class="truncate text-lg tracking-tight text-white">
             {project}
           </h1>
           {#if taskCount > 0}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
+            <span class="font-mono text-label tabular-nums text-neutral-500">
               {taskCount} tasks
             </span>
           {/if}

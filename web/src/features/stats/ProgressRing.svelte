@@ -66,7 +66,7 @@
       y="48%"
       text-anchor="middle"
       dominant-baseline="central"
-      class="fill-text-display font-display text-4xl font-normal"
+      class="fill-text-display font-display text-2xl font-normal"
     >
       {clamped}
     </text>
