@@ -36,7 +36,7 @@
         {y1}
         {x2}
         {y2}
-        stroke="var(--color-border-visible)"
+        class="stroke-border-visible"
         stroke-width="1"
         opacity={i % 5 === 0 ? 1 : 0.4}
       />
@@ -46,7 +46,7 @@
       cy={size / 2}
       {r}
       fill="none"
-      stroke="var(--color-border-subtle)"
+      class="stroke-border-subtle"
       stroke-width={stroke}
     />
     <circle
@@ -54,23 +54,19 @@
       cy={size / 2}
       {r}
       fill="none"
-      stroke="var(--color-text-display)"
+      class="stroke-text-display transition-[stroke-dashoffset] duration-400 ease-out"
       stroke-width={stroke}
       stroke-linecap="butt"
       stroke-dasharray={c}
       stroke-dashoffset={offset}
       transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      style="transition: stroke-dashoffset 0.4s ease-out"
     />
     <text
       x="50%"
       y="48%"
       text-anchor="middle"
       dominant-baseline="central"
-      font-family="'Doto', 'Space Mono', monospace"
-      font-weight="400"
-      font-size="40"
-      fill="var(--color-text-display)"
+      class="fill-text-display font-display text-4xl font-normal"
     >
       {clamped}
     </text>
@@ -79,10 +75,7 @@
       y="64%"
       text-anchor="middle"
       dominant-baseline="central"
-      font-family="'Space Mono', monospace"
-      font-size="11"
-      letter-spacing="0.08em"
-      fill="var(--color-text-secondary)"
+      class="fill-text-secondary font-mono text-label uppercase"
     >
       PERCENT
     </text>
