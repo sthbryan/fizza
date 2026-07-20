@@ -78,7 +78,7 @@
   />
 {:else}
   <div
-    class="flex h-full gap-4 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4 sm:gap-6 sm:px-6 sm:pb-6"
+    class="flex h-full gap-3 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4 sm:gap-3.5 sm:px-5 sm:pb-6"
   >
     {#each visibleColumns as column, index (column.id)}
       <Column
@@ -105,7 +105,7 @@
       <button
         type="button"
         onclick={onshowcompleted}
-        class="flex h-28 w-44 max-w-full shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-neutral-800 bg-transparent px-4 text-center transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-48"
+        class="flex h-full min-h-32 w-72 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-800 bg-transparent px-4 text-center transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-80"
       >
         <span class="font-mono text-base tabular-nums text-white">
           {hiddenDoneCount}
@@ -118,7 +118,7 @@
     <button
       type="button"
       onclick={onaddcolumn}
-      class="flex h-28 w-44 max-w-full shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-48"
+      class="flex h-full min-h-32 w-72 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-80"
     >
       <span class="text-base">+</span>
       Add column

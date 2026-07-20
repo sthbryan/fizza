@@ -80,11 +80,11 @@
   ondragstart={handleDragStart}
   ondragend={ondragend}
   class={cn(
-    "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-4 transition-colors duration-150",
+    "group cursor-grab rounded-md border border-neutral-800 bg-black p-3.5 transition-colors duration-150 sm:p-4",
     "min-h-20",
     "hover:border-neutral-600",
     "active:cursor-grabbing",
-    dragging && "border-white/40 opacity-50",
+    dragging && "border-neutral-500 opacity-50",
     siblingDragging && "opacity-50"
   )}
 >

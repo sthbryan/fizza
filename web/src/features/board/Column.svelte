@@ -93,22 +93,20 @@
 
 <section
   class={cn(
-    "flex w-72 shrink-0 flex-col sm:w-80",
+    "flex w-72 shrink-0 flex-col rounded-lg border p-3 sm:w-80 sm:p-3.5",
     "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
     "transition-colors duration-150",
-    dragOver && "bg-neutral-950/80",
+    dragOver
+      ? "border-neutral-500 bg-neutral-900"
+      : "border-neutral-800 bg-neutral-950",
   )}
 >
-  <header class="mb-4 flex items-center justify-between gap-2 border-b border-neutral-800 pb-3">
-    <div class="flex min-w-0 items-baseline gap-2">
-      <span
-        class="text-label font-mono uppercase text-neutral-500"
-      >
+  <header class="mb-3 flex items-center justify-between gap-2 px-0.5">
+    <div class="flex min-w-0 items-center gap-2">
+      <span class="text-label font-mono uppercase text-neutral-500">
         {indexLabel}
       </span>
-      <span
-        class="truncate text-base tracking-tight text-neutral-100"
-      >
+      <span class="truncate text-base tracking-tight text-neutral-100">
         {column.name.replaceAll("_", " ")}
       </span>
       <span
@@ -125,7 +123,7 @@
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent"
+          class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent sm:h-10 sm:w-10"
         >
           ×
         </button>
@@ -134,7 +132,7 @@
         type="button"
         title="Add task"
         onclick={() => onadd(column.name)}
-        class="flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white"
+        class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white sm:h-10 sm:w-10"
       >
         +
       </button>
@@ -143,7 +141,7 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex flex-1 flex-col gap-2 overflow-y-auto"
+    class="flex min-h-24 flex-1 flex-col gap-2.5 overflow-y-auto"
     role="list"
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
@@ -154,7 +152,7 @@
       <button
         type="button"
         onclick={() => onadd(column.name)}
-        class="flex min-h-16 cursor-pointer items-center justify-center border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
+        class="flex min-h-20 flex-1 cursor-pointer items-center justify-center rounded-md border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
       >
         + Add task
       </button>
