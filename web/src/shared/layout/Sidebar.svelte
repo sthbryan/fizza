@@ -19,20 +19,20 @@
 
   const itemClass = (active: boolean) =>
     cn(
-      "group flex cursor-pointer flex-col items-center gap-1.5 rounded-md py-2.5 transition-colors",
+      "group flex min-h-11 cursor-pointer flex-col items-center gap-1.5 py-2.5 transition-colors",
       active
         ? "text-white"
-        : "text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300"
+        : "text-neutral-500 hover:text-neutral-300"
     );
 
-  const labelClass = "text-[9px] font-mono font-medium uppercase tracking-[0.1em]";
+  const labelClass = "text-[11px] font-mono uppercase tracking-[0.08em]";
 </script>
 
 <aside
   class="hidden w-20 shrink-0 flex-col items-stretch border-r border-neutral-800 bg-black py-5 md:flex"
 >
   <div
-    class="mb-6 flex items-center justify-center font-mono text-sm font-medium tracking-tight text-white"
+    class="mb-8 flex items-center justify-center font-display text-lg tracking-tight text-white"
   >
     fizza
   </div>

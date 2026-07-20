@@ -9,28 +9,32 @@
   --color-bg-elevated: #111111;
   --color-bg-soft: #111111;
   --color-bg-card: #1a1a1a;
-  --color-bg-hover: #1f1f1f;
+  --color-bg-hover: #1a1a1a;
   --color-border: #333333;
   --color-border-subtle: #222222;
+  --color-border-visible: #333333;
   --color-text: #e8e8e8;
   --color-text-secondary: #999999;
   --color-text-muted: #666666;
   --color-text-display: #ffffff;
   --color-accent: #d71921;
-  --color-accent-soft: #1f1f1f;
+  --color-accent-soft: rgba(215, 25, 33, 0.15);
   --color-danger: #d71921;
   --color-ok: #4a9e5c;
+  --color-warning: #d4a843;
 
-  --color-col-todo: #999999;
-  --color-col-progress: #999999;
-  --color-col-done: #999999;
+  --color-col-todo: #e8e8e8;
+  --color-col-progress: #e8e8e8;
+  --color-col-done: #4a9e5c;
   --color-col-review: #999999;
-  --color-col-default: #999999;
+  --color-col-default: #e8e8e8;
 
-  --color-pri-low: #999999;
+  --color-pri-low: #666666;
   --color-pri-medium: #999999;
-  --color-pri-high: #999999;
+  --color-pri-high: #e8e8e8;
   --color-pri-urgent: #d71921;
+
+  --ease-out-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 @layer base {
@@ -73,13 +77,22 @@
     cursor: not-allowed;
   }
 
-  /* Near-invisible scrollbars; scrolling still works via wheel/trackpad. */
   * {
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
   }
 
   *::-webkit-scrollbar {
     width: 0;
     height: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
