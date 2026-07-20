@@ -20,7 +20,7 @@
 
 <span
   class={cn(
-    "inline-flex items-center rounded-full border bg-transparent px-3 py-0.5 text-[11px] font-mono uppercase tracking-[0.08em]",
+    "inline-flex items-center rounded-full border bg-transparent px-3 py-0.5 text-label font-mono uppercase",
     styles[key] || styles.medium
   )}
 >

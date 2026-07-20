@@ -75,7 +75,7 @@
 
   function priorityClass(p?: string | null): string {
     const k = String(p || "medium").toLowerCase();
-    if (k === "urgent") return "text-[var(--color-accent)]";
+    if (k === "urgent") return "text-accent";
     if (k === "high") return "text-neutral-200";
     if (k === "low") return "text-neutral-600";
     return "text-neutral-400";
@@ -101,7 +101,7 @@
     >
       <div class="min-w-0">
         <nav
-          class="mb-2 flex flex-wrap items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500"
+          class="mb-2 flex flex-wrap items-center gap-1.5 text-label font-mono uppercase text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
@@ -136,7 +136,7 @@
               {archivedQuery.data.length}
             </span>
           {/if}
-          <h1 class="text-base tracking-tight text-white sm:text-[18px]">
+          <h1 class="text-base tracking-tight text-white sm:text-lg">
             Archived
           </h1>
         </div>
@@ -152,9 +152,9 @@
 
   <main class="min-h-0 flex-1 overflow-y-auto">
     {#if archivedQuery.isPending}
-      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">[LOADING]</div>
+      <div class="p-8 text-label font-mono uppercase text-neutral-500">[LOADING]</div>
     {:else if archivedQuery.isError}
-      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]">
+      <div class="p-8 text-label font-mono uppercase text-accent">
         [ERROR] {archivedQuery.error.message}
       </div>
     {:else if !archivedQuery.data?.length}
@@ -176,14 +176,14 @@
             >
               <span
                 class={cn(
-                  "w-16 shrink-0 font-mono text-[11px] uppercase tracking-[0.08em]",
+                  "w-16 shrink-0 text-label font-mono uppercase",
                   priorityClass(task.priority)
                 )}
               >
                 {String(task.priority || "medium").toLowerCase()}
               </span>
               <span
-                class="hidden w-24 shrink-0 truncate font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 md:inline"
+                class="hidden w-24 shrink-0 truncate text-label font-mono uppercase text-neutral-500 md:inline"
                 title={task.status}
               >
                 {task.status?.replaceAll("_", " ") || "-"}
@@ -192,18 +192,18 @@
                 {task.title}
               </span>
               <span
-                class="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 sm:inline"
+                class="hidden shrink-0 text-label font-mono uppercase text-neutral-500 sm:inline"
                 title={`Archived ${fmt(task.archived_at)}`}
               >
                 {fmt(task.archived_at)}
               </span>
-              <span class="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-600">
+              <span class="shrink-0 text-label font-mono uppercase text-neutral-600">
                 #{task.id}
               </span>
               <div class="flex w-full shrink-0 items-center sm:w-auto">
                 <button
                   type="button"
-                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
+                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={unarchiveMutation.isPending}
                   onclick={() => void unarchiveMutation.mutateAsync(task)}
                 >
@@ -211,7 +211,7 @@
                 </button>
                 <button
                   type="button"
-                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-30"
+                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={deleteMutation.isPending}
                   onclick={() => handleDelete(task)}
                 >

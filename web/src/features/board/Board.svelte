@@ -105,12 +105,12 @@
       <button
         type="button"
         onclick={onshowcompleted}
-        class="flex h-28 w-[min(100%,180px)] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-neutral-800 bg-transparent px-4 text-center transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-[200px]"
+        class="flex h-28 w-44 max-w-full shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-neutral-800 bg-transparent px-4 text-center transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-48"
       >
         <span class="font-mono text-base tabular-nums text-white">
           {hiddenDoneCount}
         </span>
-        <span class="text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+        <span class="text-label font-mono uppercase text-neutral-500">
           Done · show
         </span>
       </button>
@@ -118,7 +118,7 @@
     <button
       type="button"
       onclick={onaddcolumn}
-      class="flex h-28 w-[min(100%,180px)] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-neutral-800 bg-transparent text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-[200px]"
+      class="flex h-28 w-44 max-w-full shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 sm:w-48"
     >
       <span class="text-base">+</span>
       Add column

@@ -22,7 +22,7 @@
 </script>
 
 {#if !hasAny}
-  <p class="py-6 text-center text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+  <p class="py-6 text-center text-label font-mono uppercase text-neutral-500">
     {emptyLabel}
   </p>
 {:else}
@@ -30,7 +30,7 @@
     {#each rows as row (row.name)}
       <div class="min-w-0">
         <div class="mb-2 flex items-baseline justify-between gap-2">
-          <span class="truncate text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-400">
+          <span class="truncate text-label font-mono uppercase text-neutral-400">
             {labelFor(row.name)}
           </span>
           <span class="shrink-0 font-mono text-base tabular-nums text-white">

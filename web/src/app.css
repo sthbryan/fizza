@@ -5,6 +5,12 @@
   --font-mono: "Space Mono", ui-monospace, monospace;
   --font-display: "Doto", "Space Mono", monospace;
 
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.08em;
+
+  --tracking-label: 0.08em;
+
   --color-bg: #000000;
   --color-bg-elevated: #111111;
   --color-bg-soft: #111111;

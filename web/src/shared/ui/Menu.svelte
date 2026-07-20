@@ -164,7 +164,7 @@
   <div
     bind:this={listEl}
     role="menu"
-    class="fixed z-[80] min-w-[10rem] overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
+    class="fixed z-50 min-w-40 overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
     style:top="{pos.top}px"
     style:left="{pos.left}px"
     style:transform={align === "end" ? "translateX(-100%)" : "none"}
@@ -183,13 +183,13 @@
         }}
         onclick={() => commit(item)}
         class={cn(
-          "flex min-h-11 w-full cursor-pointer items-center gap-2 border-l-2 px-3 py-2 text-left text-[11px] font-mono uppercase tracking-[0.08em] transition-colors",
+          "flex min-h-11 w-full cursor-pointer items-center gap-2 border-l-2 px-3 py-2 text-left text-label font-mono uppercase transition-colors",
           "disabled:cursor-not-allowed disabled:opacity-30",
           item.danger
-            ? "text-[var(--color-accent)] hover:text-white"
+            ? "text-accent hover:text-white"
             : "text-neutral-400 hover:text-neutral-200",
-          isActive && !item.danger && "border-[var(--color-accent)] text-neutral-200",
-          isActive && item.danger && "border-[var(--color-accent)] text-white",
+          isActive && !item.danger && "border-accent text-neutral-200",
+          isActive && item.danger && "border-accent text-white",
           !isActive && "border-transparent"
         )}
       >

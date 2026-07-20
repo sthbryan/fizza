@@ -23,7 +23,7 @@
       active ? "text-white" : "text-neutral-500 active:text-neutral-300"
     );
 
-  const labelClass = "text-[11px] font-mono uppercase tracking-[0.08em]";
+  const labelClass = "text-label font-mono uppercase";
 </script>
 
 <nav

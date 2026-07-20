@@ -26,16 +26,16 @@
       "bg-transparent text-neutral-200 border border-neutral-700 hover:border-neutral-500",
     ghost: "bg-transparent text-neutral-400 hover:text-neutral-200",
     danger:
-      "bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] hover:text-white",
+      "bg-transparent text-accent border border-accent hover:text-white",
     destructive:
-      "bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] hover:text-white",
+      "bg-transparent text-accent border border-accent hover:text-white",
     icon: "bg-transparent text-neutral-500 hover:text-neutral-200",
   };
 
   const sizes: Record<Size, string> = {
-    sm: "min-h-11 px-6 text-[11px] tracking-[0.08em] gap-2",
-    md: "min-h-11 px-6 text-[11px] tracking-[0.08em] gap-2",
-    lg: "min-h-11 px-6 text-[11px] tracking-[0.08em] gap-2",
+    sm: "min-h-11 px-6 text-label gap-2",
+    md: "min-h-11 px-6 text-label gap-2",
+    lg: "min-h-11 px-6 text-label gap-2",
   };
 
   const radius = $derived(

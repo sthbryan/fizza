@@ -23,7 +23,7 @@
 </script>
 
 {#if !hasAny}
-  <p class="py-8 text-center text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+  <p class="py-8 text-center text-label font-mono uppercase text-neutral-500">
     {emptyLabel}
   </p>
 {:else}
@@ -45,7 +45,7 @@
       {/each}
     </div>
     <div
-      class="flex justify-between text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500"
+      class="flex justify-between text-label font-mono uppercase text-neutral-500"
     >
       <span>{formatDayLabel(series[0]?.date ?? "")}</span>
       <span class="tabular-nums text-white">{total} total</span>

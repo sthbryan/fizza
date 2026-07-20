@@ -51,21 +51,21 @@
     <div
       role="dialog"
       aria-modal="true"
-      class="relative z-10 m-auto w-full max-w-[480px] overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
+      class="relative z-10 m-auto w-full max-w-lg overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
       in:fade={{ duration: 200, easing: cubicOut }}
       out:fade={{ duration: 150, easing: cubicOut }}
     >
       <div
         class="flex items-center justify-between border-b border-neutral-800 px-4 py-4 sm:px-6"
       >
-        <span class="text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-400">
+        <span class="text-label font-mono uppercase text-neutral-400">
           {title}
         </span>
         <button
           type="button"
           aria-label="Close"
           onclick={onclose}
-          class="min-h-11 cursor-pointer px-2 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-neutral-200"
+          class="min-h-11 cursor-pointer px-2 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200"
         >
           [ X ]
         </button>

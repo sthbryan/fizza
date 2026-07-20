@@ -81,7 +81,7 @@
   ondragend={ondragend}
   class={cn(
     "group cursor-grab rounded-md border border-neutral-800 bg-neutral-950 p-4 transition-colors duration-150",
-    "min-h-[5rem]",
+    "min-h-20",
     "hover:border-neutral-600",
     "active:cursor-grabbing",
     dragging && "border-white/40 opacity-50",
@@ -107,7 +107,7 @@
     </p>
   {/if}
 
-  <div class="flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+  <div class="flex flex-wrap items-center gap-3 text-label font-mono uppercase text-neutral-500">
     <span>#{task.id}</span>
     {#if due}
       <span>{due}</span>

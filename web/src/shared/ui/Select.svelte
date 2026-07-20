@@ -134,7 +134,7 @@
 <div class={cn("block min-w-0", className)}>
   {#if label}
     <span
-      class="mb-2 block text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-400"
+      class="mb-2 block text-label font-mono uppercase text-neutral-400"
     >
       {label}
     </span>
@@ -154,7 +154,7 @@
       "hover:border-neutral-500",
       "focus:outline-none focus-visible:border-neutral-200",
       "disabled:cursor-not-allowed disabled:opacity-30",
-      "font-mono px-0 py-2 text-[11px] uppercase tracking-[0.08em]",
+      "font-mono px-0 py-2 text-label uppercase",
       size === "sm" && "min-h-10"
     )}
   >
@@ -186,7 +186,7 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-[80] max-h-72 overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
+      class="fixed z-50 max-h-72 overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
@@ -194,7 +194,7 @@
       out:fade={{ duration: 80, easing: cubicOut }}
     >
       {#if options.length === 0}
-        <div class="px-3 py-2 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+        <div class="px-3 py-2 text-label font-mono uppercase text-neutral-500">
           No options
         </div>
       {:else}
@@ -208,10 +208,10 @@
             aria-selected={isSelected}
             disabled={opt.disabled}
             class={cn(
-              "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-l-2 px-3 py-2 text-left text-[11px] font-mono uppercase tracking-[0.08em] transition-colors",
+              "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-l-2 px-3 py-2 text-left text-label font-mono uppercase transition-colors",
               "disabled:cursor-not-allowed disabled:opacity-30",
               isActive || isSelected
-                ? "border-[var(--color-accent)] text-neutral-200"
+                ? "border-accent text-neutral-200"
                 : "border-transparent text-neutral-400 hover:text-neutral-200"
             )}
             onmouseenter={() => {

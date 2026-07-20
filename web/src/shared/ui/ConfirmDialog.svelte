@@ -35,7 +35,7 @@
   onsubmit={onconfirm}
 >
   {#if description}
-    <p class="text-base leading-relaxed text-[var(--color-text-secondary)]">
+    <p class="text-base leading-relaxed text-text-secondary">
       {description}
     </p>
   {/if}

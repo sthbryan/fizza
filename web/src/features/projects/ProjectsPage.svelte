@@ -86,7 +86,7 @@
   >
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
-        <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+        <div class="mb-2 text-label font-mono uppercase text-neutral-500">
           fizza / projects
         </div>
         <div class="flex flex-wrap items-baseline gap-3">
@@ -95,7 +95,7 @@
               {projectsQuery.data.length}
             </span>
           {/if}
-          <h1 class="text-base tracking-tight text-white sm:text-[18px]">
+          <h1 class="text-base tracking-tight text-white sm:text-lg">
             Projects
           </h1>
         </div>
@@ -108,11 +108,11 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if projectsQuery.isPending}
-      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+      <div class="p-8 text-label font-mono uppercase text-neutral-500">
         [LOADING]
       </div>
     {:else if projectsQuery.isError}
-      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]">
+      <div class="p-8 text-label font-mono uppercase text-accent">
         [ERROR] {projectsQuery.error.message}
       </div>
     {:else if !projectsQuery.data?.length}
@@ -150,21 +150,21 @@
                 <span class="truncate text-base tracking-tight text-neutral-100">
                   {p.name}
                 </span>
-                <span class="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 sm:inline">
+                <span class="hidden text-label font-mono uppercase text-neutral-500 sm:inline">
                   #{p.id}
                 </span>
                 <span class="hidden truncate text-base text-neutral-500 md:inline">
                   {p.description?.trim() || "No description"}
                 </span>
               </button>
-              <span class="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 sm:inline">
+              <span class="hidden text-label font-mono uppercase text-neutral-500 sm:inline">
                 {boardLabel(p.board_count)}
               </span>
               <div class="flex shrink-0 items-center">
                 <button
                   type="button"
                   title="Edit project"
-                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-neutral-200"
+                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200"
                   onclick={(e) => handleEdit(e, p)}
                 >
                   Edit
@@ -172,7 +172,7 @@
                 <button
                   type="button"
                   title="Delete project"
-                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-[var(--color-accent)]"
+                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-accent"
                   onclick={(e) => handleDelete(e, p)}
                 >
                   Del

@@ -21,7 +21,7 @@
   >
     <div class="w-full max-w-md px-4 py-10 text-center sm:px-0 sm:py-12">
       <div
-        class="mb-4 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]"
+        class="mb-4 text-label font-mono uppercase text-accent"
       >
         [ERROR] 404
       </div>
@@ -33,7 +33,7 @@
       <h1 class="mb-2 text-base tracking-tight text-neutral-400">
         Page not found
       </h1>
-      <p class="mb-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-600">
+      <p class="mb-8 text-label font-mono uppercase text-neutral-600">
         This URL is not a fizza page. Check the path or jump back into the app.
       </p>
       <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center">

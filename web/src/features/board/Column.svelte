@@ -93,7 +93,7 @@
 
 <section
   class={cn(
-    "flex w-[min(88%,300px)] shrink-0 flex-col sm:w-[320px] md:w-[340px]",
+    "flex w-72 shrink-0 flex-col sm:w-80",
     "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
     "transition-colors duration-150",
     dragOver && "bg-neutral-950/80",
@@ -102,7 +102,7 @@
   <header class="mb-4 flex items-center justify-between gap-2 border-b border-neutral-800 pb-3">
     <div class="flex min-w-0 items-baseline gap-2">
       <span
-        class="font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500"
+        class="text-label font-mono uppercase text-neutral-500"
       >
         {indexLabel}
       </span>
@@ -112,8 +112,8 @@
         {column.name.replaceAll("_", " ")}
       </span>
       <span
-        class="font-mono text-[11px] tabular-nums"
-        class:text-[var(--color-accent)]={overLimit}
+        class="font-mono text-label tabular-nums"
+        class:text-accent={overLimit}
         class:text-neutral-500={!overLimit}
       >
         {countLabel}
@@ -125,7 +125,7 @@
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-[var(--color-accent)]"
+          class="flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent"
         >
           ×
         </button>
@@ -154,7 +154,7 @@
       <button
         type="button"
         onclick={() => onadd(column.name)}
-        class="flex min-h-16 cursor-pointer items-center justify-center border border-dashed border-neutral-800 bg-transparent text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
+        class="flex min-h-16 cursor-pointer items-center justify-center border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
       >
         + Add task
       </button>

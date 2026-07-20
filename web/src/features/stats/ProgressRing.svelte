@@ -89,11 +89,11 @@
   </svg>
   {#if label}
     <div class="text-center">
-      <div class="text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-400">
+      <div class="text-label font-mono uppercase text-neutral-400">
         {label}
       </div>
       {#if sublabel}
-        <div class="mt-1 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">{sublabel}</div>
+        <div class="mt-1 text-label font-mono uppercase text-neutral-500">{sublabel}</div>
       {/if}
     </div>
   {/if}

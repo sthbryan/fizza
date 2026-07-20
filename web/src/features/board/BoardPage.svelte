@@ -366,7 +366,7 @@
     >
       <div class="min-w-0">
         <nav
-          class="mb-2 flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500"
+          class="mb-2 flex items-center gap-1.5 text-label font-mono uppercase text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
@@ -383,14 +383,14 @@
           <span class="truncate text-neutral-400">{project}</span>
         </nav>
         <div class="flex flex-wrap items-baseline gap-3">
-          <h1 class="truncate text-base tracking-tight text-white sm:text-[18px]">
+          <h1 class="truncate text-base tracking-tight text-white sm:text-lg">
             {project}
           </h1>
           {#if taskCount > 0}
             <span class="font-display text-4xl tabular-nums leading-none tracking-tight text-white sm:text-5xl">
               {taskCount}
             </span>
-            <span class="text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+            <span class="text-label font-mono uppercase text-neutral-500">
               tasks
             </span>
           {/if}
@@ -433,7 +433,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="!hidden hover:text-[var(--color-accent)] sm:!inline-flex"
+          class="!hidden hover:text-accent sm:!inline-flex"
         >
           Delete project
         </Button>
@@ -478,7 +478,7 @@
             role="tab"
             aria-selected={active}
             class={cn(
-              "px-3 py-3 text-[11px] font-mono uppercase tracking-[0.08em] transition-colors sm:px-3.5",
+              "px-3 py-3 text-label font-mono uppercase transition-colors sm:px-3.5",
               active
                 ? "text-white"
                 : "text-neutral-500 hover:text-neutral-300"
@@ -495,7 +495,7 @@
             title={`Delete board ${b.name}`}
             class={cn(
               "mr-1 flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base transition-colors",
-              "text-neutral-500 hover:text-[var(--color-accent)]",
+              "text-neutral-500 hover:text-accent",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
             onclick={(e) => {
@@ -521,9 +521,9 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if snapshotQuery.isPending && !snapshotQuery.data}
-      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">[LOADING]</div>
+      <div class="p-8 text-label font-mono uppercase text-neutral-500">[LOADING]</div>
     {:else if snapshotQuery.isError}
-      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]">
+      <div class="p-8 text-label font-mono uppercase text-accent">
         [ERROR] {snapshotQuery.error.message}
       </div>
     {:else}
