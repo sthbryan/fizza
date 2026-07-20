@@ -52,7 +52,6 @@ export function formatDayLabel(iso: string): string {
   return `${Number(m)}/${Number(d)}`;
 }
 
-/** in_progress → IN PROGRESS; keeps charts/selects readable */
 export function formatStatusLabel(name: string): string {
   return name.replaceAll(/[_-]+/g, " ").replaceAll(/\s+/g, " ").trim().toUpperCase();
 }

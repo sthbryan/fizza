@@ -64,24 +64,24 @@
     />
     <text
       x="50%"
-      y="50%"
+      y="48%"
       text-anchor="middle"
       dominant-baseline="central"
       font-family="'Doto', 'Space Mono', monospace"
-      font-weight="500"
-      font-size="32"
-      fill="var(--color-text-secondary)"
+      font-weight="400"
+      font-size="40"
+      fill="var(--color-text-display)"
     >
       {clamped}
     </text>
     <text
       x="50%"
-      y="62%"
+      y="64%"
       text-anchor="middle"
       dominant-baseline="central"
       font-family="'Space Mono', monospace"
-      font-size="9"
-      letter-spacing="0.1em"
+      font-size="11"
+      letter-spacing="0.08em"
       fill="var(--color-text-secondary)"
     >
       PERCENT
@@ -89,11 +89,11 @@
   </svg>
   {#if label}
     <div class="text-center">
-      <div class="text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-neutral-400">
+      <div class="text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-400">
         {label}
       </div>
       {#if sublabel}
-        <div class="mt-1 text-xs text-neutral-500">{sublabel}</div>
+        <div class="mt-1 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">{sublabel}</div>
       {/if}
     </div>
   {/if}

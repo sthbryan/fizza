@@ -23,12 +23,12 @@
 </script>
 
 {#if !hasAny}
-  <p class="py-8 text-center text-xs font-mono uppercase tracking-[0.1em] text-neutral-500">
+  <p class="py-8 text-center text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
     {emptyLabel}
   </p>
 {:else}
   <div class="flex flex-col gap-3">
-    <div class="flex h-32 gap-0.5 sm:h-36 sm:gap-1">
+    <div class="flex h-28 gap-0.5 sm:h-32 sm:gap-1">
       {#each series as day (day.date)}
         {@const h = max > 0 ? Math.max((day.count / max) * 100, day.count > 0 ? 6 : 0) : 0}
         <div
@@ -36,7 +36,7 @@
           title="{day.date}: {day.count}"
         >
           <div
-            class="w-full max-w-3 rounded-none transition-all duration-200 group-hover:opacity-70"
+            class="w-full max-w-3 rounded-none transition-opacity duration-200 group-hover:opacity-70"
             style:height="{h}%"
             style:background={day.count > 0 ? color : "var(--color-border-subtle)"}
             style:min-height={day.count > 0 ? "2px" : "1px"}
@@ -45,10 +45,10 @@
       {/each}
     </div>
     <div
-      class="flex justify-between text-[10px] font-mono uppercase tracking-[0.08em] text-neutral-500"
+      class="flex justify-between text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500"
     >
       <span>{formatDayLabel(series[0]?.date ?? "")}</span>
-      <span class="text-neutral-200 tabular-nums">{total} total</span>
+      <span class="tabular-nums text-white">{total} total</span>
       <span>{formatDayLabel(series[series.length - 1]?.date ?? "")}</span>
     </div>
   </div>
