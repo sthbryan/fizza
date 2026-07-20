@@ -130,15 +130,15 @@
           <span class="opacity-40">/</span>
           <span class="text-neutral-400">archived</span>
         </nav>
-        <div class="flex flex-wrap items-baseline gap-3">
-          {#if archivedQuery.data}
-            <span class="font-display text-4xl tabular-nums leading-none tracking-tight text-white sm:text-5xl">
-              {archivedQuery.data.length}
-            </span>
-          {/if}
-          <h1 class="text-base tracking-tight text-white sm:text-lg">
+        <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
+          <h1 class="text-xl tracking-tight text-white sm:text-2xl">
             Archived
           </h1>
+          {#if archivedQuery.data}
+            <span class="font-mono text-sm tabular-nums text-neutral-500">
+              {archivedQuery.data.length} total
+            </span>
+          {/if}
         </div>
       </div>
       <Button

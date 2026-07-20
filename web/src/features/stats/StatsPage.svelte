@@ -90,18 +90,15 @@
         <div class="mb-2 text-label font-mono uppercase text-neutral-500">
           fizza / stats
         </div>
-        <div class="flex flex-wrap items-baseline gap-3">
-          {#if stats}
-            <span class="font-display text-4xl tabular-nums leading-none tracking-tight text-white sm:text-5xl">
-              {donePct}
-            </span>
-            <span class="text-label font-mono uppercase text-neutral-500">
-              % done
-            </span>
-          {/if}
-          <h1 class="text-base tracking-tight text-white sm:text-lg">
+        <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
+          <h1 class="text-xl tracking-tight text-white sm:text-2xl">
             Progress
           </h1>
+          {#if stats}
+            <span class="font-mono text-sm tabular-nums text-neutral-500">
+              {donePct}% done
+            </span>
+          {/if}
           <span class="text-label font-mono uppercase text-neutral-500">
             {scopeLabel()}
           </span>
