@@ -19,24 +19,21 @@
   <main
     class="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6"
   >
-    <div
-      class="w-full max-w-md rounded-md border border-neutral-800 bg-neutral-950 px-6 py-10 text-center sm:px-8 sm:py-12"
-    >
+    <div class="w-full max-w-md px-4 py-10 text-center sm:px-0 sm:py-12">
       <div
-        class="mb-4 font-mono text-[10px] uppercase tracking-[0.15em] text-red-500"
+        class="mb-4 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]"
       >
-        Error 404
+        [ERROR] 404
       </div>
       <div
-        class="mb-4 font-mono text-6xl font-medium tracking-tight text-white sm:text-7xl"
-        style="font-family: 'Doto', 'Space Mono', monospace"
+        class="mb-4 font-display text-6xl leading-none tracking-tight text-white sm:text-7xl"
       >
         404
       </div>
-      <h1 class="mb-2 text-lg font-medium tracking-tight text-neutral-100 sm:text-xl">
+      <h1 class="mb-2 text-base tracking-tight text-neutral-400">
         Page not found
       </h1>
-      <p class="mb-8 text-sm text-neutral-500">
+      <p class="mb-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-600">
         This URL is not a fizza page. Check the path or jump back into the app.
       </p>
       <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center">

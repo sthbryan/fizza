@@ -69,16 +69,16 @@
   }));
 
   function fmt(v?: string | null) {
-    if (!v) return "—";
+    if (!v) return "-";
     return String(v).slice(0, 10);
   }
 
-  function priorityDot(p?: string | null): string {
+  function priorityClass(p?: string | null): string {
     const k = String(p || "medium").toLowerCase();
-    if (k === "urgent") return "bg-red-500";
-    if (k === "high") return "bg-neutral-300";
-    if (k === "low") return "bg-neutral-600";
-    return "bg-neutral-400";
+    if (k === "urgent") return "text-[var(--color-accent)]";
+    if (k === "high") return "text-neutral-200";
+    if (k === "low") return "text-neutral-600";
+    return "text-neutral-400";
   }
 
   function handleDelete(task: Task) {
@@ -97,11 +97,11 @@
     class="border-b border-neutral-800 bg-black px-4 py-4 sm:px-6 sm:py-5"
   >
     <div
-      class="flex flex-col gap-3.5 sm:flex-row sm:items-end sm:justify-between"
+      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
     >
       <div class="min-w-0">
         <nav
-          class="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500"
+          class="mb-2 flex flex-wrap items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
@@ -130,32 +130,32 @@
           <span class="opacity-40">/</span>
           <span class="text-neutral-400">archived</span>
         </nav>
-        <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl text-white">
-            Archived
-          </h1>
+        <div class="flex flex-wrap items-baseline gap-3">
           {#if archivedQuery.data}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
-              {archivedQuery.data.length} total
+            <span class="font-display text-4xl tabular-nums leading-none tracking-tight text-white sm:text-5xl">
+              {archivedQuery.data.length}
             </span>
           {/if}
+          <h1 class="text-base tracking-tight text-white sm:text-[18px]">
+            Archived
+          </h1>
         </div>
       </div>
       <Button
         variant="secondary"
         onclick={() => navigate(boardPath(project, board))}
       >
-        ← Back to board
+        Back to board
       </Button>
     </div>
   </header>
 
   <main class="min-h-0 flex-1 overflow-y-auto">
     {#if archivedQuery.isPending}
-      <div class="p-8 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">Loading…</div>
+      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">[LOADING]</div>
     {:else if archivedQuery.isError}
-      <div class="p-8 text-sm font-mono text-red-500">
-        {archivedQuery.error.message}
+      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]">
+        [ERROR] {archivedQuery.error.message}
       </div>
     {:else if !archivedQuery.data?.length}
       <EmptyState
@@ -167,47 +167,43 @@
     {:else}
       <div class="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
         <div
-          class="divide-y divide-neutral-900 border-y border-neutral-800"
+          class="divide-y divide-neutral-800 border-y border-neutral-800"
           use:animate={{ duration: 180, easing: "ease-out" }}
         >
           {#each archivedQuery.data as task (task.id)}
             <div
-              class="group flex items-center gap-3 py-2.5 transition-colors hover:bg-white/[0.02]"
+              class="group flex min-h-14 flex-wrap items-center gap-2 py-3 sm:flex-nowrap sm:gap-3"
             >
               <span
                 class={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  priorityDot(task.priority)
+                  "w-16 shrink-0 font-mono text-[11px] uppercase tracking-[0.08em]",
+                  priorityClass(task.priority)
                 )}
-                aria-hidden="true"
-              ></span>
-              <span
-                class="hidden w-16 shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:inline"
               >
                 {String(task.priority || "medium").toLowerCase()}
               </span>
               <span
-                class="hidden w-24 shrink-0 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 md:inline"
+                class="hidden w-24 shrink-0 truncate font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 md:inline"
                 title={task.status}
               >
-                {task.status?.replaceAll("_", " ") || "—"}
+                {task.status?.replaceAll("_", " ") || "-"}
               </span>
-              <span class="min-w-0 flex-1 truncate text-sm text-neutral-200">
+              <span class="min-w-0 flex-1 truncate text-base text-neutral-200">
                 {task.title}
               </span>
               <span
-                class="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:inline"
+                class="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 sm:inline"
                 title={`Archived ${fmt(task.archived_at)}`}
               >
                 {fmt(task.archived_at)}
               </span>
-              <span class="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-600">
+              <span class="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-600">
                 #{task.id}
               </span>
-              <div class="flex shrink-0 items-center gap-1">
+              <div class="flex w-full shrink-0 items-center sm:w-auto">
                 <button
                   type="button"
-                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
+                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={unarchiveMutation.isPending}
                   onclick={() => void unarchiveMutation.mutateAsync(task)}
                 >
@@ -215,7 +211,7 @@
                 </button>
                 <button
                   type="button"
-                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30"
+                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={deleteMutation.isPending}
                   onclick={() => handleDelete(task)}
                 >
