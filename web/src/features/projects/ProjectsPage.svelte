@@ -84,20 +84,20 @@
   <header
     class="border-b border-neutral-800 bg-black px-4 py-4 sm:px-6 sm:py-5"
   >
-    <div class="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
-        <div class="mb-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">
+        <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
           fizza / projects
         </div>
-        <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl text-white">
-            Projects
-          </h1>
+        <div class="flex flex-wrap items-baseline gap-3">
           {#if projectsQuery.data}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
-              {projectsQuery.data.length} total
+            <span class="font-display text-4xl tabular-nums leading-none tracking-tight text-white sm:text-5xl">
+              {projectsQuery.data.length}
             </span>
           {/if}
+          <h1 class="text-base tracking-tight text-white sm:text-[18px]">
+            Projects
+          </h1>
         </div>
       </div>
       <Button variant="primary" onclick={() => (createOpen = true)}>
@@ -108,12 +108,12 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if projectsQuery.isPending}
-      <div class="p-8 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">
-        Loading…
+      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+        [LOADING]
       </div>
     {:else if projectsQuery.isError}
-      <div class="p-8 text-sm font-mono text-red-500">
-        {projectsQuery.error.message}
+      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]">
+        [ERROR] {projectsQuery.error.message}
       </div>
     {:else if !projectsQuery.data?.length}
       <EmptyState
@@ -125,20 +125,20 @@
     {:else}
       <div class="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
         <div
-          class="divide-y divide-neutral-900 border-y border-neutral-800"
+          class="divide-y divide-neutral-800 border-y border-neutral-800"
           use:animate={{ duration: 200, easing: "ease-out" }}
         >
           {#each projectsQuery.data as p (p.id)}
             {@const active = hint?.project === p.name}
             <div
               class={cn(
-                "group flex items-center gap-3 py-3 transition-colors",
-                active ? "bg-white/[0.02]" : "hover:bg-white/[0.02]"
+                "group flex min-h-14 items-center gap-3 py-3 transition-colors sm:gap-4",
+                active && "bg-neutral-950"
               )}
             >
               <button
                 type="button"
-                class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left sm:gap-4"
                 aria-label={`Open project ${p.name}`}
                 onclick={() => void openProject(p.name)}
               >
@@ -147,24 +147,24 @@
                 {:else}
                   <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-700"></span>
                 {/if}
-                <span class="truncate text-base font-medium tracking-tight text-neutral-100">
+                <span class="truncate text-base tracking-tight text-neutral-100">
                   {p.name}
                 </span>
-                <span class="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500">
+                <span class="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 sm:inline">
                   #{p.id}
                 </span>
-                <span class="hidden truncate text-xs text-neutral-500 sm:inline">
+                <span class="hidden truncate text-base text-neutral-500 md:inline">
                   {p.description?.trim() || "No description"}
                 </span>
               </button>
-              <span class="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:inline">
+              <span class="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 sm:inline">
                 {boardLabel(p.board_count)}
               </span>
-              <div class="flex shrink-0 items-center gap-1">
+              <div class="flex shrink-0 items-center">
                 <button
                   type="button"
                   title="Edit project"
-                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-neutral-200"
+                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-neutral-200"
                   onclick={(e) => handleEdit(e, p)}
                 >
                   Edit
@@ -172,7 +172,7 @@
                 <button
                   type="button"
                   title="Delete project"
-                  class="flex h-7 cursor-pointer items-center rounded-md px-2 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:bg-red-500/10 hover:text-red-500"
+                  class="flex min-h-11 cursor-pointer items-center px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:text-[var(--color-accent)]"
                   onclick={(e) => handleDelete(e, p)}
                 >
                   Del
@@ -181,7 +181,7 @@
             </div>
           {/each}
         </div>
-        <div class="mt-6 flex justify-center sm:mt-8">
+        <div class="mt-8 flex justify-center">
           <Button variant="secondary" onclick={() => (createOpen = true)}>
             + Create project
           </Button>
