@@ -38,6 +38,11 @@
     lg: "min-h-11 px-6 text-label gap-2",
   };
 
+  const radius = $derived(
+    variant === "icon" || variant === "ghost"
+      ? "rounded-md"
+      : "rounded-full"
+  );
 </script>
 
 <button
@@ -47,6 +52,7 @@
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-30",
     variants[variant],
     sizes[size],
+    radius,
     variant === "icon" && "h-11 w-11 px-0",
     className
   )}
