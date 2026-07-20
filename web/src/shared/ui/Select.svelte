@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scale } from "svelte/transition";
+  import { fade } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { cn } from "@/lib/cn";
 
@@ -134,7 +134,7 @@
 <div class={cn("block min-w-0", className)}>
   {#if label}
     <span
-      class="mb-2 block text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-neutral-400"
+      class="mb-2 block text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-400"
     >
       {label}
     </span>
@@ -150,15 +150,15 @@
     }}
     onkeydown={onKeyDown}
     class={cn(
-      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-neutral-700 bg-neutral-900 text-left text-neutral-200 transition-colors",
+      "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-0 border-b border-neutral-700 bg-transparent text-left text-neutral-200 transition-colors",
       "hover:border-neutral-500",
-      "focus:outline-none focus-visible:border-white",
+      "focus:outline-none focus-visible:border-neutral-200",
       "disabled:cursor-not-allowed disabled:opacity-30",
-      "font-mono",
-      size === "sm" ? "h-9 px-3 text-xs" : "h-11 px-3.5 text-sm"
+      "font-mono px-0 py-2 text-[11px] uppercase tracking-[0.08em]",
+      size === "sm" && "min-h-10"
     )}
   >
-    <span class={cn("truncate uppercase tracking-[0.06em]", !selected && "text-neutral-500")}>
+    <span class={cn("truncate", !selected && "text-neutral-500")}>
       {selected?.label ?? placeholder}
     </span>
     <svg
@@ -186,15 +186,15 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-[80] max-h-72 overflow-auto rounded-md border border-neutral-700 bg-neutral-900 py-1"
+      class="fixed z-[80] max-h-72 overflow-auto rounded-lg border border-neutral-700 bg-neutral-950 py-1"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
-      in:scale={{ duration: 100, start: 0.96, opacity: 0, easing: cubicOut }}
-      out:scale={{ duration: 80, start: 0.96, opacity: 0, easing: cubicOut }}
+      in:fade={{ duration: 100, easing: cubicOut }}
+      out:fade={{ duration: 80, easing: cubicOut }}
     >
       {#if options.length === 0}
-        <div class="px-3.5 py-2 text-xs font-mono text-neutral-500">
+        <div class="px-3 py-2 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
           No options
         </div>
       {:else}
@@ -208,12 +208,11 @@
             aria-selected={isSelected}
             disabled={opt.disabled}
             class={cn(
-              "flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-xs font-mono uppercase tracking-[0.06em] transition-colors",
+              "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-l-2 px-3 py-2 text-left text-[11px] font-mono uppercase tracking-[0.08em] transition-colors",
               "disabled:cursor-not-allowed disabled:opacity-30",
-              isActive
-                ? "bg-neutral-800 text-neutral-200"
-                : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200",
-              isSelected && "text-white"
+              isActive || isSelected
+                ? "border-[var(--color-accent)] text-neutral-200"
+                : "border-transparent text-neutral-400 hover:text-neutral-200"
             )}
             onmouseenter={() => {
               if (!opt.disabled) active = idx;
@@ -223,9 +222,6 @@
             }}
           >
             <span class="truncate">{opt.label}</span>
-            {#if isSelected}
-              <span class="text-white">·</span>
-            {/if}
           </button>
         {/each}
       {/if}
