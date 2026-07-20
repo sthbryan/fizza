@@ -15,7 +15,7 @@
   <h2 class="mb-3 text-base tracking-tight text-neutral-400">
     {title}
   </h2>
-  <p class="max-w-sm text-[11px] font-mono uppercase tracking-[0.08em] leading-relaxed text-neutral-600">
+  <p class="max-w-sm text-base leading-relaxed text-neutral-600">
     {description}
   </p>
   {#if actionLabel && onaction}
