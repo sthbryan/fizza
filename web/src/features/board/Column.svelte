@@ -93,41 +93,39 @@
 
 <section
   class={cn(
-    "flex w-[min(88%,320px)] shrink-0 flex-col rounded-md border p-3 sm:w-[360px] sm:p-3.5",
-    "max-h-[calc(100dvh-9rem)] sm:max-h-[calc(100vh-8rem)]",
+    "flex w-[min(88%,300px)] shrink-0 flex-col sm:w-[320px] md:w-[340px]",
+    "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
     "transition-colors duration-150",
-    dragOver
-      ? "border-white/30 bg-neutral-900"
-      : "border-neutral-800 bg-neutral-950",
+    dragOver && "bg-neutral-950/80",
   )}
 >
-  <header class="mb-3 flex items-center justify-between gap-2 px-1">
-    <div class="flex min-w-0 items-center gap-2">
+  <header class="mb-4 flex items-center justify-between gap-2 border-b border-neutral-800 pb-3">
+    <div class="flex min-w-0 items-baseline gap-2">
       <span
-        class="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500"
+        class="font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500"
       >
         {indexLabel}
       </span>
       <span
-        class="truncate text-[13px] font-medium tracking-tight text-neutral-100"
+        class="truncate text-base tracking-tight text-neutral-100"
       >
         {column.name.replaceAll("_", " ")}
       </span>
       <span
         class="font-mono text-[11px] tabular-nums"
-        class:text-red-500={overLimit}
+        class:text-[var(--color-accent)]={overLimit}
         class:text-neutral-500={!overLimit}
       >
         {countLabel}
       </span>
     </div>
-    <div class="flex shrink-0 items-center gap-0.5">
+    <div class="flex shrink-0 items-center">
       {#if canDelete}
         <button
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-red-500"
+          class="flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-[var(--color-accent)]"
         >
           ×
         </button>
@@ -136,7 +134,7 @@
         type="button"
         title="Add task"
         onclick={() => onadd(column.name)}
-        class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-base font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
+        class="flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white"
       >
         +
       </button>
@@ -145,7 +143,7 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex flex-1 flex-col gap-2.5 overflow-y-auto"
+    class="flex flex-1 flex-col gap-2 overflow-y-auto"
     role="list"
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
@@ -156,16 +154,13 @@
       <button
         type="button"
         onclick={() => onadd(column.name)}
-        class="flex min-h-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-neutral-800 bg-transparent text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500 transition-colors hover:border-white/30 hover:text-neutral-300"
+        class="flex min-h-16 cursor-pointer items-center justify-center border border-dashed border-neutral-800 bg-transparent text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
       >
         + Add task
       </button>
     {:else}
-      {#each tasks as task, i (task.id)}
-        <div
-          data-task-id={task.id}
-          class="rounded-md transition-[margin] duration-100"
-        >
+      {#each tasks as task (task.id)}
+        <div data-task-id={task.id}>
           <TaskCard
             {task}
             {draggingId}

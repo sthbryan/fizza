@@ -362,11 +362,11 @@
     class="border-b border-neutral-800 bg-black"
   >
     <div
-      class="flex flex-col gap-3.5 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
+      class="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
     >
       <div class="min-w-0">
         <nav
-          class="mb-1.5 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500"
+          class="mb-2 flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
@@ -380,23 +380,24 @@
             Projects
           </a>
           <span class="opacity-40">/</span>
-          <span class="truncate text-neutral-400"
-            >{project}</span
-          >
+          <span class="truncate text-neutral-400">{project}</span>
         </nav>
-        <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="truncate text-2xl font-semibold tracking-tight sm:text-3xl text-white">
+        <div class="flex flex-wrap items-baseline gap-3">
+          <h1 class="truncate text-base tracking-tight text-white sm:text-[18px]">
             {project}
           </h1>
           {#if taskCount > 0}
-            <span class="font-mono text-sm tabular-nums text-neutral-500">
-              {taskCount} tasks
+            <span class="font-display text-4xl tabular-nums leading-none tracking-tight text-white sm:text-5xl">
+              {taskCount}
+            </span>
+            <span class="text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">
+              tasks
             </span>
           {/if}
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-1 sm:gap-2">
         <Button
           variant="ghost"
           onclick={() => (showCompleted = !showCompleted)}
@@ -432,7 +433,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="!hidden hover:text-red-500 sm:!inline-flex"
+          class="!hidden hover:text-[var(--color-accent)] sm:!inline-flex"
         >
           Delete project
         </Button>
@@ -450,16 +451,15 @@
           disabled={!project || !board}
           title="New task"
           aria-label="New task"
-          class="size-9 shrink-0 p-0!"
+          class="size-11 shrink-0 p-0!"
         >
           <Plus size={16} strokeWidth={1.5} />
         </Button>
       </div>
     </div>
 
-    <!-- Board switcher: tabs, not selects -->
     <div
-      class="mt-3.5 flex items-center gap-1 overflow-x-auto px-4 pb-0 sm:px-6"
+      class="mt-4 flex items-center gap-1 overflow-x-auto px-4 pb-0 sm:px-6"
       role="tablist"
       aria-label="Boards"
     >
@@ -478,7 +478,7 @@
             role="tab"
             aria-selected={active}
             class={cn(
-              "px-3.5 py-3 text-sm font-medium transition-colors",
+              "px-3 py-3 text-[11px] font-mono uppercase tracking-[0.08em] transition-colors sm:px-3.5",
               active
                 ? "text-white"
                 : "text-neutral-500 hover:text-neutral-300"
@@ -494,8 +494,8 @@
             type="button"
             title={`Delete board ${b.name}`}
             class={cn(
-              "mr-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded text-sm font-mono transition-colors",
-              "text-neutral-500 hover:bg-red-500/15 hover:text-red-500",
+              "mr-1 flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base transition-colors",
+              "text-neutral-500 hover:text-[var(--color-accent)]",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
             onclick={(e) => {
@@ -511,7 +511,7 @@
       <button
         type="button"
         title="New board"
-        class="mb-0.5 ml-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-lg font-mono text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white"
+        class="mb-0.5 ml-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center font-mono text-lg text-neutral-500 transition-colors hover:text-white"
         onclick={() => (boardDialog = true)}
       >
         +
@@ -521,10 +521,10 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if snapshotQuery.isPending && !snapshotQuery.data}
-      <div class="p-8 text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">Loading board…</div>
+      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-neutral-500">[LOADING]</div>
     {:else if snapshotQuery.isError}
-      <div class="p-8 text-sm font-mono text-red-500">
-        {snapshotQuery.error.message}
+      <div class="p-8 text-[11px] font-mono uppercase tracking-[0.08em] text-[var(--color-accent)]">
+        [ERROR] {snapshotQuery.error.message}
       </div>
     {:else}
       <Board
