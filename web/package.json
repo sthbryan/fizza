@@ -8,13 +8,20 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "lint": "biome check",
+    "lint:fix": "biome check --write --unsafe",
+    "format": "biome format --write",
+    "verify": "biome check && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@formkit/auto-animate": "^0.10.0",
     "@tanstack/svelte-query": "^6.1.36",
+    "lucide-svelte": "^1.0.1",
     "svelte": "^5.56.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tailwindcss/vite": "^4.3.2",
     "@tsconfig/svelte": "^5.0.8",

@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { Task } from "@/lib/api";
   import Badge from "@/shared/ui/Badge.svelte";
+  import Menu from "@/shared/ui/Menu.svelte";
+  import type { MenuItem } from "@/shared/ui/Menu.svelte";
   import { cn } from "@/lib/cn";
 
   interface Props {
     task: Task;
-    dragging?: boolean;
+    draggingId: number | null;
     terminal?: boolean;
     ondragstart: (task: Task) => void;
     ondragend: () => void;
@@ -17,7 +19,7 @@
 
   let {
     task,
-    dragging = false,
+    draggingId,
     terminal = false,
     ondragstart,
     ondragend,
@@ -28,81 +30,87 @@
   }: Props = $props();
 
   const due = $derived(task.due_date ? String(task.due_date).slice(0, 10) : null);
+
+  const dragging = $derived(draggingId === task.id);
+  const siblingDragging = $derived(draggingId !== null && !dragging);
+
+  const menuItems = $derived<MenuItem[]>(
+    [
+      ...(terminal && onrestore
+        ? [{ label: "Restore", onSelect: () => onrestore(task) }]
+        : []),
+      ...(onarchive
+        ? [{ label: "Archive", onSelect: () => onarchive(task) }]
+        : []),
+      { label: "Edit", onSelect: () => onedit(task) },
+      {
+        label: "Delete",
+        danger: true,
+        onSelect: () => ondelete(task),
+      },
+    ]
+  );
+
+  function handleDragStart(e: DragEvent) {
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    const target = e.currentTarget as HTMLElement;
+    const ghost = target.cloneNode(true) as HTMLElement;
+    ghost.style.cssText = `
+      position: absolute;
+      top: -1000px;
+      left: -1000px;
+      width: ${target.offsetWidth}px;
+      opacity: 0.65;
+      transform: rotate(1.5deg);
+      pointer-events: none;
+      z-index: -1;
+    `;
+    document.body.appendChild(ghost);
+    dt.setDragImage(ghost, 20, 20);
+    setTimeout(() => ghost.remove(), 0);
+    dt.effectAllowed = "move";
+    dt.setData("text/plain", String(task.id));
+    ondragstart(task);
+  }
 </script>
 
 <article
   draggable="true"
-  ondragstart={(e) => {
-    e.dataTransfer!.effectAllowed = "move";
-    e.dataTransfer!.setData("text/plain", String(task.id));
-    ondragstart(task);
-  }}
+  ondragstart={handleDragStart}
   ondragend={ondragend}
   class={cn(
-    "group cursor-grab rounded-2xl border border-white/8 bg-[#141418] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition sm:p-5",
-    "min-h-[5.75rem] hover:border-white/12 hover:bg-[#1a1a20]",
+    "group cursor-grab border border-neutral-800 bg-black p-3.5 transition-colors duration-150 sm:p-4",
+    "min-h-20",
+    "hover:border-neutral-600",
     "active:cursor-grabbing",
-    dragging && "scale-[0.98] opacity-40 ring-1 ring-[var(--color-accent)]/40"
+    dragging && "border-neutral-500 opacity-50",
+    siblingDragging && "opacity-50"
   )}
 >
-  <div class="mb-2.5 flex items-start justify-between gap-2">
+  <div class="mb-2 flex items-start justify-between gap-2">
     <Badge priority={task.priority} />
-    <div
-      class="flex shrink-0 gap-0.5 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100"
-    >
-      {#if terminal && onrestore}
-        <button
-          type="button"
-          class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-ok)]"
-          onclick={() => onrestore(task)}
-        >
-          Restore
-        </button>
-      {/if}
-      {#if onarchive}
-        <button
-          type="button"
-          class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]"
-          onclick={() => onarchive(task)}
-        >
-          Archive
-        </button>
-      {/if}
-      <button
-        type="button"
-        class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]"
-        onclick={() => onedit(task)}
-      >
-        Edit
-      </button>
-      <button
-        type="button"
-        class="cursor-pointer rounded-lg px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
-        onclick={() => ondelete(task)}
-      >
-        Del
-      </button>
+    <div class="shrink-0">
+      <Menu items={menuItems} label="Task actions" />
     </div>
   </div>
 
   <h4
-    class="mb-2 text-[15px] font-semibold leading-snug tracking-tight text-[var(--color-text)] sm:text-base"
+    class="mb-2 text-sm leading-snug tracking-tight text-neutral-100"
   >
     {task.title}
   </h4>
 
   {#if task.description}
-    <p class="mb-3 line-clamp-3 text-sm leading-relaxed text-[var(--color-text-muted)]">
+    <p class="mb-3 line-clamp-3 text-sm leading-relaxed text-neutral-500">
       {task.description}
     </p>
   {/if}
 
-  <div class="flex flex-wrap items-center gap-2">
-    <span class="font-mono text-[11px] text-[var(--color-text-muted)]">
-      #{task.id}
-    </span>
+  <div class="flex flex-wrap items-center gap-3 text-label font-mono uppercase text-neutral-500">
+    <span>#{task.id}</span>
     {#if due}
-      <span class="text-[11px] text-[var(--color-text-muted)]">{due}</span>
+      <span>{due}</span>
     {/if}
   </div>
 </article>

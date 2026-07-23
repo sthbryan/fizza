@@ -4,7 +4,7 @@
   import Input from "@/shared/ui/Input.svelte";
   import TextArea from "@/shared/ui/TextArea.svelte";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import { boardPath, navigate, rememberBoard } from "@/lib/router/router.svelte";
   import { projectsApi } from "./api";
 
@@ -31,18 +31,18 @@
     onSuccess: async (project) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects });
       rememberBoard(project.name, "main");
-      showToast(`Project “${project.name}” created`);
+      showStatus(`Project “${project.name}” created`);
       onclose();
       navigate(boardPath(project.name, "main"));
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   async function submit() {
     if (!name.trim()) {
-      showToast("Name is required", "error");
+      showStatus("Name is required", "error");
       return;
     }
     await mutation.mutateAsync();

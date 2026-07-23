@@ -3,7 +3,7 @@
   import Modal from "@/shared/ui/Modal.svelte";
   import Input from "@/shared/ui/Input.svelte";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import { boardPath, navigate, rememberBoard } from "@/lib/router/router.svelte";
   import { boardApi } from "./api";
 
@@ -34,18 +34,18 @@
         queryKey: queryKeys.boards(project),
       });
       rememberBoard(project, board.name);
-      showToast(`Board “${board.name}” created`);
+      showStatus(`Board “${board.name}” created`);
       onclose();
       navigate(boardPath(project, board.name));
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   async function submit() {
     if (!name.trim()) {
-      showToast("Name is required", "error");
+      showStatus("Name is required", "error");
       return;
     }
     await mutation.mutateAsync();

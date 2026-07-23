@@ -1,11 +1,4 @@
-import type {
-  Board,
-  BoardSnapshot,
-  Column,
-  Project,
-  Stats,
-  Task,
-} from "./types";
+import type { Board, BoardSnapshot, Column, Project, Stats, Task } from "./types";
 
 interface Envelope<T> {
   ok: boolean;
@@ -25,15 +18,10 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(
-  method: string,
-  path: string,
-  body?: unknown
-): Promise<T> {
+export async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
-    headers:
-      body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
@@ -49,7 +37,7 @@ export async function api<T>(
     throw new ApiError(
       payload?.error?.message || res.statusText || "request failed",
       res.status,
-      payload?.error?.code
+      payload?.error?.code,
     );
   }
   return payload.data as T;
@@ -63,18 +51,12 @@ export const fizzaApi = {
   listProjects: () => api<Project[]>("GET", "/v1/projects"),
   createProject: (name: string, description = "") =>
     api<Project>("POST", "/v1/projects", { name, description }),
-  updateProject: (
-    name: string,
-    patch: { name?: string; description?: string }
-  ) => api<Project>("PATCH", `/v1/projects/${enc(name)}`, patch),
+  updateProject: (name: string, patch: { name?: string; description?: string }) =>
+    api<Project>("PATCH", `/v1/projects/${enc(name)}`, patch),
   deleteProject: (name: string) =>
-    api<{ deleted: string; id: number }>(
-      "DELETE",
-      `/v1/projects/${enc(name)}?force=true`
-    ),
+    api<{ deleted: string; id: number }>("DELETE", `/v1/projects/${enc(name)}?force=true`),
 
-  listBoards: (project: string) =>
-    api<Board[]>("GET", `/v1/projects/${enc(project)}/boards`),
+  listBoards: (project: string) => api<Board[]>("GET", `/v1/projects/${enc(project)}/boards`),
   createBoard: (project: string, name: string, columns?: string) =>
     api<Board>("POST", `/v1/projects/${enc(project)}/boards`, {
       name,
@@ -83,21 +65,17 @@ export const fizzaApi = {
   deleteBoard: (project: string, board: string) =>
     api<{ deleted: string; id: number }>(
       "DELETE",
-      `/v1/projects/${enc(project)}/boards/${enc(board)}?force=true`
+      `/v1/projects/${enc(project)}/boards/${enc(board)}?force=true`,
     ),
 
   createColumn: (project: string, board: string, name: string) =>
-    api<Column>(
-      "POST",
-      `/v1/projects/${enc(project)}/boards/${enc(board)}/columns`,
-      { name }
-    ),
+    api<Column>("POST", `/v1/projects/${enc(project)}/boards/${enc(board)}/columns`, { name }),
   deleteColumn: (project: string, board: string, name: string, force = false) =>
     api<{ deleted: string }>(
       "DELETE",
       `/v1/projects/${enc(project)}/boards/${enc(board)}/columns/${enc(name)}${
         force ? "?force=true" : ""
-      }`
+      }`,
     ),
 
   snapshot: (project: string, board: string, includeDone = false) =>
@@ -105,19 +83,16 @@ export const fizzaApi = {
       "GET",
       `/v1/projects/${enc(project)}/boards/${enc(board)}/snapshot${
         includeDone ? "?include_done=true" : ""
-      }`
+      }`,
     ),
 
   listArchived: (project: string, board: string) =>
-    api<Task[]>(
-      "GET",
-      `/v1/projects/${enc(project)}/boards/${enc(board)}/archived`
-    ),
+    api<Task[]>("GET", `/v1/projects/${enc(project)}/boards/${enc(board)}/archived`),
 
   archiveDone: (project: string, board: string) =>
     api<{ archived: number }>(
       "POST",
-      `/v1/projects/${enc(project)}/boards/${enc(board)}/archive-done`
+      `/v1/projects/${enc(project)}/boards/${enc(board)}/archive-done`,
     ),
 
   createTask: (
@@ -129,13 +104,8 @@ export const fizzaApi = {
       column?: string;
       priority?: string;
       due?: string;
-    }
-  ) =>
-    api<Task>(
-      "POST",
-      `/v1/projects/${enc(project)}/boards/${enc(board)}/tasks`,
-      input
-    ),
+    },
+  ) => api<Task>("POST", `/v1/projects/${enc(project)}/boards/${enc(board)}/tasks`, input),
 
   updateTask: (
     id: number,
@@ -145,16 +115,15 @@ export const fizzaApi = {
       priority?: string;
       due?: string;
       clear_due?: boolean;
-    }
+    },
   ) => api<Task>("PATCH", `/v1/tasks/${id}`, patch),
 
   moveTask: (
     id: number,
-    input: { project: string; board: string; column: string; before?: string }
+    input: { project: string; board: string; column: string; before?: string },
   ) => api<Task>("POST", `/v1/tasks/${id}/move`, input),
 
-  deleteTask: (id: number) =>
-    api<{ deleted: number }>("DELETE", `/v1/tasks/${id}?force=true`),
+  deleteTask: (id: number) => api<{ deleted: number }>("DELETE", `/v1/tasks/${id}?force=true`),
 
   archiveTask: (id: number) => api<Task>("POST", `/v1/tasks/${id}/archive`),
   unarchiveTask: (id: number) => api<Task>("POST", `/v1/tasks/${id}/unarchive`),

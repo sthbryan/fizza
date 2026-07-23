@@ -16,14 +16,14 @@
   }: Props = $props();
 
   const fieldClass =
-    "w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-base text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition " +
-    "focus:border-[var(--color-accent)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 min-h-28 resize-y leading-relaxed";
+    "w-full min-h-28 resize-y border border-neutral-700 bg-transparent px-3 py-2.5 text-base leading-relaxed text-neutral-200 placeholder:text-neutral-500 transition-colors " +
+    "font-mono focus:border-neutral-200 focus:outline-none";
 </script>
 
 <label class="block min-w-0">
   {#if label}
     <span
-      class="mb-2 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
+      class="mb-2 block text-label font-mono uppercase text-neutral-400"
     >
       {label}
     </span>

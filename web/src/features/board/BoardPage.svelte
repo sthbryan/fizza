@@ -2,7 +2,7 @@
   import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
   import type { ColumnSnapshot, Task } from "@/lib/api";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import {
     archivedPath,
     boardPath,
@@ -12,6 +12,8 @@
   import { cn } from "@/lib/cn";
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
+  import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
+  import Plus from "lucide-svelte/icons/plus";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
   import { isTerminalColumn } from "./terminal";
@@ -47,6 +49,26 @@
 
   let draggingId = $state<number | null>(null);
   let dragOverColumn = $state<string | null>(null);
+
+  type ConfirmSpec = {
+    title: string;
+    description: string;
+    confirmLabel: string;
+    cancelLabel?: string;
+    run: () => void | Promise<void>;
+  };
+
+  let pendingConfirm = $state<ConfirmSpec | null>(null);
+
+  function ask(spec: ConfirmSpec) {
+    pendingConfirm = spec;
+  }
+
+  async function runConfirm() {
+    const spec = pendingConfirm;
+    pendingConfirm = null;
+    if (spec) await spec.run();
+  }
 
   $effect(() => {
     rememberBoard(project, board);
@@ -125,7 +147,7 @@
       await invalidateBoard();
     },
     onError: async (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
       await invalidateBoard();
     },
     onSettled: () => {
@@ -138,10 +160,10 @@
     mutationFn: (task: Task) => tasksApi.delete(task.id),
     onSuccess: async (_data, task) => {
       await invalidateBoard();
-      showToast(`Task #${task.id} deleted`);
+      showStatus(`Task #${task.id} deleted`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -149,10 +171,10 @@
     mutationFn: (task: Task) => tasksApi.archive(task.id),
     onSuccess: async (_data, task) => {
       await invalidateBoard();
-      showToast(`Task #${task.id} archived`);
+      showStatus(`Task #${task.id} archived`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -161,10 +183,10 @@
       tasksApi.move(task.id, { project, board, column: openColumn }),
     onSuccess: async (_data, task) => {
       await invalidateBoard();
-      showToast(`Task #${task.id} restored to ${openColumn}`);
+      showStatus(`Task #${task.id} restored to ${openColumn}`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -172,14 +194,14 @@
     mutationFn: () => boardApi.archiveDone(project, board),
     onSuccess: async (data) => {
       await invalidateBoard();
-      showToast(
+      showStatus(
         data.archived
           ? `Archived ${data.archived} completed task${data.archived === 1 ? "" : "s"}`
           : "No completed tasks to archive"
       );
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -188,17 +210,17 @@
       boardApi.deleteColumn(project, board, input.name, input.force),
     onSuccess: async (_data, input) => {
       await invalidateBoard();
-      showToast(`Column “${input.name}” deleted`);
+      showStatus(`Column “${input.name}” deleted`);
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   const deleteBoardMutation = createMutation(() => ({
     mutationFn: (name: string) => boardApi.delete(project, name),
     onSuccess: async (_data, name) => {
-      showToast(`Board “${name}” deleted`);
+      showStatus(`Board “${name}” deleted`);
       const remaining =
         (await queryClient.fetchQuery({
           queryKey: queryKeys.boards(project),
@@ -214,7 +236,7 @@
       }
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -223,11 +245,11 @@
     onSuccess: async () => {
       rememberBoard("", "");
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects });
-      showToast(`Project “${project}” deleted`);
+      showStatus(`Project “${project}” deleted`);
       navigate("/projects");
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
@@ -237,8 +259,14 @@
   }
 
   function handleDelete(task: Task) {
-    if (!confirm(`Delete task #${task.id}: “${task.title}”?`)) return;
-    void deleteMutation.mutateAsync(task);
+    ask({
+      title: `Delete task #${task.id}?`,
+      description: `“${task.title}” will be permanently removed. This cannot be undone.`,
+      confirmLabel: "Delete task",
+      run: async () => {
+        await deleteMutation.mutateAsync(task);
+      },
+    });
   }
 
   function handleArchive(task: Task) {
@@ -251,54 +279,66 @@
 
   function handleArchiveDone() {
     if (doneCount <= 0) return;
-    if (
-      !confirm(
-        `Archive all ${doneCount} completed task${doneCount === 1 ? "" : "s"} on this board?`
-      )
-    ) {
-      return;
-    }
-    void archiveDoneMutation.mutateAsync();
+    ask({
+      title: `Archive ${doneCount} completed task${doneCount === 1 ? "" : "s"}?`,
+      description: `They will move out of the board and stay recoverable from the Archived view.`,
+      confirmLabel: "Archive all",
+      run: async () => {
+        await archiveDoneMutation.mutateAsync();
+      },
+    });
   }
 
   function handleDeleteColumn(col: ColumnSnapshot) {
     const n = col.task_count ?? col.tasks?.length ?? 0;
     const label = col.name.replaceAll("_", " ");
     if (n > 0) {
-      if (
-        !confirm(
-          `Delete column “${label}” and its ${n} task(s)? This cannot be undone.`
-        )
-      ) {
-        return;
-      }
-      void deleteColumnMutation.mutateAsync({ name: col.name, force: true });
+      ask({
+        title: `Delete column “${label}”?`,
+        description: `${n} task${n === 1 ? "" : "s"} in this column will also be permanently deleted. This cannot be undone.`,
+        confirmLabel: "Delete column",
+        run: async () => {
+          await deleteColumnMutation.mutateAsync({
+            name: col.name,
+            force: true,
+          });
+        },
+      });
       return;
     }
-    if (!confirm(`Delete empty column “${label}”?`)) return;
-    void deleteColumnMutation.mutateAsync({ name: col.name, force: false });
+    ask({
+      title: `Delete empty column “${label}”?`,
+      description: `This column has no tasks and can be safely removed.`,
+      confirmLabel: "Delete column",
+      run: async () => {
+        await deleteColumnMutation.mutateAsync({
+          name: col.name,
+          force: false,
+        });
+      },
+    });
   }
 
   function handleDeleteBoard(name: string) {
-    if (
-      !confirm(
-        `Delete board “${name}” and all of its columns and tasks? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-    void deleteBoardMutation.mutateAsync(name);
+    ask({
+      title: `Delete board “${name}”?`,
+      description: `All columns and tasks on this board will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete board",
+      run: async () => {
+        await deleteBoardMutation.mutateAsync(name);
+      },
+    });
   }
 
   function handleDeleteProject() {
-    if (
-      !confirm(
-        `Delete project “${project}” and all boards, columns, and tasks? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-    void deleteProjectMutation.mutateAsync();
+    ask({
+      title: `Delete project “${project}”?`,
+      description: `All boards, columns, and tasks in this project will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete project",
+      run: async () => {
+        await deleteProjectMutation.mutateAsync();
+      },
+    });
   }
 
   function handleDrop(column: string, beforeId?: string) {
@@ -319,19 +359,19 @@
 
 <AppShell>
   <header
-    class="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)]"
+    class="border-b border-neutral-800 bg-black"
   >
     <div
-      class="flex flex-col gap-3.5 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
+      class="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
     >
       <div class="min-w-0">
         <nav
-          class="mb-1.5 flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]"
+          class="mb-2 flex items-center gap-1.5 text-label font-mono uppercase text-neutral-500"
           aria-label="Breadcrumb"
         >
           <a
             href="/projects"
-            class="transition hover:text-[var(--color-text-secondary)]"
+            class="transition-colors hover:text-neutral-300"
             onclick={(e) => {
               e.preventDefault();
               navigate("/projects");
@@ -340,28 +380,26 @@
             Projects
           </a>
           <span class="opacity-40">/</span>
-          <span class="truncate text-[var(--color-text-secondary)]"
-            >{project}</span
-          >
+          <span class="truncate text-neutral-400">{project}</span>
         </nav>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 class="truncate text-lg tracking-tight text-white">
             {project}
           </h1>
           {#if taskCount > 0}
-            <span class="text-base text-[var(--color-text-muted)]">
+            <span class="font-mono text-label tabular-nums text-neutral-500">
               {taskCount} tasks
             </span>
           {/if}
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2.5">
+      <div class="flex flex-wrap items-center gap-1 sm:gap-2">
         <Button
           variant="ghost"
           onclick={() => (showCompleted = !showCompleted)}
           disabled={!project || !board}
-          class={showCompleted ? "text-[var(--color-accent)]" : ""}
+          class="!hidden sm:!inline-flex"
         >
           {showCompleted ? "Hide completed" : "Show completed"}
           {#if doneCount > 0}
@@ -383,6 +421,7 @@
             variant="ghost"
             onclick={handleArchiveDone}
             disabled={archiveDoneMutation.isPending}
+            class="!hidden sm:!inline-flex"
           >
             Archive all done
           </Button>
@@ -391,7 +430,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+          class="!hidden hover:text-accent sm:!inline-flex"
         >
           Delete project
         </Button>
@@ -399,6 +438,7 @@
           variant="ghost"
           onclick={() => (columnDialog = true)}
           disabled={!project || !board}
+          class="!hidden sm:!inline-flex"
         >
           + Column
         </Button>
@@ -406,16 +446,17 @@
           variant="primary"
           onclick={() => openTask()}
           disabled={!project || !board}
-          class="flex-1 sm:flex-none"
+          title="New task"
+          aria-label="New task"
+          class="size-11 shrink-0 p-0!"
         >
-          + Task
+          <Plus size={16} strokeWidth={1.5} />
         </Button>
       </div>
     </div>
 
-    <!-- Board switcher: tabs, not selects -->
     <div
-      class="mt-3.5 flex items-center gap-1 overflow-x-auto px-4 pb-0 sm:px-6"
+      class="mt-4 flex items-center gap-1 overflow-x-auto px-4 pb-0 sm:px-6"
       role="tablist"
       aria-label="Boards"
     >
@@ -425,7 +466,7 @@
           class={cn(
             "group/tab relative flex shrink-0 items-center border-b-2",
             active
-              ? "border-[var(--color-accent)]"
+              ? "border-white"
               : "border-transparent"
           )}
         >
@@ -434,10 +475,10 @@
             role="tab"
             aria-selected={active}
             class={cn(
-              "px-3.5 py-3 text-base font-medium transition",
+              "px-3 py-3 text-label font-mono uppercase transition-colors sm:px-3.5",
               active
-                ? "text-[var(--color-text)]"
-                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                ? "text-white"
+                : "text-neutral-500 hover:text-neutral-300"
             )}
             onclick={(e) => {
               e.preventDefault();
@@ -450,8 +491,8 @@
             type="button"
             title={`Delete board ${b.name}`}
             class={cn(
-              "mr-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded text-sm transition",
-              "text-[var(--color-text-muted)] hover:bg-[var(--color-danger)]/15 hover:text-[var(--color-danger)]",
+              "mr-1 flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base transition-colors",
+              "text-neutral-500 hover:text-accent",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
             onclick={(e) => {
@@ -467,7 +508,7 @@
       <button
         type="button"
         title="New board"
-        class="mb-0.5 ml-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+        class="mb-0.5 ml-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center font-mono text-lg text-neutral-500 transition-colors hover:text-white"
         onclick={() => (boardDialog = true)}
       >
         +
@@ -477,10 +518,10 @@
 
   <main class="min-h-0 flex-1 overflow-hidden">
     {#if snapshotQuery.isPending && !snapshotQuery.data}
-      <div class="p-8 text-base text-[var(--color-text-muted)]">Loading board…</div>
+      <div class="p-8 text-label font-mono uppercase text-neutral-500">[LOADING]</div>
     {:else if snapshotQuery.isError}
-      <div class="p-8 text-base text-[var(--color-danger)]">
-        {snapshotQuery.error.message}
+      <div class="p-8 text-label font-mono uppercase text-accent">
+        [ERROR] {snapshotQuery.error.message}
       </div>
     {:else}
       <Board
@@ -538,4 +579,13 @@
   task={editing}
   columns={columnOptions}
   onclose={() => (editing = null)}
+/>
+<ConfirmDialog
+  open={pendingConfirm !== null}
+  title={pendingConfirm?.title ?? ""}
+  description={pendingConfirm?.description ?? ""}
+  confirmLabel={pendingConfirm?.confirmLabel}
+  cancelLabel={pendingConfirm?.cancelLabel}
+  onclose={() => (pendingConfirm = null)}
+  onconfirm={runConfirm}
 />

@@ -3,7 +3,7 @@
   import Modal from "@/shared/ui/Modal.svelte";
   import Input from "@/shared/ui/Input.svelte";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import { boardApi } from "./api";
 
   interface Props {
@@ -28,17 +28,17 @@
       await queryClient.invalidateQueries({
         queryKey: queryKeys.snapshot(project, board),
       });
-      showToast(`Column “${name.trim()}” added`);
+      showStatus(`Column “${name.trim()}” added`);
       onclose();
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   async function submit() {
     if (!name.trim()) {
-      showToast("Column name is required", "error");
+      showStatus("Column name is required", "error");
       return;
     }
     await mutation.mutateAsync();

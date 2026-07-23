@@ -1,41 +1,46 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+  --font-display: "Doto", "Space Mono", monospace;
 
-  --color-bg: #0b0b0d;
-  --color-bg-elevated: #121214;
-  --color-bg-soft: #16161a;
-  --color-bg-card: #1a1a1f;
-  --color-bg-hover: #222228;
-  --color-border: #2a2a32;
-  --color-border-subtle: #1f1f26;
-  --color-text: #f4f4f5;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
-  --color-accent: #8b7cf7;
-  --color-accent-soft: #6d5efc;
-  --color-danger: #f07178;
-  --color-ok: #7fd99a;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.08em;
 
-  --color-col-pink: #3a2430;
-  --color-col-peach: #3a2e22;
-  --color-col-sky: #1e2e3a;
-  --color-col-lilac: #2c2540;
-  --color-col-mint: #1e322c;
-  --color-col-slate: #25252c;
+  --tracking-label: 0.08em;
 
-  --color-col-todo: #f9a8d4;
-  --color-col-progress: #fdba74;
-  --color-col-done: #86efac;
-  --color-col-review: #93c5fd;
-  --color-col-default: #a1a1aa;
+  --color-bg: #000000;
+  --color-bg-elevated: #111111;
+  --color-bg-soft: #111111;
+  --color-bg-card: #1a1a1a;
+  --color-bg-hover: #1a1a1a;
+  --color-border: #333333;
+  --color-border-subtle: #222222;
+  --color-border-visible: #333333;
+  --color-text: #e8e8e8;
+  --color-text-secondary: #999999;
+  --color-text-muted: #666666;
+  --color-text-display: #ffffff;
+  --color-accent: #d71921;
+  --color-accent-soft: rgba(215, 25, 33, 0.15);
+  --color-danger: #d71921;
+  --color-ok: #4a9e5c;
+  --color-warning: #d4a843;
 
-  --color-pri-low: #7dd3fc;
-  --color-pri-medium: #fbbf24;
-  --color-pri-high: #f472b6;
-  --color-pri-urgent: #f87171;
+  --color-col-todo: #e8e8e8;
+  --color-col-progress: #e8e8e8;
+  --color-col-done: #4a9e5c;
+  --color-col-review: #999999;
+  --color-col-default: #e8e8e8;
+
+  --color-pri-low: #666666;
+  --color-pri-medium: #999999;
+  --color-pri-high: #e8e8e8;
+  --color-pri-urgent: #d71921;
+
+  --ease-out-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 @layer base {
@@ -78,13 +83,22 @@
     cursor: not-allowed;
   }
 
-  /* Near-invisible scrollbars; scrolling still works via wheel/trackpad. */
   * {
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
   }
 
   *::-webkit-scrollbar {
     width: 0;
     height: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

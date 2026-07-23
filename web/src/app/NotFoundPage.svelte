@@ -19,26 +19,24 @@
   <main
     class="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6"
   >
-    <div
-      class="w-full max-w-md rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] px-6 py-10 text-center sm:px-8 sm:py-12"
-    >
+    <div class="w-full max-w-md px-4 py-10 text-center sm:px-0 sm:py-12">
       <div
-        class="mb-3 font-mono text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-accent)]"
+        class="mb-4 text-label font-mono uppercase text-accent"
       >
-        Error 404
+        [ERROR] 404
       </div>
       <div
-        class="mb-2 text-6xl font-semibold tracking-tight text-[var(--color-text)] sm:text-7xl"
+        class="mb-4 font-display text-3xl leading-none tracking-tight text-white sm:text-4xl"
       >
         404
       </div>
-      <h1 class="mb-2 text-xl font-semibold tracking-tight sm:text-2xl">
+      <h1 class="mb-2 text-base tracking-tight text-neutral-400">
         Page not found
       </h1>
-      <p class="mb-8 text-base text-[var(--color-text-muted)]">
+      <p class="mb-8 text-label font-mono uppercase text-neutral-600">
         This URL is not a fizza page. Check the path or jump back into the app.
       </p>
-      <div class="flex flex-col items-stretch gap-2.5 sm:flex-row sm:justify-center">
+      <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
         <Button variant="primary" onclick={goBoard}>
           {hint ? "Open board" : "Go to projects"}
         </Button>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import { cn } from "@/lib/cn";
 
   export type SelectOption = {
@@ -132,7 +134,7 @@
 <div class={cn("block min-w-0", className)}>
   {#if label}
     <span
-      class="mb-2 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
+      class="mb-2 block text-label font-mono uppercase text-neutral-400"
     >
       {label}
     </span>
@@ -148,23 +150,24 @@
     }}
     onkeydown={onKeyDown}
     class={cn(
-      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-left text-[var(--color-text)] transition",
-      "hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]",
-      "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
-      "disabled:cursor-not-allowed disabled:opacity-40",
-      size === "sm" ? "h-9 px-3 text-sm" : "h-11 px-4 text-base"
+      "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-0 border-b border-neutral-700 bg-transparent text-left text-neutral-200 transition-colors",
+      "hover:border-neutral-500",
+      "focus:outline-none focus-visible:border-neutral-200",
+      "disabled:cursor-not-allowed disabled:opacity-30",
+      "font-mono px-0 py-2 text-label uppercase",
+      size === "sm" && "min-h-10"
     )}
   >
-    <span class={cn("truncate", !selected && "text-[var(--color-text-muted)]")}>
+    <span class={cn("truncate", !selected && "text-neutral-500")}>
       {selected?.label ?? placeholder}
     </span>
     <svg
-      width="14"
-      height="14"
+      width="12"
+      height="12"
       viewBox="0 0 24 24"
       fill="none"
       class={cn(
-        "shrink-0 text-[var(--color-text-muted)] transition-transform",
+        "shrink-0 text-neutral-500 transition-transform",
         open && "rotate-180"
       )}
       aria-hidden="true"
@@ -183,13 +186,15 @@
     <div
       bind:this={listEl}
       role="listbox"
-      class="fixed z-[80] max-h-72 overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.55)]"
+      class="fixed z-50 max-h-72 overflow-auto border border-neutral-700 bg-neutral-950 py-1"
       style:top="{pos.top}px"
       style:left="{pos.left}px"
       style:width="{pos.width}px"
+      in:fade={{ duration: 100, easing: cubicOut }}
+      out:fade={{ duration: 80, easing: cubicOut }}
     >
       {#if options.length === 0}
-        <div class="px-3.5 py-2.5 text-sm text-[var(--color-text-muted)]">
+        <div class="px-3 py-2 text-label font-mono uppercase text-neutral-500">
           No options
         </div>
       {:else}
@@ -203,11 +208,11 @@
             aria-selected={isSelected}
             disabled={opt.disabled}
             class={cn(
-              "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-left text-base transition",
-              "disabled:cursor-not-allowed disabled:opacity-40",
+              "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-l-2 px-3 py-2 text-left text-label font-mono uppercase transition-colors",
+              "disabled:cursor-not-allowed disabled:opacity-30",
               isActive || isSelected
-                ? "bg-[var(--color-bg-hover)] text-[var(--color-text)]"
-                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+                ? "border-accent text-neutral-200"
+                : "border-transparent text-neutral-400 hover:text-neutral-200"
             )}
             onmouseenter={() => {
               if (!opt.disabled) active = idx;
@@ -217,9 +222,6 @@
             }}
           >
             <span class="truncate">{opt.label}</span>
-            {#if isSelected}
-              <span class="text-[var(--color-accent)]">✓</span>
-            {/if}
           </button>
         {/each}
       {/if}

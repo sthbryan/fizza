@@ -1,51 +1,8 @@
 <script lang="ts">
   import type { ColumnSnapshot, Task } from "@/lib/api";
   import { cn } from "@/lib/cn";
+  import { animate } from "@/lib/animate";
   import TaskCard from "./TaskCard.svelte";
-
-  type Theme = { shell: string; dot: string; title: string };
-
-  const PALETTE: Theme[] = [
-    {
-      shell: "bg-[var(--color-col-pink)]/90",
-      dot: "bg-[#f9a8d4]",
-      title: "text-[#fbcfe8]",
-    },
-    {
-      shell: "bg-[var(--color-col-peach)]/90",
-      dot: "bg-[#fdba74]",
-      title: "text-[#fed7aa]",
-    },
-    {
-      shell: "bg-[var(--color-col-sky)]/90",
-      dot: "bg-[#7dd3fc]",
-      title: "text-[#bae6fd]",
-    },
-    {
-      shell: "bg-[var(--color-col-lilac)]/90",
-      dot: "bg-[#c4b5fd]",
-      title: "text-[#ddd6fe]",
-    },
-    {
-      shell: "bg-[var(--color-col-mint)]/90",
-      dot: "bg-[#6ee7b7]",
-      title: "text-[#a7f3d0]",
-    },
-  ];
-
-  function themeFor(name: string, index: number): Theme {
-    const n = name.toLowerCase();
-    if (n.includes("todo") || n.includes("to do") || n.includes("backlog")) {
-      return PALETTE[0];
-    }
-    if (n.includes("progress") || n.includes("doing") || n.includes("week")) {
-      return PALETTE[1];
-    }
-    if (n.includes("review")) return PALETTE[2];
-    if (n.includes("blocked") || n.includes("hold")) return PALETTE[4];
-    if (n.includes("done") || n.includes("complete")) return PALETTE[3];
-    return PALETTE[index % PALETTE.length];
-  }
 
   interface Props {
     column: ColumnSnapshot;
@@ -88,43 +45,85 @@
   }: Props = $props();
 
   const tasks = $derived(column.tasks || []);
-  const theme = $derived(themeFor(column.name, index));
   const count = $derived(column.task_count ?? tasks.length);
   const countLabel = $derived(
-    column.wip_limit != null ? `${count}/${column.wip_limit}` : String(count)
+    column.wip_limit != null ? `${count}/${column.wip_limit}` : String(count),
   );
+  const indexLabel = $derived(String(index + 1).padStart(2, "0"));
+  const overLimit = $derived(
+    column.wip_limit != null && count > column.wip_limit,
+  );
+
+  let dropBeforeId = $state<number | null | undefined>(undefined);
+
+  function handleDragOver(e: DragEvent) {
+    const target = e.currentTarget as HTMLElement;
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    e.preventDefault();
+    dt.dropEffect = "move";
+    const cards = [...target.querySelectorAll<HTMLElement>("[data-task-id]")];
+    let beforeId: number | null = null;
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) {
+        beforeId = Number(card.dataset.taskId);
+        break;
+      }
+    }
+    dropBeforeId = beforeId;
+    ondragover(column.name);
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    const target = e.currentTarget as HTMLElement;
+    if (!target.contains(e.relatedTarget as Node)) {
+      dropBeforeId = undefined;
+      ondragleave();
+    }
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    const beforeId = dropBeforeId;
+    dropBeforeId = undefined;
+    ondrop(column.name, beforeId != null ? String(beforeId) : undefined);
+  }
 </script>
 
 <section
   class={cn(
-    "flex w-[min(100%,380px)] shrink-0 flex-col rounded-[1.75rem] p-3 sm:w-[360px] sm:p-3.5",
-    "max-h-[calc(100dvh-8.5rem)] sm:max-h-[calc(100vh-8rem)]",
-    theme.shell,
-    dragOver && "ring-2 ring-[var(--color-accent)]/50"
+    "flex w-72 shrink-0 flex-col border p-3 sm:w-80 sm:p-3.5",
+    "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
+    "transition-colors duration-150",
+    dragOver
+      ? "border-neutral-500 bg-neutral-900"
+      : "border-neutral-800 bg-neutral-950",
   )}
 >
-  <header class="mb-3 flex items-center justify-between gap-2 px-1">
+  <header class="mb-3 flex items-center justify-between gap-2 px-0.5">
     <div class="flex min-w-0 items-center gap-2">
-      <span class={cn("h-2 w-2 shrink-0 rounded-full", theme.dot)}></span>
-      <h3
-        class={cn(
-          "truncate text-sm font-semibold capitalize tracking-tight",
-          theme.title
-        )}
-      >
+      <span class="text-label font-mono uppercase text-neutral-500">
+        {indexLabel}
+      </span>
+      <span class="truncate text-sm tracking-tight text-neutral-100">
         {column.name.replaceAll("_", " ")}
-      </h3>
-      <span class="text-xs font-medium tabular-nums text-[var(--color-text-muted)]">
+      </span>
+      <span
+        class="font-mono text-label tabular-nums"
+        class:text-accent={overLimit}
+        class:text-neutral-500={!overLimit}
+      >
         {countLabel}
       </span>
     </div>
-    <div class="flex shrink-0 items-center gap-0.5">
+    <div class="flex shrink-0 items-center">
       {#if canDelete}
         <button
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-white/40 transition hover:bg-black/20 hover:text-[var(--color-danger)]"
+          class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent sm:h-10 sm:w-10"
         >
           ×
         </button>
@@ -133,7 +132,7 @@
         type="button"
         title="Add task"
         onclick={() => onadd(column.name)}
-        class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-white/50 transition hover:bg-black/20 hover:text-white"
+        class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white sm:h-10 sm:w-10"
       >
         +
       </button>
@@ -142,45 +141,18 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex flex-1 flex-col gap-3 overflow-y-auto"
+    class="flex min-h-24 flex-1 flex-col gap-2.5 overflow-y-auto"
     role="list"
-    ondragover={(e) => {
-      e.preventDefault();
-      e.dataTransfer!.dropEffect = "move";
-      ondragover(column.name);
-    }}
-    ondragleave={(e) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-        ondragleave();
-      }
-    }}
-    ondrop={(e) => {
-      e.preventDefault();
-      const cards = [
-        ...e.currentTarget.querySelectorAll<HTMLElement>("[data-task-id]"),
-      ];
-      let beforeId: string | undefined;
-      for (const card of cards) {
-        const rect = card.getBoundingClientRect();
-        if (e.clientY < rect.top + rect.height / 2) {
-          beforeId = card.dataset.taskId;
-          break;
-        }
-      }
-      ondrop(column.name, beforeId);
-    }}
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
+    use:animate={{ duration: 180, easing: "ease-out" }}
   >
-    {#if column.truncated && tasks.length === 0}
-      <div
-        class="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/10 px-3 text-center text-xs text-white/50"
-      >
-        {count} completed · hidden for a lean board
-      </div>
-    {:else if tasks.length === 0}
+    {#if tasks.length === 0 && dropBeforeId === undefined}
       <button
         type="button"
         onclick={() => onadd(column.name)}
-        class="flex min-h-20 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/10 text-xs text-white/45 transition hover:border-white/25 hover:text-white/70"
+        class="flex min-h-20 flex-1 cursor-pointer items-center justify-center border border-dashed border-neutral-800 bg-transparent text-label font-mono uppercase text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
       >
         + Add task
       </button>
@@ -189,7 +161,7 @@
         <div data-task-id={task.id}>
           <TaskCard
             {task}
-            dragging={draggingId === task.id}
+            {draggingId}
             {terminal}
             {ondragstart}
             {ondragend}

@@ -9,10 +9,10 @@
   let { priority }: Props = $props();
 
   const styles: Record<string, string> = {
-    low: "bg-[var(--color-pri-low)]/12 text-[var(--color-pri-low)]",
-    medium: "bg-[var(--color-pri-medium)]/15 text-[var(--color-pri-medium)]",
-    high: "bg-[var(--color-pri-high)]/15 text-[var(--color-pri-high)]",
-    urgent: "bg-[var(--color-pri-urgent)]/15 text-[var(--color-pri-urgent)]",
+    low: "border-neutral-700 text-neutral-400",
+    medium: "border-neutral-600 text-neutral-200",
+    high: "border-neutral-500 text-neutral-200",
+    urgent: "border-red-500 text-red-500",
   };
 
   const key = $derived(String(priority || "medium").toLowerCase());
@@ -20,7 +20,7 @@
 
 <span
   class={cn(
-    "inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium capitalize",
+    "inline-flex items-center border bg-transparent px-2.5 py-0.5 text-label font-mono uppercase",
     styles[key] || styles.medium
   )}
 >

@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Sidebar from "./Sidebar.svelte";
-  import Toast from "@/shared/ui/Toast.svelte";
+  import BottomTabBar from "./BottomTabBar.svelte";
+  import Status from "@/shared/ui/Status.svelte";
 
   interface Props {
     children: Snippet;
@@ -10,10 +11,13 @@
   let { children }: Props = $props();
 </script>
 
-<div class="flex h-full min-h-dvh bg-[var(--color-bg)]">
+<div class="flex h-full min-h-dvh bg-black">
   <Sidebar />
   <div class="flex min-w-0 flex-1 flex-col">
-    {@render children()}
+    <Status />
+    <div class="flex min-h-0 flex-1 flex-col">
+      {@render children()}
+    </div>
+    <BottomTabBar />
   </div>
-  <Toast />
 </div>

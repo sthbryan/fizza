@@ -5,7 +5,7 @@
   import TextArea from "@/shared/ui/TextArea.svelte";
   import Select from "@/shared/ui/Select.svelte";
   import { queryKeys } from "@/lib/api";
-  import { showToast } from "@/lib/toast/toast.svelte";
+  import { showStatus } from "@/lib/status/status.svelte";
   import { tasksApi } from "./api";
 
   const PRIORITY_OPTIONS = [
@@ -63,17 +63,17 @@
       await queryClient.invalidateQueries({
         queryKey: queryKeys.snapshot(project, board),
       });
-      showToast("Task added");
+      showStatus("Task added");
       onclose();
     },
     onError: (err) => {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      showStatus(err instanceof Error ? err.message : String(err), "error");
     },
   }));
 
   async function submit() {
     if (!title.trim()) {
-      showToast("Title is required", "error");
+      showStatus("Title is required", "error");
       return;
     }
     await mutation.mutateAsync();

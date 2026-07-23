@@ -9,6 +9,7 @@
   import ProgressRing from "./ProgressRing.svelte";
   import HBarChart from "./HBarChart.svelte";
   import DayChart from "./DayChart.svelte";
+  import SegmentedBar from "@/shared/ui/SegmentedBar.svelte";
   import {
     columnColor,
     formatStatusLabel,
@@ -74,32 +75,37 @@
       return `${formatStatusLabel(projectFilter)} / ${formatStatusLabel(boardFilter)}`;
     }
     if (projectFilter) return formatStatusLabel(projectFilter);
-    return "ALL PROJECTS";
+    return "All projects";
   }
 </script>
 
 <AppShell>
   <header
-    class="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)] px-4 py-4 sm:px-6 sm:py-5"
+    class="border-b border-neutral-800 bg-black px-4 py-4 sm:px-6 sm:py-5"
   >
     <div
-      class="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between"
+      class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
     >
       <div class="min-w-0">
-        <div class="mb-1.5 text-sm text-[var(--color-text-muted)]">
+        <div class="mb-2 text-label font-mono uppercase text-neutral-500">
           fizza / stats
         </div>
         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 class="text-lg tracking-tight text-white">
             Progress
           </h1>
-          <span class="text-base text-[var(--color-text-muted)]">
+          {#if stats}
+            <span class="font-mono text-label tabular-nums text-neutral-500">
+              {donePct}% done
+            </span>
+          {/if}
+          <span class="text-label font-mono uppercase text-neutral-500">
             {scopeLabel()}
           </span>
         </div>
       </div>
-      <div class="flex flex-wrap items-end gap-3 sm:gap-4">
-        <div class="w-full min-w-[10rem] sm:w-48">
+      <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:gap-4 lg:w-auto">
+        <div class="w-full min-w-0 sm:w-48">
           <Select
             label="Project"
             size="sm"
@@ -108,7 +114,7 @@
             onchange={onProjectChange}
           />
         </div>
-        <div class="w-full min-w-[10rem] sm:w-48">
+        <div class="w-full min-w-0 sm:w-48">
           <Select
             label="Board"
             size="sm"
@@ -120,14 +126,57 @@
         </div>
       </div>
     </div>
+    {#if stats}
+      {@const totals = stats.totals}
+      <div
+        class="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2 font-mono text-sm"
+      >
+        {#if !projectFilter}
+          <span>
+            <span class="tabular-nums text-white">{totals.projects}</span>
+            <span class="ml-1.5 text-label uppercase text-neutral-500">projects</span>
+          </span>
+        {/if}
+        {#if !boardFilter}
+          <span>
+            <span class="tabular-nums text-white">{totals.boards}</span>
+            <span class="ml-1.5 text-label uppercase text-neutral-500">boards</span>
+          </span>
+        {/if}
+        <span>
+          <span class="tabular-nums text-white">{totals.tasks}</span>
+          <span class="ml-1.5 text-label uppercase text-neutral-500">active</span>
+        </span>
+        <span>
+          <span class="tabular-nums text-white">{totals.open}</span>
+          <span class="ml-1.5 text-label uppercase text-neutral-500">open</span>
+        </span>
+        <span>
+          <span class="tabular-nums text-ok">{totals.done}</span>
+          <span class="ml-1.5 text-label uppercase text-neutral-500">done</span>
+        </span>
+        <span>
+          <span
+            class="tabular-nums"
+            class:text-accent={totals.overdue > 0}
+            class:text-white={totals.overdue === 0}
+          >{totals.overdue}</span>
+          <span class="ml-1.5 text-label uppercase text-neutral-500">overdue</span>
+        </span>
+        <span>
+          <span class="tabular-nums text-white">{totals.archived ?? 0}</span>
+          <span class="ml-1.5 text-label uppercase text-neutral-500">archived</span>
+        </span>
+      </div>
+    {/if}
   </header>
 
   <main class="min-h-0 flex-1 overflow-y-auto">
     {#if statsQuery.isPending}
-      <div class="p-8 text-base text-[var(--color-text-muted)]">Loading…</div>
+      <div class="p-8 text-label font-mono uppercase text-neutral-500">[LOADING]</div>
     {:else if statsQuery.isError}
-      <div class="p-8 text-base text-[var(--color-danger)]">
-        {statsQuery.error.message}
+      <div class="p-8 text-label font-mono uppercase text-accent">
+        [ERROR] {statsQuery.error.message}
       </div>
     {:else if stats}
       {@const t = stats.totals}
@@ -139,52 +188,9 @@
           onaction={() => navigate("/projects")}
         />
       {:else}
-        <div class="space-y-5 p-4 sm:space-y-6 sm:p-6">
-          <div
-            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 sm:gap-4"
-          >
-            {#each [
-              { label: "Projects", value: t.projects, show: !projectFilter },
-              { label: "Boards", value: t.boards, show: !boardFilter },
-              { label: "Active", value: t.tasks, show: true },
-              { label: "Open", value: t.open, show: true },
-              { label: "Done", value: t.done, show: true },
-              {
-                label: "Overdue",
-                value: t.overdue,
-                show: true,
-                danger: t.overdue > 0,
-              },
-              {
-                label: "Archived",
-                value: t.archived ?? 0,
-                show: true,
-              },
-            ] as card (card.label)}
-              {#if card.show}
-                <div
-                  class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] px-4 py-4 sm:px-5 sm:py-5"
-                >
-                  <div
-                    class="mb-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
-                  >
-                    {card.label}
-                  </div>
-                  <div
-                    class="text-2xl font-semibold tracking-tight sm:text-3xl"
-                    class:text-[var(--color-danger)]={card.danger}
-                  >
-                    {card.value}
-                  </div>
-                </div>
-              {/if}
-            {/each}
-          </div>
-
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
-            <div
-              class="flex flex-col items-center justify-center rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-6"
-            >
+        <div class="space-y-8 p-4 sm:space-y-10 sm:p-6">
+          <div class="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10">
+            <div class="flex flex-col items-center justify-center py-2">
               <ProgressRing
                 value={donePct}
                 label="Completion"
@@ -192,10 +198,8 @@
               />
             </div>
 
-            <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-            >
-              <h2 class="mb-4 text-base font-semibold tracking-tight">
+            <div class="min-w-0">
+              <h2 class="mb-4 text-label font-mono uppercase text-neutral-400">
                 By priority
               </h2>
               <HBarChart
@@ -206,10 +210,8 @@
               />
             </div>
 
-            <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-            >
-              <h2 class="mb-4 text-base font-semibold tracking-tight">
+            <div class="min-w-0">
+              <h2 class="mb-4 text-label font-mono uppercase text-neutral-400">
                 By column
               </h2>
               <HBarChart
@@ -221,97 +223,89 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-            <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-            >
-              <h2 class="mb-1 text-base font-semibold tracking-tight">
+          <div class="grid grid-cols-1 gap-8 border-t border-neutral-800 pt-8 lg:grid-cols-2 lg:gap-10">
+            <div class="min-w-0">
+              <h2 class="mb-1 text-label font-mono uppercase text-neutral-400">
                 Tasks created
               </h2>
-              <p class="mb-4 text-sm text-[var(--color-text-muted)]">
+              <p class="mb-4 text-label font-mono uppercase text-neutral-500">
                 Last 30 days
               </p>
               <DayChart
                 rows={stats.created_by_day}
-                color="var(--color-accent)"
+                color="var(--color-text-display)"
               />
             </div>
-            <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-            >
-              <h2 class="mb-1 text-base font-semibold tracking-tight">
+            <div class="min-w-0">
+              <h2 class="mb-1 text-label font-mono uppercase text-neutral-400">
                 Activity
               </h2>
-              <p class="mb-4 text-sm text-[var(--color-text-muted)]">
+              <p class="mb-4 text-label font-mono uppercase text-neutral-500">
                 Creates, updates, moves · last 30 days
               </p>
               <DayChart
                 rows={stats.activity_by_day}
-                color="var(--color-ok)"
+                color="var(--color-text-display)"
               />
             </div>
           </div>
 
           {#if stats.by_project?.length}
-            <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-            >
-              <h2 class="mb-4 text-base font-semibold tracking-tight">
+            <div class="border-t border-neutral-800 pt-8">
+              <h2 class="mb-4 text-label font-mono uppercase text-neutral-400">
                 By project
               </h2>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-[28rem] text-left text-sm">
+                <table class="w-full min-w-xl text-left text-sm">
                   <thead>
                     <tr
-                      class="border-b border-[var(--color-border-subtle)] text-xs uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
+                      class="border-b border-neutral-700 text-label font-mono uppercase text-neutral-500"
                     >
-                      <th class="pb-2.5 pr-3 font-medium">Project</th>
-                      <th class="pb-2.5 pr-3 font-medium">Boards</th>
-                      <th class="pb-2.5 pr-3 font-medium">Active</th>
-                      <th class="pb-2.5 pr-3 font-medium">Done</th>
-                      <th class="pb-2.5 pr-3 font-medium">Open</th>
-                      <th class="pb-2.5 pr-3 font-medium">Overdue</th>
-                      <th class="pb-2.5 pr-3 font-medium">Archived</th>
-                      <th class="pb-2.5 font-medium">Progress</th>
+                      <th class="pb-3 pr-3 font-normal">Project</th>
+                      <th class="pb-3 pr-3 font-normal">Boards</th>
+                      <th class="pb-3 pr-3 font-normal">Active</th>
+                      <th class="pb-3 pr-3 font-normal">Done</th>
+                      <th class="pb-3 pr-3 font-normal">Open</th>
+                      <th class="pb-3 pr-3 font-normal">Overdue</th>
+                      <th class="pb-3 pr-3 font-normal">Archived</th>
+                      <th class="pb-3 font-normal">Progress</th>
                     </tr>
                   </thead>
                   <tbody>
                     {#each stats.by_project as row (row.name)}
                       {@const p = pct(row.done, row.tasks)}
-                      <tr
-                        class="border-b border-[var(--color-border-subtle)]/60 last:border-0"
-                      >
-                        <td class="py-3 pr-3 font-medium"
+                      <tr class="border-b border-neutral-800 last:border-0">
+                        <td class="py-3 pr-3 text-neutral-200"
                           >{formatStatusLabel(row.name)}</td
                         >
-                        <td class="py-3 pr-3 text-[var(--color-text-muted)]"
+                        <td class="py-3 pr-3 font-mono tabular-nums text-neutral-500"
                           >{row.boards}</td
                         >
-                        <td class="py-3 pr-3">{row.tasks}</td>
-                        <td class="py-3 pr-3 text-[var(--color-ok)]"
+                        <td class="py-3 pr-3 font-mono tabular-nums text-white">{row.tasks}</td>
+                        <td class="py-3 pr-3 font-mono tabular-nums text-ok"
                           >{row.done}</td
                         >
-                        <td class="py-3 pr-3">{row.open}</td>
+                        <td class="py-3 pr-3 font-mono tabular-nums text-neutral-200">{row.open}</td>
                         <td
-                          class="py-3 pr-3"
-                          class:text-[var(--color-danger)]={row.overdue > 0}
-                          >{row.overdue}</td
-                        >
-                        <td class="py-3 pr-3 text-[var(--color-text-muted)]"
+                          class="py-3 pr-3 font-mono tabular-nums"
+                          class:text-accent={row.overdue > 0}
+                          class:text-neutral-200={row.overdue === 0}
+                        >{row.overdue}</td>
+                        <td class="py-3 pr-3 font-mono tabular-nums text-neutral-500"
                           >{row.archived ?? 0}</td
                         >
                         <td class="py-3">
-                          <div class="flex min-w-[6rem] items-center gap-2">
-                            <div
-                              class="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--color-bg-soft)]"
-                            >
-                              <div
-                                class="h-full rounded-full bg-[var(--color-ok)]"
-                                style:width="{p}%"
-                              ></div>
-                            </div>
+                          <div class="flex min-w-28 items-center gap-2">
+                            <SegmentedBar
+                              value={p}
+                              max={100}
+                              segments={12}
+                              fill="var(--color-ok)"
+                              size="sm"
+                              class="flex-1"
+                            />
                             <span
-                              class="w-8 shrink-0 text-right font-mono text-xs text-[var(--color-text-muted)]"
+                              class="w-8 shrink-0 text-right font-mono text-label tabular-nums text-neutral-400"
                               >{p}%</span
                             >
                           </div>
@@ -325,70 +319,66 @@
           {/if}
 
           {#if stats.by_board?.length}
-            <div
-              class="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-5 sm:p-6"
-            >
-              <h2 class="mb-4 text-base font-semibold tracking-tight">
+            <div class="border-t border-neutral-800 pt-8">
+              <h2 class="mb-4 text-label font-mono uppercase text-neutral-400">
                 By board
               </h2>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-[28rem] text-left text-sm">
+                <table class="w-full min-w-xl text-left text-sm">
                   <thead>
                     <tr
-                      class="border-b border-[var(--color-border-subtle)] text-xs uppercase tracking-[0.06em] text-[var(--color-text-muted)]"
+                      class="border-b border-neutral-700 text-label font-mono uppercase text-neutral-500"
                     >
                       {#if !projectFilter}
-                        <th class="pb-2.5 pr-3 font-medium">Project</th>
+                        <th class="pb-3 pr-3 font-normal">Project</th>
                       {/if}
-                      <th class="pb-2.5 pr-3 font-medium">Board</th>
-                      <th class="pb-2.5 pr-3 font-medium">Active</th>
-                      <th class="pb-2.5 pr-3 font-medium">Done</th>
-                      <th class="pb-2.5 pr-3 font-medium">Open</th>
-                      <th class="pb-2.5 pr-3 font-medium">Overdue</th>
-                      <th class="pb-2.5 pr-3 font-medium">Archived</th>
-                      <th class="pb-2.5 font-medium">Progress</th>
+                      <th class="pb-3 pr-3 font-normal">Board</th>
+                      <th class="pb-3 pr-3 font-normal">Active</th>
+                      <th class="pb-3 pr-3 font-normal">Done</th>
+                      <th class="pb-3 pr-3 font-normal">Open</th>
+                      <th class="pb-3 pr-3 font-normal">Overdue</th>
+                      <th class="pb-3 pr-3 font-normal">Archived</th>
+                      <th class="pb-3 font-normal">Progress</th>
                     </tr>
                   </thead>
                   <tbody>
                     {#each stats.by_board as row (`${row.project}/${row.name}`)}
                       {@const p = pct(row.done, row.tasks)}
-                      <tr
-                        class="border-b border-[var(--color-border-subtle)]/60 last:border-0"
-                      >
+                      <tr class="border-b border-neutral-800 last:border-0">
                         {#if !projectFilter}
                           <td
-                            class="py-3 pr-3 text-[var(--color-text-secondary)]"
+                            class="py-3 pr-3 text-neutral-400"
                             >{formatStatusLabel(row.project)}</td
                           >
                         {/if}
-                        <td class="py-3 pr-3 font-medium"
+                        <td class="py-3 pr-3 text-neutral-200"
                           >{formatStatusLabel(row.name)}</td
                         >
-                        <td class="py-3 pr-3">{row.tasks}</td>
-                        <td class="py-3 pr-3 text-[var(--color-ok)]"
+                        <td class="py-3 pr-3 font-mono tabular-nums text-white">{row.tasks}</td>
+                        <td class="py-3 pr-3 font-mono tabular-nums text-ok"
                           >{row.done}</td
                         >
-                        <td class="py-3 pr-3">{row.open}</td>
+                        <td class="py-3 pr-3 font-mono tabular-nums text-neutral-200">{row.open}</td>
                         <td
-                          class="py-3 pr-3"
-                          class:text-[var(--color-danger)]={row.overdue > 0}
-                          >{row.overdue}</td
-                        >
-                        <td class="py-3 pr-3 text-[var(--color-text-muted)]"
+                          class="py-3 pr-3 font-mono tabular-nums"
+                          class:text-accent={row.overdue > 0}
+                          class:text-neutral-200={row.overdue === 0}
+                        >{row.overdue}</td>
+                        <td class="py-3 pr-3 font-mono tabular-nums text-neutral-500"
                           >{row.archived ?? 0}</td
                         >
                         <td class="py-3">
-                          <div class="flex min-w-[6rem] items-center gap-2">
-                            <div
-                              class="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--color-bg-soft)]"
-                            >
-                              <div
-                                class="h-full rounded-full bg-[var(--color-ok)]"
-                                style:width="{p}%"
-                              ></div>
-                            </div>
+                          <div class="flex min-w-28 items-center gap-2">
+                            <SegmentedBar
+                              value={p}
+                              max={100}
+                              segments={12}
+                              fill="var(--color-ok)"
+                              size="sm"
+                              class="flex-1"
+                            />
                             <span
-                              class="w-8 shrink-0 text-right font-mono text-xs text-[var(--color-text-muted)]"
+                              class="w-8 shrink-0 text-right font-mono text-label tabular-nums text-neutral-400"
                               >{p}%</span
                             >
                           </div>
