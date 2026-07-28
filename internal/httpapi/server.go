@@ -34,7 +34,7 @@ func New(conn *sqlx.DB, project string) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	return localGuard(s.mux)
 }
 
 func (s *Server) Service() *service.Service {
@@ -54,7 +54,7 @@ type Options struct {
 func (s *Server) Run(ctx context.Context, opts Options) error {
 	srv := &http.Server{
 		Addr:         opts.Addr,
-		Handler:      s.mux,
+		Handler:      s.Handler(),
 		ReadTimeout:  opts.ReadTimeout,
 		WriteTimeout: opts.WriteTimeout,
 	}
