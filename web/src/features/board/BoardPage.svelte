@@ -13,6 +13,8 @@
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
+  import Menu from "@/shared/ui/Menu.svelte";
+  import type { MenuItem } from "@/shared/ui/Menu.svelte";
   import Plus from "lucide-svelte/icons/plus";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
@@ -354,6 +356,36 @@
     void moveMutation.mutateAsync({ taskId: task.id, column });
   }
 
+  const boardMenuItems = $derived<MenuItem[]>([
+    {
+      label: showCompleted
+        ? `Hide completed${doneCount > 0 ? ` (${doneCount})` : ""}`
+        : `Show completed${doneCount > 0 ? ` (${doneCount})` : ""}`,
+      disabled: !project || !board,
+      onSelect: () => (showCompleted = !showCompleted),
+    },
+    ...(showCompleted && doneCount > 0
+      ? [
+          {
+            label: "Archive all done",
+            disabled: archiveDoneMutation.isPending,
+            onSelect: handleArchiveDone,
+          },
+        ]
+      : []),
+    {
+      label: "+ Column",
+      disabled: !project || !board,
+      onSelect: () => (columnDialog = true),
+    },
+    {
+      label: "Delete project",
+      danger: true,
+      disabled: !project,
+      onSelect: handleDeleteProject,
+    },
+  ]);
+
   onMount(() => {
     const onNew = () => openTask();
     window.addEventListener("fizza:new-task", onNew);
@@ -420,6 +452,9 @@
             <span class="opacity-70">({archivedCount})</span>
           {/if}
         </Button>
+        <div class="sm:hidden">
+          <Menu items={boardMenuItems} label="Board actions" />
+        </div>
         {#if showCompleted && doneCount > 0}
           <Button
             variant="ghost"
