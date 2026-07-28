@@ -11,6 +11,8 @@
     terminal?: boolean;
     ondragstart: (task: Task) => void;
     ondragend: () => void;
+    onmove: (task: Task, columnName: string) => void;
+    columnNames: string[];
     onedit: (task: Task) => void;
     ondelete: (task: Task) => void;
     onarchive?: (task: Task) => void;
@@ -23,6 +25,8 @@
     terminal = false,
     ondragstart,
     ondragend,
+    onmove,
+    columnNames,
     onedit,
     ondelete,
     onarchive,
@@ -34,8 +38,16 @@
   const dragging = $derived(draggingId === task.id);
   const siblingDragging = $derived(draggingId !== null && !dragging);
 
+  const moveTargets = $derived(
+    columnNames.filter((name) => name !== task.status)
+  );
+
   const menuItems = $derived<MenuItem[]>(
     [
+      ...moveTargets.map((name) => ({
+        label: `→ ${name.replaceAll("_", " ")}`,
+        onSelect: () => onmove(task, name),
+      })),
       ...(terminal && onrestore
         ? [{ label: "Restore", onSelect: () => onrestore(task) }]
         : []),

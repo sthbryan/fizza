@@ -350,6 +350,10 @@
     });
   }
 
+  function handleMove(task: Task, column: string) {
+    void moveMutation.mutateAsync({ taskId: task.id, column });
+  }
+
   onMount(() => {
     const onNew = () => openTask();
     window.addEventListener("fizza:new-task", onNew);
@@ -538,6 +542,7 @@
         ondragover={(col) => (dragOverColumn = col)}
         ondragleave={() => (dragOverColumn = null)}
         ondrop={handleDrop}
+        onmove={handleMove}
         onedit={(t) => (editing = t)}
         ondelete={handleDelete}
         onarchive={handleArchive}

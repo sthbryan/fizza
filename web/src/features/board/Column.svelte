@@ -16,6 +16,8 @@
     ondragover: (columnName: string) => void;
     ondragleave: () => void;
     ondrop: (columnName: string, beforeId?: string) => void;
+    onmove: (task: Task, columnName: string) => void;
+    columnNames: string[];
     onedit: (task: Task) => void;
     ondelete: (task: Task) => void;
     onarchive: (task: Task) => void;
@@ -36,6 +38,8 @@
     ondragover,
     ondragleave,
     ondrop,
+    onmove,
+    columnNames,
     onedit,
     ondelete,
     onarchive,
@@ -165,6 +169,8 @@
             {terminal}
             {ondragstart}
             {ondragend}
+            {onmove}
+            {columnNames}
             {onedit}
             {ondelete}
             {onarchive}

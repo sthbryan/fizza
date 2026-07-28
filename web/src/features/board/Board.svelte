@@ -15,6 +15,7 @@
     ondragover: (columnName: string) => void;
     ondragleave: () => void;
     ondrop: (columnName: string, beforeId?: string) => void;
+    onmove: (task: Task, columnName: string) => void;
     onedit: (task: Task) => void;
     ondelete: (task: Task) => void;
     onarchive: (task: Task) => void;
@@ -37,6 +38,7 @@
     ondragover,
     ondragleave,
     ondrop,
+    onmove,
     onedit,
     ondelete,
     onarchive,
@@ -49,6 +51,7 @@
   }: Props = $props();
 
   const canDeleteColumn = $derived((snapshot?.columns?.length || 0) > 1);
+  const columnNames = $derived((snapshot?.columns || []).map((c) => c.name));
   const visibleColumns = $derived(
     (snapshot?.columns || []).filter(
       (c) => showCompleted || !isTerminalColumn(c.name)
@@ -93,6 +96,8 @@
         {ondragover}
         {ondragleave}
         {ondrop}
+        {onmove}
+        {columnNames}
         {onedit}
         {ondelete}
         {onarchive}
