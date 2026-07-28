@@ -109,6 +109,8 @@ Output formats: `json` (default), `toon` (compact), `pretty` (tables). Override 
 
 `fizza serve` starts a local HTTP server on `127.0.0.1:6500` (override with `--host`, `--port`, `--addr`) and opens the browser unless you pass `--no-open`. No authentication, so don't expose it beyond localhost.
 
+Requests carrying a non-loopback `Origin`, or a `Host` that is a DNS name other than `localhost`, are refused with `403`. That keeps a page you happen to have open in another tab from driving the API, and blocks DNS rebinding. Clients that send no `Origin` at all — `curl`, scripts, the CLI — are unaffected, as is `bun run dev` on port 5173.
+
 URLs:
 
 - `/projects`
