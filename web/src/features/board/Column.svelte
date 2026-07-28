@@ -127,7 +127,7 @@
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent sm:h-10 sm:w-10"
+          class="flex h-8 w-8 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent"
         >
           ×
         </button>
@@ -136,7 +136,7 @@
         type="button"
         title="Add task"
         onclick={() => onadd(column.name)}
-        class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white sm:h-10 sm:w-10"
+        class="flex h-8 w-8 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white"
       >
         +
       </button>

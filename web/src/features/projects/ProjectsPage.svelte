@@ -164,7 +164,7 @@
                 <button
                   type="button"
                   title="Edit project"
-                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200"
+                  class="flex min-h-8 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200"
                   onclick={(e) => handleEdit(e, p)}
                 >
                   Edit
@@ -172,7 +172,7 @@
                 <button
                   type="button"
                   title="Delete project"
-                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-accent"
+                  class="flex min-h-8 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-accent"
                   onclick={(e) => handleDelete(e, p)}
                 >
                   Del

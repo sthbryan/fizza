@@ -493,7 +493,7 @@
           disabled={!project || !board}
           title="New task"
           aria-label="New task"
-          class="size-11 shrink-0 p-0!"
+          class="size-9 shrink-0 p-0!"
         >
           <Plus size={16} strokeWidth={1.5} />
         </Button>
@@ -536,7 +536,7 @@
             type="button"
             title={`Delete board ${b.name}`}
             class={cn(
-              "mr-1 flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base transition-colors",
+              "mr-1 flex h-8 w-8 cursor-pointer items-center justify-center font-mono text-base transition-colors",
               "text-neutral-500 hover:text-accent",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
@@ -553,7 +553,7 @@
       <button
         type="button"
         title="New board"
-        class="mb-0.5 ml-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center font-mono text-lg text-neutral-500 transition-colors hover:text-white"
+        class="mb-0.5 ml-1 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center font-mono text-lg text-neutral-500 transition-colors hover:text-white"
         onclick={() => (boardDialog = true)}
       >
         +

@@ -33,9 +33,9 @@
   };
 
   const sizes: Record<Size, string> = {
-    sm: "min-h-11 px-6 text-label gap-2",
-    md: "min-h-11 px-6 text-label gap-2",
-    lg: "min-h-11 px-6 text-label gap-2",
+    sm: "min-h-8 px-3.5 text-label gap-1.5",
+    md: "min-h-9 px-4 text-label gap-2",
+    lg: "min-h-10 px-5 text-label gap-2",
   };
 
   const radius = $derived(
@@ -53,7 +53,7 @@
     variants[variant],
     sizes[size],
     radius,
-    variant === "icon" && "h-11 w-11 px-0",
+    variant === "icon" && "h-8 w-8 px-0",
     className
   )}
   {disabled}

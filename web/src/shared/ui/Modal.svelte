@@ -65,7 +65,7 @@
           type="button"
           aria-label="Close"
           onclick={onclose}
-          class="min-h-11 cursor-pointer px-2 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200"
+          class="min-h-8 cursor-pointer px-2 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200"
         >
           [ X ]
         </button>

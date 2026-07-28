@@ -203,7 +203,7 @@
               <div class="flex w-full shrink-0 items-center sm:w-auto">
                 <button
                   type="button"
-                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
+                  class="flex min-h-8 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={unarchiveMutation.isPending}
                   onclick={() => void unarchiveMutation.mutateAsync(task)}
                 >
@@ -211,7 +211,7 @@
                 </button>
                 <button
                   type="button"
-                  class="flex min-h-11 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                  class="flex min-h-8 cursor-pointer items-center px-3 text-label font-mono uppercase text-neutral-500 transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={deleteMutation.isPending}
                   onclick={() => handleDelete(task)}
                 >
