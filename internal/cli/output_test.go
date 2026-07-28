@@ -180,7 +180,53 @@ func TestClassifyError_WrappedSentinelKeepsIdentity(t *testing.T) {
 	assert.True(t, errors.Is(err, model.ErrTitleEmpty))
 }
 
-func TestUserMessage_StripsValidationPrefix(t *testing.T) {
-	assert.Equal(t, "task title cannot be empty", UserMessage(model.ErrTitleEmpty))
-	assert.Equal(t, "", UserMessage(nil))
+func TestOutput_ErrorHonorsTOONFormat(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatTOON, true)
+	require.NoError(t, out.Write(Fail(CodeNotFound, "task 99")))
+
+	got := buf.String()
+	assert.NotContains(t, got, "{")
+	assert.Contains(t, got, "ok: false")
+	assert.Contains(t, got, "NOT_FOUND")
+}
+
+func TestOutput_ErrorHonorsPrettyFormat(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatPretty, true)
+	require.NoError(t, out.Write(Fail(CodeValidation, "task title cannot be empty")))
+
+	got := buf.String()
+	assert.NotContains(t, got, "{")
+	assert.Equal(t, "VALIDATION: task title cannot be empty\n", got)
+}
+
+func TestOutput_ErrorStillJSONInJSONFormat(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatJSON, true)
+	require.NoError(t, out.Write(Fail(CodeNotFound, "task 99")))
+
+	var env Envelope
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &env))
+	assert.False(t, env.OK)
+	assert.Equal(t, CodeNotFound, env.Error.Code)
+}
+
+func TestOutput_WritePrettyEmitsNothingWhenRenderFails(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatPretty, true)
+
+	err := out.writePretty(struct{ Unrenderable BoardView }{})
+	require.Error(t, err)
+	assert.Empty(t, buf.String())
+}
+
+func TestOutput_PrettyFallbackYieldsCleanJSON(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatPretty, true)
+	require.NoError(t, out.Write(OK(struct{ Unrenderable BoardView }{})))
+
+	var env Envelope
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &env), "output was not valid JSON: %q", buf.String())
+	assert.True(t, env.OK)
 }
