@@ -358,6 +358,11 @@
 
   const boardMenuItems = $derived<MenuItem[]>([
     {
+      label: `Archived${archivedCount > 0 ? ` (${archivedCount})` : ""}`,
+      disabled: !project || !board,
+      onSelect: () => navigate(archivedPath(project, board)),
+    },
+    {
       label: showCompleted
         ? `Hide completed${doneCount > 0 ? ` (${doneCount})` : ""}`
         : `Show completed${doneCount > 0 ? ` (${doneCount})` : ""}`,
@@ -398,7 +403,7 @@
     class="border-b border-neutral-800 bg-black"
   >
     <div
-      class="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
+      class="flex items-start justify-between gap-3 px-4 pt-4 sm:gap-4 sm:px-6 sm:pt-5"
     >
       <div class="min-w-0">
         <nav
@@ -435,7 +440,7 @@
           variant="ghost"
           onclick={() => (showCompleted = !showCompleted)}
           disabled={!project || !board}
-          class="!hidden sm:!inline-flex"
+          class="!hidden lg:!inline-flex"
         >
           {showCompleted ? "Hide completed" : "Show completed"}
           {#if doneCount > 0}
@@ -446,13 +451,14 @@
           variant="ghost"
           onclick={() => navigate(archivedPath(project, board))}
           disabled={!project || !board}
+          class="!hidden lg:!inline-flex"
         >
           Archived
           {#if archivedCount > 0}
             <span class="opacity-70">({archivedCount})</span>
           {/if}
         </Button>
-        <div class="sm:hidden">
+        <div class="lg:hidden">
           <Menu items={boardMenuItems} label="Board actions" />
         </div>
         {#if showCompleted && doneCount > 0}
@@ -460,7 +466,7 @@
             variant="ghost"
             onclick={handleArchiveDone}
             disabled={archiveDoneMutation.isPending}
-            class="!hidden sm:!inline-flex"
+            class="!hidden lg:!inline-flex"
           >
             Archive all done
           </Button>
@@ -469,7 +475,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="!hidden hover:text-accent sm:!inline-flex"
+          class="!hidden hover:text-accent lg:!inline-flex"
         >
           Delete project
         </Button>
@@ -477,7 +483,7 @@
           variant="ghost"
           onclick={() => (columnDialog = true)}
           disabled={!project || !board}
-          class="!hidden sm:!inline-flex"
+          class="!hidden lg:!inline-flex"
         >
           + Column
         </Button>
