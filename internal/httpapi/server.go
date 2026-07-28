@@ -132,12 +132,8 @@ func mapError(err error) (int, string) {
 	switch {
 	case err == nil:
 		return http.StatusOK, ""
-	case errors.Is(err, service.ErrValidation):
-		msg := err.Error()
-		msg = strings.TrimPrefix(msg, "validation: ")
-		return http.StatusBadRequest, "VALIDATION:" + msg
-	case isValidationErr(err):
-		return http.StatusBadRequest, "VALIDATION:" + err.Error()
+	case errors.Is(err, model.ErrValidation):
+		return http.StatusBadRequest, "VALIDATION:" + strings.TrimPrefix(err.Error(), "validation: ")
 	case db.IsNotFound(err):
 		return http.StatusNotFound, "NOT_FOUND:" + err.Error()
 	case db.IsDuplicate(err):
@@ -146,8 +142,6 @@ func mapError(err error) (int, string) {
 		errors.Is(err, db.ErrColumnNotEmpty),
 		errors.Is(err, db.ErrLastColumn):
 		return http.StatusConflict, "CONFLICT:" + err.Error()
-	case errors.Is(err, model.ErrTaskCycle):
-		return http.StatusBadRequest, "VALIDATION:" + err.Error()
 	}
 	var typeErr *json.UnmarshalTypeError
 	if errors.As(err, &typeErr) {
@@ -190,27 +184,6 @@ func decodeJSONBody(r *http.Request, v any) error {
 		return err
 	}
 	return nil
-}
-
-func isValidationErr(err error) bool {
-	switch {
-	case errors.Is(err, model.ErrValidation),
-		errors.Is(err, model.ErrProjectNameEmpty),
-		errors.Is(err, model.ErrProjectNameLong),
-		errors.Is(err, model.ErrProjectDescLong),
-		errors.Is(err, model.ErrBoardNameEmpty),
-		errors.Is(err, model.ErrBoardNameLong),
-		errors.Is(err, model.ErrColumnNameEmpty),
-		errors.Is(err, model.ErrColumnNameLong),
-		errors.Is(err, model.ErrTitleEmpty),
-		errors.Is(err, model.ErrTaskNoBoard),
-		errors.Is(err, model.ErrTaskNoColumn),
-		errors.Is(err, model.ErrInvalidPriority),
-		errors.Is(err, model.ErrTagNameEmpty),
-		errors.Is(err, model.ErrTagNameLong):
-		return true
-	}
-	return false
 }
 
 func (s *Server) routes() {
