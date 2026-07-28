@@ -92,20 +92,24 @@ func (p *Priority) Scan(value any) error {
 }
 
 var (
-	ErrInvalidPriority  = errors.New("priority must be one of: low, medium, high, urgent")
-	ErrTitleEmpty       = errors.New("task title cannot be empty")
-	ErrTaskNoBoard      = errors.New("task must belong to a board")
-	ErrTaskNoColumn     = errors.New("task must belong to a column")
-	ErrProjectNameEmpty = errors.New("project name cannot be empty")
-	ErrProjectNameLong  = errors.New("project name too long (max 64 chars)")
-	ErrProjectDescLong  = errors.New("project description too long (max 1024 chars)")
-	ErrBoardNameEmpty   = errors.New("board name cannot be empty")
-	ErrBoardNameLong    = errors.New("board name too long (max 64 chars)")
-	ErrColumnNameEmpty  = errors.New("column name cannot be empty")
-	ErrColumnNameLong   = errors.New("column name too long (max 32 chars)")
-	ErrTaskCycle        = errors.New("task parent would create a cycle")
 	ErrValidation       = errors.New("validation")
+	ErrInvalidPriority  = ValidationError("priority must be one of: low, medium, high, urgent")
+	ErrTitleEmpty       = ValidationError("task title cannot be empty")
+	ErrTaskNoBoard      = ValidationError("task must belong to a board")
+	ErrTaskNoColumn     = ValidationError("task must belong to a column")
+	ErrProjectNameEmpty = ValidationError("project name cannot be empty")
+	ErrProjectNameLong  = ValidationError("project name too long (max 64 chars)")
+	ErrProjectDescLong  = ValidationError("project description too long (max 1024 chars)")
+	ErrBoardNameEmpty   = ValidationError("board name cannot be empty")
+	ErrBoardNameLong    = ValidationError("board name too long (max 64 chars)")
+	ErrColumnNameEmpty  = ValidationError("column name cannot be empty")
+	ErrColumnNameLong   = ValidationError("column name too long (max 32 chars)")
+	ErrTaskCycle        = ValidationError("task parent would create a cycle")
 )
+
+func ValidationError(msg string) error {
+	return fmt.Errorf("%w: %s", ErrValidation, msg)
+}
 
 type Task struct {
 	ID          int64        `json:"id" db:"id"`
