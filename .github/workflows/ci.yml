@@ -26,6 +26,7 @@ jobs:
       - run: make web
       - run: go vet ./...
       - run: go test -race -coverprofile=coverage.out ./...
+      - run: make mcp-test
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest'
         with:
@@ -40,3 +41,15 @@ jobs:
         with:
           go-version: stable
       - run: test -z "$(gofmt -l .)"
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+        working-directory: web
+      - run: bun run verify
+        working-directory: web
