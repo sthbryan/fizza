@@ -97,7 +97,7 @@
 
 <section
   class={cn(
-    "flex w-72 shrink-0 flex-col border p-3 sm:w-80 sm:p-3.5",
+    "flex w-full shrink-0 snap-center flex-col border p-3 sm:w-80 sm:p-3.5",
     "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
     "transition-colors duration-150",
     dragOver
