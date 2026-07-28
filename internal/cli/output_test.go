@@ -3,6 +3,8 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/fizza/fizza/internal/db"
@@ -141,4 +143,44 @@ func TestParseInt64(t *testing.T) {
 		_, err := parseInt64(bad)
 		assert.Error(t, err, bad)
 	}
+}
+
+func TestClassifyError_ModelValidationSentinels(t *testing.T) {
+	sentinels := []error{
+		model.ErrTitleEmpty,
+		model.ErrInvalidPriority,
+		model.ErrTaskNoBoard,
+		model.ErrTaskNoColumn,
+		model.ErrProjectNameEmpty,
+		model.ErrProjectNameLong,
+		model.ErrProjectDescLong,
+		model.ErrBoardNameEmpty,
+		model.ErrBoardNameLong,
+		model.ErrColumnNameEmpty,
+		model.ErrColumnNameLong,
+		model.ErrTagNameEmpty,
+		model.ErrTagNameLong,
+		model.ErrTaskCycle,
+	}
+	for _, err := range sentinels {
+		env, exit := ClassifyError(err)
+		require.NotNil(t, env.Error, "no error payload for %v", err)
+		assert.Equal(t, CodeValidation, env.Error.Code, "wrong code for %v", err)
+		assert.Equal(t, ExitValidation, exit, "wrong exit for %v", err)
+		assert.NotContains(t, env.Error.Message, "validation: ")
+	}
+}
+
+func TestClassifyError_WrappedSentinelKeepsIdentity(t *testing.T) {
+	err := fmt.Errorf("task 3: %w", model.ErrTitleEmpty)
+	env, exit := ClassifyError(err)
+	require.NotNil(t, env.Error)
+	assert.Equal(t, CodeValidation, env.Error.Code)
+	assert.Equal(t, ExitValidation, exit)
+	assert.True(t, errors.Is(err, model.ErrTitleEmpty))
+}
+
+func TestUserMessage_StripsValidationPrefix(t *testing.T) {
+	assert.Equal(t, "task title cannot be empty", UserMessage(model.ErrTitleEmpty))
+	assert.Equal(t, "", UserMessage(nil))
 }

@@ -108,13 +108,22 @@ func ClassifyError(err error) (Envelope, int) {
 		return Fail(CodeNotFound, err.Error()), ExitNotFound
 	case db.IsDuplicate(err):
 		return Fail(CodeDuplicate, err.Error()), ExitDuplicate
-	case errors.Is(err, model.ErrTaskCycle):
-		return Fail(CodeValidation, err.Error()), ExitValidation
 	case errors.Is(err, db.ErrWIPLimitReached):
 		return Fail(CodeConflict, err.Error()), ExitConflict
 	default:
 		return Fail(CodeInternal, err.Error()), ExitGeneric
 	}
+}
+
+func UserMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	env, _ := ClassifyError(err)
+	if env.Error == nil {
+		return err.Error()
+	}
+	return env.Error.Message
 }
 
 func validationMessage(err error) string {
