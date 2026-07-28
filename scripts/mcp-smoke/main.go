@@ -6,10 +6,32 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+var expectedTools = []string{
+	"board_create",
+	"board_delete",
+	"board_list",
+	"board_snapshot",
+	"project_delete",
+	"project_list",
+	"project_new",
+	"tag_add",
+	"tag_delete",
+	"tag_list",
+	"task_add",
+	"task_archive",
+	"task_archive_done",
+	"task_delete",
+	"task_list",
+	"task_move",
+	"task_unarchive",
+	"task_update",
+}
 
 func main() {
 	bin := "./fizza"
@@ -49,13 +71,34 @@ func main() {
 		return nil
 	})
 
-	step("tools/list has 15", func() error {
+	step("tools/list matches the expected set", func() error {
 		tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
 		if err != nil {
 			return err
 		}
-		if len(tools.Tools) != 15 {
-			return fmt.Errorf("got %d tools, want 15", len(tools.Tools))
+		got := map[string]bool{}
+		for _, t := range tools.Tools {
+			got[t.Name] = true
+		}
+		var missing, unexpected []string
+		for _, name := range expectedTools {
+			if !got[name] {
+				missing = append(missing, name)
+			}
+		}
+		want := map[string]bool{}
+		for _, name := range expectedTools {
+			want[name] = true
+		}
+		for name := range got {
+			if !want[name] {
+				unexpected = append(unexpected, name)
+			}
+		}
+		sort.Strings(missing)
+		sort.Strings(unexpected)
+		if len(missing) > 0 || len(unexpected) > 0 {
+			return fmt.Errorf("tool set drifted: missing %v, unexpected %v", missing, unexpected)
 		}
 		return nil
 	})

@@ -114,9 +114,11 @@ func Doctor(ctx context.Context, conn Querier) (*DoctorReport, error) {
 		report.Checks = append(report.Checks, DoctorCheck{Name: "quick_check", OK: quickCheck == "ok"})
 	}
 
-	row := conn.QueryRowContext(ctx, `SELECT path FROM pragma_database_list WHERE seq = 0`)
+	row := conn.QueryRowContext(ctx, `SELECT file FROM pragma_database_list WHERE seq = 0`)
 	var dbPath string
-	if err := row.Scan(&dbPath); err == nil {
+	if err := row.Scan(&dbPath); err != nil {
+		report.Checks = append(report.Checks, DoctorCheck{Name: "db_path", OK: false, Detail: err.Error()})
+	} else {
 		report.DBPath = dbPath
 		if info, err := os.Stat(dbPath); err == nil {
 			report.DBSize = info.Size()
