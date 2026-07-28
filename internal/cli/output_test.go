@@ -3,6 +3,8 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/fizza/fizza/internal/db"
@@ -141,4 +143,90 @@ func TestParseInt64(t *testing.T) {
 		_, err := parseInt64(bad)
 		assert.Error(t, err, bad)
 	}
+}
+
+func TestClassifyError_ModelValidationSentinels(t *testing.T) {
+	sentinels := []error{
+		model.ErrTitleEmpty,
+		model.ErrInvalidPriority,
+		model.ErrTaskNoBoard,
+		model.ErrTaskNoColumn,
+		model.ErrProjectNameEmpty,
+		model.ErrProjectNameLong,
+		model.ErrProjectDescLong,
+		model.ErrBoardNameEmpty,
+		model.ErrBoardNameLong,
+		model.ErrColumnNameEmpty,
+		model.ErrColumnNameLong,
+		model.ErrTagNameEmpty,
+		model.ErrTagNameLong,
+		model.ErrTaskCycle,
+	}
+	for _, err := range sentinels {
+		env, exit := ClassifyError(err)
+		require.NotNil(t, env.Error, "no error payload for %v", err)
+		assert.Equal(t, CodeValidation, env.Error.Code, "wrong code for %v", err)
+		assert.Equal(t, ExitValidation, exit, "wrong exit for %v", err)
+		assert.NotContains(t, env.Error.Message, "validation: ")
+	}
+}
+
+func TestClassifyError_WrappedSentinelKeepsIdentity(t *testing.T) {
+	err := fmt.Errorf("task 3: %w", model.ErrTitleEmpty)
+	env, exit := ClassifyError(err)
+	require.NotNil(t, env.Error)
+	assert.Equal(t, CodeValidation, env.Error.Code)
+	assert.Equal(t, ExitValidation, exit)
+	assert.True(t, errors.Is(err, model.ErrTitleEmpty))
+}
+
+func TestOutput_ErrorHonorsTOONFormat(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatTOON, true)
+	require.NoError(t, out.Write(Fail(CodeNotFound, "task 99")))
+
+	got := buf.String()
+	assert.NotContains(t, got, "{")
+	assert.Contains(t, got, "ok: false")
+	assert.Contains(t, got, "NOT_FOUND")
+}
+
+func TestOutput_ErrorHonorsPrettyFormat(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatPretty, true)
+	require.NoError(t, out.Write(Fail(CodeValidation, "task title cannot be empty")))
+
+	got := buf.String()
+	assert.NotContains(t, got, "{")
+	assert.Equal(t, "VALIDATION: task title cannot be empty\n", got)
+}
+
+func TestOutput_ErrorStillJSONInJSONFormat(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatJSON, true)
+	require.NoError(t, out.Write(Fail(CodeNotFound, "task 99")))
+
+	var env Envelope
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &env))
+	assert.False(t, env.OK)
+	assert.Equal(t, CodeNotFound, env.Error.Code)
+}
+
+func TestOutput_WritePrettyEmitsNothingWhenRenderFails(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatPretty, true)
+
+	err := out.writePretty(struct{ Unrenderable BoardView }{})
+	require.Error(t, err)
+	assert.Empty(t, buf.String())
+}
+
+func TestOutput_PrettyFallbackYieldsCleanJSON(t *testing.T) {
+	var buf bytes.Buffer
+	out := NewOutput(&buf, FormatPretty, true)
+	require.NoError(t, out.Write(OK(struct{ Unrenderable BoardView }{})))
+
+	var env Envelope
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &env), "output was not valid JSON: %q", buf.String())
+	assert.True(t, env.OK)
 }

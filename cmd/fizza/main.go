@@ -13,7 +13,7 @@ func main() {
 	cli.SetVersion(version)
 	code, err := cli.ExecuteWithCode()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, cli.UserMessage(err))
 	}
 	os.Exit(code)
 }

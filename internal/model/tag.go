@@ -1,15 +1,14 @@
 package model
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/fizza/fizza/internal/dbutil"
 )
 
 var (
-	ErrTagNameEmpty = errors.New("tag name cannot be empty")
-	ErrTagNameLong  = errors.New("tag name too long (max 64 chars)")
+	ErrTagNameEmpty = ValidationError("tag name cannot be empty")
+	ErrTagNameLong  = ValidationError("tag name too long (max 64 chars)")
 )
 
 func ValidateTag(name string) error {

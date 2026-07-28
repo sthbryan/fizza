@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -108,13 +109,22 @@ func ClassifyError(err error) (Envelope, int) {
 		return Fail(CodeNotFound, err.Error()), ExitNotFound
 	case db.IsDuplicate(err):
 		return Fail(CodeDuplicate, err.Error()), ExitDuplicate
-	case errors.Is(err, model.ErrTaskCycle):
-		return Fail(CodeValidation, err.Error()), ExitValidation
 	case errors.Is(err, db.ErrWIPLimitReached):
 		return Fail(CodeConflict, err.Error()), ExitConflict
 	default:
 		return Fail(CodeInternal, err.Error()), ExitGeneric
 	}
+}
+
+func UserMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	env, _ := ClassifyError(err)
+	if env.Error == nil {
+		return err.Error()
+	}
+	return env.Error.Message
 }
 
 func validationMessage(err error) string {
@@ -160,11 +170,11 @@ func (o *Output) WithMeta(enabled bool) *Output {
 }
 
 func (o *Output) Write(env Envelope) error {
-	if !env.OK {
-		return o.writeJSON(env)
-	}
 	switch o.format {
 	case FormatPretty:
+		if !env.OK {
+			return o.writePrettyError(env)
+		}
 		if err := o.writePretty(env.Data); err == nil {
 			return nil
 		}
@@ -199,8 +209,22 @@ func (o *Output) writeTOON(env Envelope) error {
 }
 
 func (o *Output) writePretty(data any) error {
-	r := presenter.New(o.w, o.noColor)
-	return renderPretty(r, data)
+	var buf bytes.Buffer
+	r := presenter.New(&buf, o.noColor)
+	if err := renderPretty(r, data); err != nil {
+		return err
+	}
+	_, err := o.w.Write(buf.Bytes())
+	return err
+}
+
+func (o *Output) writePrettyError(env Envelope) error {
+	if env.Error == nil {
+		_, err := fmt.Fprintln(o.w, "error")
+		return err
+	}
+	_, err := fmt.Fprintf(o.w, "%s: %s\n", env.Error.Code, env.Error.Message)
+	return err
 }
 
 func renderPretty(r *presenter.Renderer, data any) error {
