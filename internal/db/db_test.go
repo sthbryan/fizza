@@ -102,3 +102,24 @@ func TestMigrationStatus(t *testing.T) {
 		assert.NotEmpty(t, a.AppliedAt)
 	}
 }
+
+func TestDoctor_ReportsDBPathAndSize(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "doctor.db")
+	conn, err := Open(ctx, path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	report, err := Doctor(ctx, conn)
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, report.DBPath)
+	assert.Equal(t, "doctor.db", filepath.Base(report.DBPath))
+	assert.Positive(t, report.DBSize)
+	assert.True(t, report.OK)
+	assert.Equal(t, "ok", report.Integrity)
+
+	for _, c := range report.Checks {
+		assert.True(t, c.OK, "check %s failed: %s", c.Name, c.Detail)
+	}
+}
