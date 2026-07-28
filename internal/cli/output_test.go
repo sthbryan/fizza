@@ -230,3 +230,28 @@ func TestOutput_PrettyFallbackYieldsCleanJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &env), "output was not valid JSON: %q", buf.String())
 	assert.True(t, env.OK)
 }
+
+func TestFormatMapValue_DereferencesPointers(t *testing.T) {
+	limit := int64(3)
+	count := 7
+	name := "main"
+
+	assert.Equal(t, "3", formatMapValue(&limit))
+	assert.Equal(t, "7", formatMapValue(&count))
+	assert.Equal(t, "main", formatMapValue(&name))
+
+	var nilLimit *int64
+	assert.Equal(t, "-", formatMapValue(nilLimit))
+	assert.Equal(t, "-", formatMapValue(nil))
+}
+
+func TestOutput_PrettyMapWithPointerValue(t *testing.T) {
+	var buf bytes.Buffer
+	limit := int64(1)
+	out := NewOutput(&buf, FormatPretty, true)
+	require.NoError(t, out.Write(OK(map[string]any{"wip_limit": &limit})))
+
+	got := buf.String()
+	assert.Equal(t, "wip_limit: 1\n", got)
+	assert.NotContains(t, got, "0x")
+}

@@ -306,6 +306,8 @@ func renderMap(r *presenter.Renderer, m map[string]any) error {
 
 func formatMapValue(v any) string {
 	switch t := v.(type) {
+	case nil:
+		return "-"
 	case string:
 		return t
 	case time.Time:
@@ -314,9 +316,14 @@ func formatMapValue(v any) string {
 		return strconv.FormatInt(t, 10)
 	case int:
 		return strconv.Itoa(t)
-	default:
-		return fmt.Sprintf("%v", v)
 	}
+	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return "-"
+		}
+		return formatMapValue(rv.Elem().Interface())
+	}
+	return fmt.Sprintf("%v", v)
 }
 
 func ParseFlagInt64(s string) (int64, error) {
