@@ -16,6 +16,8 @@
     ondragover: (columnName: string) => void;
     ondragleave: () => void;
     ondrop: (columnName: string, beforeId?: string) => void;
+    onmove: (task: Task, columnName: string) => void;
+    columnNames: string[];
     onedit: (task: Task) => void;
     ondelete: (task: Task) => void;
     onarchive: (task: Task) => void;
@@ -36,6 +38,8 @@
     ondragover,
     ondragleave,
     ondrop,
+    onmove,
+    columnNames,
     onedit,
     ondelete,
     onarchive,
@@ -93,7 +97,7 @@
 
 <section
   class={cn(
-    "flex w-72 shrink-0 flex-col border p-3 sm:w-80 sm:p-3.5",
+    "flex w-full shrink-0 snap-center flex-col border p-3 sm:w-80 sm:p-3.5",
     "max-h-[calc(100dvh-10rem)] sm:max-h-[calc(100dvh-9rem)]",
     "transition-colors duration-150",
     dragOver
@@ -123,7 +127,7 @@
           type="button"
           title="Delete column"
           onclick={() => ondeletecolumn(column)}
-          class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent sm:h-10 sm:w-10"
+          class="flex h-8 w-8 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-accent"
         >
           ×
         </button>
@@ -132,7 +136,7 @@
         type="button"
         title="Add task"
         onclick={() => onadd(column.name)}
-        class="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white sm:h-10 sm:w-10"
+        class="flex h-8 w-8 cursor-pointer items-center justify-center font-mono text-base text-neutral-500 transition-colors hover:text-white"
       >
         +
       </button>
@@ -165,6 +169,8 @@
             {terminal}
             {ondragstart}
             {ondragend}
+            {onmove}
+            {columnNames}
             {onedit}
             {ondelete}
             {onarchive}

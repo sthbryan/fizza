@@ -13,6 +13,8 @@
   import AppShell from "@/shared/layout/AppShell.svelte";
   import Button from "@/shared/ui/Button.svelte";
   import ConfirmDialog from "@/shared/ui/ConfirmDialog.svelte";
+  import Menu from "@/shared/ui/Menu.svelte";
+  import type { MenuItem } from "@/shared/ui/Menu.svelte";
   import Plus from "lucide-svelte/icons/plus";
   import Board from "./Board.svelte";
   import { boardApi } from "./api";
@@ -350,6 +352,45 @@
     });
   }
 
+  function handleMove(task: Task, column: string) {
+    void moveMutation.mutateAsync({ taskId: task.id, column });
+  }
+
+  const boardMenuItems = $derived<MenuItem[]>([
+    {
+      label: `Archived${archivedCount > 0 ? ` (${archivedCount})` : ""}`,
+      disabled: !project || !board,
+      onSelect: () => navigate(archivedPath(project, board)),
+    },
+    {
+      label: showCompleted
+        ? `Hide completed${doneCount > 0 ? ` (${doneCount})` : ""}`
+        : `Show completed${doneCount > 0 ? ` (${doneCount})` : ""}`,
+      disabled: !project || !board,
+      onSelect: () => (showCompleted = !showCompleted),
+    },
+    ...(showCompleted && doneCount > 0
+      ? [
+          {
+            label: "Archive all done",
+            disabled: archiveDoneMutation.isPending,
+            onSelect: handleArchiveDone,
+          },
+        ]
+      : []),
+    {
+      label: "+ Column",
+      disabled: !project || !board,
+      onSelect: () => (columnDialog = true),
+    },
+    {
+      label: "Delete project",
+      danger: true,
+      disabled: !project,
+      onSelect: handleDeleteProject,
+    },
+  ]);
+
   onMount(() => {
     const onNew = () => openTask();
     window.addEventListener("fizza:new-task", onNew);
@@ -362,7 +403,7 @@
     class="border-b border-neutral-800 bg-black"
   >
     <div
-      class="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
+      class="flex items-start justify-between gap-3 px-4 pt-4 sm:gap-4 sm:px-6 sm:pt-5"
     >
       <div class="min-w-0">
         <nav
@@ -399,7 +440,7 @@
           variant="ghost"
           onclick={() => (showCompleted = !showCompleted)}
           disabled={!project || !board}
-          class="!hidden sm:!inline-flex"
+          class="!hidden lg:!inline-flex"
         >
           {showCompleted ? "Hide completed" : "Show completed"}
           {#if doneCount > 0}
@@ -410,18 +451,22 @@
           variant="ghost"
           onclick={() => navigate(archivedPath(project, board))}
           disabled={!project || !board}
+          class="!hidden lg:!inline-flex"
         >
           Archived
           {#if archivedCount > 0}
             <span class="opacity-70">({archivedCount})</span>
           {/if}
         </Button>
+        <div class="lg:hidden">
+          <Menu items={boardMenuItems} label="Board actions" />
+        </div>
         {#if showCompleted && doneCount > 0}
           <Button
             variant="ghost"
             onclick={handleArchiveDone}
             disabled={archiveDoneMutation.isPending}
-            class="!hidden sm:!inline-flex"
+            class="!hidden lg:!inline-flex"
           >
             Archive all done
           </Button>
@@ -430,7 +475,7 @@
           variant="ghost"
           onclick={handleDeleteProject}
           disabled={!project}
-          class="!hidden hover:text-accent sm:!inline-flex"
+          class="!hidden hover:text-accent lg:!inline-flex"
         >
           Delete project
         </Button>
@@ -438,7 +483,7 @@
           variant="ghost"
           onclick={() => (columnDialog = true)}
           disabled={!project || !board}
-          class="!hidden sm:!inline-flex"
+          class="!hidden lg:!inline-flex"
         >
           + Column
         </Button>
@@ -448,7 +493,7 @@
           disabled={!project || !board}
           title="New task"
           aria-label="New task"
-          class="size-11 shrink-0 p-0!"
+          class="size-9 shrink-0 p-0!"
         >
           <Plus size={16} strokeWidth={1.5} />
         </Button>
@@ -491,7 +536,7 @@
             type="button"
             title={`Delete board ${b.name}`}
             class={cn(
-              "mr-1 flex h-11 w-11 cursor-pointer items-center justify-center font-mono text-base transition-colors",
+              "mr-1 flex h-8 w-8 cursor-pointer items-center justify-center font-mono text-base transition-colors",
               "text-neutral-500 hover:text-accent",
               active ? "opacity-100" : "opacity-0 group-hover/tab:opacity-100"
             )}
@@ -508,7 +553,7 @@
       <button
         type="button"
         title="New board"
-        class="mb-0.5 ml-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center font-mono text-lg text-neutral-500 transition-colors hover:text-white"
+        class="mb-0.5 ml-1 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center font-mono text-lg text-neutral-500 transition-colors hover:text-white"
         onclick={() => (boardDialog = true)}
       >
         +
@@ -538,6 +583,7 @@
         ondragover={(col) => (dragOverColumn = col)}
         ondragleave={() => (dragOverColumn = null)}
         ondrop={handleDrop}
+        onmove={handleMove}
         onedit={(t) => (editing = t)}
         ondelete={handleDelete}
         onarchive={handleArchive}

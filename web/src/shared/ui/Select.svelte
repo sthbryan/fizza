@@ -150,7 +150,7 @@
     }}
     onkeydown={onKeyDown}
     class={cn(
-      "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-0 border-b border-neutral-700 bg-transparent text-left text-neutral-200 transition-colors",
+      "flex min-h-9 w-full cursor-pointer items-center justify-between gap-2 border-0 border-b border-neutral-700 bg-transparent text-left text-neutral-200 transition-colors",
       "hover:border-neutral-500",
       "focus:outline-none focus-visible:border-neutral-200",
       "disabled:cursor-not-allowed disabled:opacity-30",
@@ -208,7 +208,7 @@
             aria-selected={isSelected}
             disabled={opt.disabled}
             class={cn(
-              "flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 border-l-2 px-3 py-2 text-left text-label font-mono uppercase transition-colors",
+              "flex min-h-9 w-full cursor-pointer items-center justify-between gap-2 border-l-2 px-3 py-1.5 text-left text-label font-mono uppercase transition-colors",
               "disabled:cursor-not-allowed disabled:opacity-30",
               isActive || isSelected
                 ? "border-accent text-neutral-200"

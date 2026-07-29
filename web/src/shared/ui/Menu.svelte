@@ -147,7 +147,7 @@
   }}
   onkeydown={onKeyDown}
   class={cn(
-    "flex h-11 w-11 cursor-pointer items-center justify-center text-neutral-500 transition-colors",
+    "flex h-8 w-8 cursor-pointer items-center justify-center text-neutral-500 transition-colors",
     "hover:text-neutral-200",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
     className
@@ -183,7 +183,7 @@
         }}
         onclick={() => commit(item)}
         class={cn(
-          "flex min-h-11 w-full cursor-pointer items-center gap-2 border-l-2 px-3 py-2 text-left text-label font-mono uppercase transition-colors",
+          "flex min-h-9 w-full cursor-pointer items-center gap-2 border-l-2 px-3 py-1.5 text-left text-label font-mono uppercase transition-colors",
           "disabled:cursor-not-allowed disabled:opacity-30",
           item.danger
             ? "text-accent hover:text-white"
