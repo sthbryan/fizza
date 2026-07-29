@@ -60,6 +60,7 @@ jobs:
           go-version: stable
           cache: false
       - run: test -z "$(gofmt -l .)"
+      - run: go mod tidy -diff
 
   web:
     runs-on: ubuntu-latest
